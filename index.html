@@ -203,6 +203,41 @@ select{font:inherit;font-weight:600;font-size:15px;border:0;background:var(--car
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{appearance:none;border:0;background:var(--fill);color:var(--ink2);font-size:13px;font-weight:600;padding:6px 12px;border-radius:999px;cursor:pointer}
 .chip.on{background:var(--ink);color:var(--white)}
+.rk{gap:14px;padding-bottom:28px;grid-template-rows:none;align-content:start}
+.rk-back{appearance:none;border:0;background:none;display:inline-flex;align-items:center;gap:2px;font-size:16px;font-weight:700;color:var(--ink2);cursor:pointer;padding:4px 0;justify-self:start}
+.rk-tabs{display:grid!important;grid-template-columns:repeat(3,1fr);width:100%;padding:4px;border-radius:14px}
+.rk-tabs button{padding:10px 4px;font-size:15px;border-radius:11px;white-space:nowrap}.rk-tabs em{font-style:normal;font-family:var(--f-num);margin-left:4px}
+.rk-row{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+.rk-row .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;min-width:0}.rk-row .chips::-webkit-scrollbar{display:none}
+.rk .chip{background:var(--card);border:1px solid var(--line);padding:8px 14px;font-size:14px;white-space:nowrap;flex:none}.rk .chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.rk-live,.rk-cnt{flex:none;font-size:13px;color:var(--muted);font-weight:700;display:inline-flex;align-items:center;gap:6px;font-family:var(--f-num)}
+.rk-live i{width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 3px #22c55e33}
+.rk-pod{display:grid;grid-template-columns:1fr 1.12fr 1fr;gap:8px;align-items:end}
+.rk-pc{position:relative;background:var(--card);border-radius:18px;padding:16px 6px 14px;display:grid;justify-items:center;gap:3px;text-align:center;border:1.5px solid var(--line);min-width:0}
+.rk-pc.first{background:linear-gradient(#fff3d1,#fffdf6 75%);border-color:#f0d58a;padding-top:22px}
+.rk-pc .rk-n{position:absolute;left:12px;top:10px;font-family:var(--f-num);font-weight:700;color:var(--muted)}.rk-pc.first .rk-n{color:var(--gold)}
+.rk-av{width:40px;height:52px;display:grid;place-items:center;flex:none}.rk-av img{width:100%;height:100%;image-rendering:pixelated;object-fit:contain}
+.rk-pc .rk-av{width:52px;height:66px}.rk-pc.first .rk-av{width:62px;height:80px}
+.rk-pc b{font-size:15px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rk-pc small{font-size:12px;color:var(--muted);white-space:nowrap}
+.rk-mvp i{font-style:normal;font-size:11px;font-family:var(--f-body);margin-right:1px}
+.rk-pc .rk-mvp b{font-size:16px;white-space:normal}
+.rk-mvp{display:inline-flex;align-items:center;gap:3px;background:var(--gold-s);color:var(--gold);border-radius:999px;padding:3px 10px;font-family:var(--f-num);font-weight:700;font-size:16px}.rk-mvp svg{width:16px;height:16px}
+.rk-list{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.rk-it{display:grid;grid-template-columns:auto auto 1fr auto;gap:12px;align-items:center;padding:10px 16px;border-top:1px solid var(--line)}.rk-it:first-child{border-top:0}
+.rk-it .rk-n{font-family:var(--f-num);font-weight:700;color:var(--muted);min-width:22px;text-align:center}
+.rk-nm{display:grid;min-width:0}.rk-nm b{font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rk-nm small{font-size:12.5px;color:var(--muted)}
+.rk-it .rk-mvp{background:none;padding:0;font-size:18px}
+.rk-it.me,.rk-pc.me{box-shadow:inset 0 0 0 2px var(--blue)}
+.rk-empty{text-align:center;color:var(--muted);padding:40px 10px;line-height:1.6;background:var(--fill);border-radius:18px;margin:0}
+.rk-note,.rk-foot{font-size:12.5px;color:var(--muted);margin:0;text-align:center;line-height:1.5}
+.rk-field{position:relative;aspect-ratio:1/1.08;border-radius:18px;overflow:hidden;background:#2e6b2b}.rk-field>svg{position:absolute;inset:0;width:100%;height:100%}
+.rk-spot{position:absolute;transform:translate(-50%,-50%);display:grid;justify-items:center;gap:1px;text-align:center;width:84px}
+.rk-spot b{font-size:12px;color:#fff;text-shadow:0 1px 2px #0009;max-width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rk-spot small{font-size:10.5px;color:#e8f5e6;display:inline-flex;align-items:center;gap:2px;text-shadow:0 1px 2px #0009;white-space:nowrap}.rk-spot small svg{width:11px;height:11px;color:#ffd35a}
+.rk-spot .rk-av{width:34px;height:44px;background:#ffffff26;border-radius:10px}.rk-av.empty{border:1.5px dashed #ffffff80}
+.rk-entry{appearance:none;width:100%;border:1px solid var(--line);background:var(--card);border-radius:16px;padding:14px 16px;display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;text-align:left;cursor:pointer;color:var(--ink);font:inherit;margin-top:12px}
+.rk-entry>svg:first-child{color:var(--gold);width:24px;height:24px}.rk-entry b{display:block;font-size:15px}.rk-entry small{font-size:12.5px;color:var(--muted)}
+
 .tro{display:grid;grid-template-columns:36px 1fr auto;gap:12px;align-items:center;padding:6px 0}
 .tro .ic{width:36px;height:36px;border-radius:50%;background:var(--gold-s);display:grid;place-items:center;color:var(--gold)}
 .tro .ic.gray{background:var(--fill);color:var(--ink2)}
@@ -380,7 +415,7 @@ body,.ttl,h1,h2,.desc,.situ,.choice,.item,.fi,.art h3{word-break:keep-all;overfl
 .call .sv{grid-row:span 2;display:grid;justify-items:center;background:var(--fill);border-radius:10px;padding:7px 0}
 .call .sv small{font-size:11px;color:var(--ink2);font-weight:700}.call .sv b{font-family:var(--f-num);font-size:26px;line-height:1}
 .call .ct{font-size:15px;font-weight:700;line-height:1.4}
-.call .rw{display:block;font-style:normal;font-size:12px;font-weight:700;color:var(--ink2);margin-top:2px}.call .rw.hi{color:#d97706}
+
 .call .mt{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800;font-family:var(--f-num);color:var(--ink2)}
 .call .mt span{flex:1;height:6px;border-radius:3px;background:var(--fill);overflow:hidden}.call .mt span i{display:block;height:100%;background:var(--blue)}
 .call .mt.hi span i{background:var(--green)}.call .mt.lo span i{background:var(--red)}
@@ -1511,13 +1546,14 @@ function startSeason(){
   if(inj&&inj.type==='minor')inj.seg=inj.p<SEG[1]?0:inj.p<SEG[2]?1:2;
   const natBoost=S.nat&&S.nat.joined===false?1:0;
   const base=ovr()+(S.morale-60)/10-(fl.slow?2:0)-(fl.newform?2:0)-(fl.distracted?1:0)+natBoost;
-  const form=rnd(-3,3);
-  S.prog={v:3,p:0,pl,L,base,form,bonus:0,segs:[],effs:[],inj,feed:[],ev:[],totalG:LG[pl].G,fin:null,nat:null,
+  const form=rnd(-3,3), ageDrop=Math.max(0,S.age-(S.trait==='late'?33:31))*.7;
+  S.prog={v:3,p:0,pl,L,base:base-ageDrop,form,bonus:0,ageDrop,segs:[],effs:[],inj,feed:[],ev:[],totalG:LG[pl].G,fin:null,nat:null,
     wp:clamp(.32+(S.org==='ARMY'?.62:teamS(S.team))*.32+(base+form-L)*.004,.25,.72)};
   const P=S.prog;
   rollSeg(0);
   const c1=P.segs[0];
   if(c1.G)P.feed.push({p:.02,x:S.org==='HS'||S.org==='UNIV'?(S.role==='ace'?'개막전 선발 출전!':'개막전 엔트리에 이름을 올렸어요'):S.role==='minor'?(S.org==='US'?'마이너리그에서 시즌을 시작해요':'2군에서 시즌을 시작해요'):S.org==='ARMY'?'상무 유니폼을 입고 첫 경기에 나섰어요':S.pos==='SP'&&S.role==='ace'?'개막 시리즈 선발 등판!':S.role==='ace'?'개막전 선발 라인업에 이름을 올렸어요':'1군 엔트리에 합류했어요'});
+  if(ageDrop>0)P.feed.push({p:.03,x:`${S.age}세, 몸이 예전 같지 않아요. 나이 탓에 폼이 떨어졌어요`,k:'bad'});
   if(inj&&inj.type==='major')P.feed.push({p:fl.surgery?.03:inj.p,x:fl.surgery?'수술 뒤 재활에 들어갔어요':'큰 부상으로 시즌 아웃됐어요',k:'bad'});
   [1,2].forEach(i=>{if(!(inj&&inj.type==='major'&&inj.p<SEG[i]))P.ev.push({t:'mom',p:SEG[i],seg:i-1,n:i,done:false})});
   if(S.nat&&S.nat.joined)prepNat(P);
@@ -1570,8 +1606,17 @@ function prepNat(P){
   if(reach)P.ev.push({t:'big',kind:'nat',p:at,label:`${ev} 결승`,opp:pick(NAT_OPP[ev]||NAT_OPP.WBC),done:false});
   else P.feed.push({p:at,x:`대표팀이 ${ev}를 ${res}로 마쳤어요`,k:'hl'});
 }
-/* 성공 확률이 낮을수록 성공 보상이 크고, 실패해도 덜 깎여요 */
-const momMul=p=>clamp(Math.pow(.55/p,1.6),.5,2.6), momPen=p=>clamp(1.6*p,.3,1.5);
+/* 같은 상황에서 얻는 게 큰 작전(홈런·다이빙 캐치·정면 승부)일수록 성공 확률이 낮아요 */
+const M_HI=/홈런|만루|싹쓸이|3루타|2루타|사이클|다이빙|점프|노바운드|딜레이드|역전|힘으로|풀스윙|한 방|강하게|강공|삼진으로만|정면|전력|윽박|견제사|선행 주자|더블 아웃|노히트|직구 세 개|한가운데|한 이닝 더/;
+const M_LO=/볼넷|참기|참아|희생|사인대로|번트로 주자|멈추|안전|맡기|불펜|쉬겠|거르|고의사구|1점은 주고|몸으로 막|원바운드|중계|믿기|평소처럼|침착하게 단타|기록보다/;
+const momIsDef=d=>!!d.def||['P','SP','RP','C','IF','1B','OF'].includes(d.k);
+const momMerit=(d,o)=>(o.d||0)+(momIsDef(d)?0:((o.r||[1,0])[0])*1.5)+(M_HI.test(o.t)?1.5:0)-(M_LO.test(o.t)?2:0);
+function momProbs(d){
+  const m=d.o.map(o=>momMerit(d,o)),p=d.o.map(o=>momP(o)),ord=d.o.map((_,i)=>i).sort((a,b)=>m[a]-m[b]);
+  for(let j=1;j<ord.length;j++){const i=ord[j],q=ord[j-1];if(m[i]>m[q]+.01)p[i]=Math.min(p[i],p[q]-.09)}
+  return p.map(x=>clamp(x,.05,.92));
+}
+function momTier(d,i){const m=d.o.map(o=>momMerit(d,o)),hi=Math.max(...m),lo=Math.min(...m);return hi-lo<.01?.5:(hi-m[i])/(hi-lo)}  // 0=가장 큰 작전, 1=가장 안전
 function momP(o){const L=LG[S.prog?S.prog.pl:playLg()].L;return clamp(.5+(S.stats[o.s]-(L+o.d))/40+(S.trait==='clutch'?.06:0),.1,.9)}
 function evPending(P){const a=P.ev.find(e=>e.done&&e.res&&!e.ack);if(a)return a;let b=null;P.ev.forEach(e=>{if(!e.done&&P.p>=e.p-1e-9&&(!b||e.p<b.p))b=e});return b}
 function momReady(P,e){
@@ -1585,14 +1630,13 @@ function chooseMoment(i){
   const P=S.prog, e=evPending(P);if(!e||e.t!=='mom'||e.done)return;
   if(!e.m)e.m=genMom();
   const d=momDef(e.m.id), o=d.o[i], c=e.m.c;if(!o)return;
-  const pr=momP(o), pct=Math.round(pr*100), ok=R()<pr;
+  const pr=momProbs(d)[i], pct=Math.round(pr*100), ok=R()<pr;
   const runs=(o.r||(c.def?[0,1]:[1,0]))[ok?0:1];
   e.done=true;e.ack=false;
-  const mul=momMul(pr),pen=momPen(pr),mor=ok?Math.round(5*mul):-Math.round(3*pen),fm=ok?Math.round(2*mul):0;
-  const brave=!ok&&pr<.4;if(brave)S.fame=clamp(S.fame+1,0,100);
-  e.res={ok,title:d.title,choice:o.t,text:ok?o.ok:o.no,stat:SN[o.s],val:Math.floor(S.stats[o.s]),pct,g:momGame(c,runs,ok),mul:r1(mul),mor,fm,brave};
+  const f=momTier(d,i),mul=1.5-.9*f,mor=ok?Math.round(4+3*(1-f)):-3,fm=ok?Math.round(1+3*(1-f)):0;
+  e.res={ok,title:d.title,choice:o.t,text:ok?o.ok:o.no,stat:SN[o.s],val:Math.floor(S.stats[o.s]),pct,g:momGame(c,runs,ok),mul:r1(mul),mor,fm};
   S.morale=clamp(S.morale+mor,20,100);if(ok)S.fame=clamp(S.fame+fm,0,100);
-  P.bonus+=ok?1.8*mul:-.8*pen;
+  P.bonus+=ok?1.8*mul:-.8;
   P.feed.push({p:e.p,x:`${d.title}: ${ok?o.ok:o.no}`,k:ok?'hl':'bad'});
 }
 function bigSimWin(e){
@@ -1635,7 +1679,7 @@ function grow(pt,lgL,bonus){
   if(ob+g>S.pot+2)g=Math.max(0,S.pot+2-ob);
   keys.forEach(k=>{S.stats[k]+=g*(S.focus.includes(k)?1.45:.82)*rnd(.7,1.3)});
   const da=late?a-32:a-30;
-  if(da>0){const dec=da*.55*(S.trait==='iron'?.7:1);keys.forEach(k=>{const m=['spd','vel','sta'].includes(k)?1.5:['eye','ctl','men'].includes(k)?.6:1;S.stats[k]-=dec*m*rnd(.6,1.4)})}
+  if(da>0){const dec=(da*.55+Math.max(0,da-3)*.35)*(S.trait==='iron'?.7:1);keys.forEach(k=>{const m=['spd','vel','sta'].includes(k)?1.5:['eye','ctl','men'].includes(k)?.6:1;S.stats[k]-=dec*m*rnd(.6,1.4)})}
   keys.forEach(k=>S.stats[k]=clamp(S.stats[k],15,99));
   S.maxOvr=Math.max(S.maxOvr,ovr());
 }
@@ -1700,7 +1744,8 @@ function finishSeason(){
   const perf=perfGrade(tot,pt,aw.length,fin.champ&&role!=='minor'),o1=ovr(),o1r=ovrOf(S.pos,S.stats);
   const lvf=role==='minor'?.7:{HS:.75,UNIV:.8,ARMY:.7}[org]||1;
   const over=o1r>S.pot?clamp(1-(o1r-S.pot)/12,.25,1):1;
-  addOvr(perf.base*lvf*over*clamp((OVR_MAX-o1r)/16,.5,1));perf.d=ovr()-o1;S.maxOvr=Math.max(S.maxOvr,ovr());
+  const agf=S.age<=30?1:S.age<=32?.65:S.age<=34?.35:.12;
+  addOvr(perf.base*lvf*over*agf*clamp((OVR_MAX-o1r)/16,.5,1));perf.d=ovr()-o1;S.maxOvr=Math.max(S.maxOvr,ovr());
   const oa=ovr(), diff={};Object.keys(S.stats).forEach(k=>diff[k]=Math.floor(S.stats[k])-Math.floor(before[k]));
   S.fame=clamp(Math.round(S.fame*.9+Math.max(0,tot.war)*2+aw.length*4+trs.length*2),0,100);
   S.morale=clamp(Math.round(S.morale+(60-S.morale)*.25+(tot.war>3?5:tot.war<0?-5:0)+trs.length*3),20,100);
@@ -1740,6 +1785,99 @@ function finishSeason(){
   S.phase='summary';
 }
 
+/* ================= ranking ================= */
+/* 전 세계 랭킹: 무료 Supabase 프로젝트 주소와 anon 키를 넣으면 켜져요(RANKING.md 참고). 비어 있으면 이 기기 기록으로 보여요. */
+const RANK_CFG={url:'',key:''};
+const RKEY='b2mvp_rank', RK_ON=()=>!!(RANK_CFG.url&&RANK_CFG.key);
+const rkDay=(off=0)=>new Date(Date.now()+9*3600e3-off*864e5).toISOString().slice(0,10);   // 한국 시간 날짜
+const rkLocal=()=>{try{return JSON.parse(localStorage.getItem(RKEY)||'[]')}catch(e){return[]}};
+const rkSaveLocal=l=>{try{localStorage.setItem(RKEY,JSON.stringify(l.slice(-300)))}catch(e){}};
+const rkSort=(a,b)=>(b.mvp-a.mvp)||(b.aw-a.aw)||(b.ovr-a.ovr)||(b.war-a.war)||(a.ts-b.ts);
+const RK_CATS=[['all','전체'],['bat','타자'],['pit','투수'],['one','원클럽맨'],['abroad','해외파']];
+const RK_FIL={all:()=>true,bat:r=>!['SP','RP'].includes(r.pos),pit:r=>['SP','RP'].includes(r.pos),one:r=>r.one,abroad:r=>r.abroad};
+const RK_Q={all:'',bat:'&pos=not.in.(SP,RP)',pit:'&pos=in.(SP,RP)',one:'&one=is.true',abroad:'&abroad=is.true'};
+function rkRecord(){
+  const t=totals(), pro=S.hist.filter(h=>['KR','JP','US'].includes(h.org)), cnt={};
+  pro.forEach(h=>cnt[h.team]=(cnt[h.team]||0)+1);
+  const team=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0]||(S.hist[S.hist.length-1]||{}).team||S.team;
+  return{id:'r'+Date.now().toString(36)+Math.floor(R()*1e6).toString(36),day:rkDay(),ts:Date.now(),name:(S.name||'이름 없는 선수').slice(0,12),pos:S.pos,
+    ovr:Math.min(OVR_MAX,S.maxOvr|0),mvp:S.mvp|0,aw:awardCount(),tro:trophyCount(),war:Math.round((+t.war||0)*10)/10,wbsc:S.wbsc||0,seasons:S.hist.length,
+    team,one:Object.keys(cnt).length===1&&pro.length>=3,abroad:S.hist.some(h=>h.org==='US'||h.org==='JP'),ava:{skin:S.avatar.skin,hair:S.avatar.hair},col:TC[team]||'#1f4fa3',num:+S.num||0,mine:1};
+}
+function rkHead(){return{apikey:RANK_CFG.key,Authorization:'Bearer '+RANK_CFG.key,'Content-Type':'application/json'}}
+async function rkSubmit(rec){
+  if(!RK_ON()||!HAS_DOM)return;
+  try{const {mine,sent,...row}=rec;const r=await fetch(RANK_CFG.url+'/rest/v1/careers',{method:'POST',headers:{...rkHead(),Prefer:'return=minimal'},body:JSON.stringify(row)});
+    if(r.ok){const l=rkLocal();const x=l.find(y=>y.id===rec.id);if(x){x.sent=1;rkSaveLocal(l)}}}catch(e){}
+}
+const RKC={};
+async function rkFetch(day,cat){
+  const key=day+'|'+cat,c=RKC[key];if(c&&Date.now()-c.at<60e3)return c;
+  let out;
+  if(!RK_ON()){const l=rkLocal().filter(r=>r.day===day&&RK_FIL[cat](r)).sort(rkSort);out={list:l.slice(0,100),count:l.length,at:Date.now()}}
+  else{const r=await fetch(`${RANK_CFG.url}/rest/v1/careers?select=*&day=eq.${day}${RK_Q[cat]}&order=mvp.desc,aw.desc,ovr.desc,war.desc,ts.asc&limit=100`,{headers:{...rkHead(),Prefer:'count=exact'}});
+    if(!r.ok)throw new Error('rank '+r.status);const list=await r.json(),cr=r.headers.get('content-range')||'';out={list,count:+(cr.split('/')[1])||list.length,at:Date.now()}}
+  return RKC[key]=out;
+}
+async function rkBest(day){
+  const key=day+'|best',c=RKC[key];if(c&&Date.now()-c.at<60e3)return c;
+  let best={};
+  if(!RK_ON()){rkLocal().filter(r=>r.day===day).sort(rkSort).forEach(r=>{if(!best[r.pos])best[r.pos]=r})}
+  else{const rows=await Promise.all(POSORDER.map(p=>fetch(`${RANK_CFG.url}/rest/v1/careers?select=*&day=eq.${day}&pos=eq.${p}&order=mvp.desc,aw.desc,ovr.desc,war.desc,ts.asc&limit=1`,{headers:rkHead()}).then(r=>r.ok?r.json():[])));
+    POSORDER.forEach((p,i)=>{if(rows[i][0])best[p]=rows[i][0]})}
+  return RKC[key]={best,at:Date.now()};
+}
+function rkLoad(){
+  const U=ui.rank;if(!U||U.tab==='mine')return;const day=rkDay(U.day),key=U.tab==='best'?day+'|best':day+'|'+U.cat;
+  if(RKC[key]&&Date.now()-RKC[key].at<60e3)return;if(U.loading===key||U.errKey===key)return;U.loading=key;U.err=null;
+  (U.tab==='best'?rkBest(day):rkFetch(day,U.cat)).catch(e=>{U.err='랭킹 서버에 연결하지 못했어요. 잠시 뒤 다시 열어 주세요.';U.errKey=key}).finally(()=>{if(ui.rank===U){U.loading=null;render()}});
+}
+const rkAva=r=>`<img src="${avatarURL(r.ava||{skin:'#e8b98f',hair:'#2b2118'},r.col||'#1f4fa3')}" alt="">`;
+const rkPos=r=>(SUBPOS[r.pos]||{n:r.pos}).n, RK_SH={SP:'선발',RP:'구원',C:'포수','1B':'1루',SS:'유격','2B':'2루','3B':'3루',LF:'좌익',CF:'중견',RF:'우익'}, rkShort=r=>RK_SH[r.pos]||r.pos, rkMe=r=>!!(S&&S.rkId&&r.id===S.rkId);
+const rkTro=n=>`<span class="rk-mvp">${ICON.trophy}<b>${n}</b></span>`;
+function renderRank(){
+  const U=ui.rank, mine=rkLocal().filter(r=>r.mine);
+  const tabs=[['best','베스트 나인'],['rank','랭킹 100'],['mine',`나의 기록 <em>${mine.length}</em>`]];
+  let h=`<div class="page rk"><button class="rk-back" data-a="rk-close">${ICON.back}<span>게임으로</span></button>
+    <div class="seg rk-tabs">${tabs.map(([k,l])=>`<button class="${U.tab===k?'on':''}" data-a="rk-tab" data-v="${k}">${l}</button>`).join('')}</div>`;
+  if(U.tab!=='mine'){
+    const days=[0,1,2,3,4,5,6].map(i=>[i,i===0?'오늘':i===1?'어제':rkDay(i).slice(5).replace('-','.')]);
+    h+=`<div class="rk-row"><div class="chips rk-days">${days.map(([i,l])=>`<button class="chip ${U.day===i?'on':''}" data-a="rk-day" data-v="${i}">${l}</button>`).join('')}</div>
+      <span class="rk-live">${RK_ON()?'<i></i>실시간':'이 기기 기록'}</span></div>`;
+  }
+  const day=rkDay(U.day);
+  if(U.tab==='rank'){
+    const c=RKC[day+'|'+U.cat];
+    h+=`<div class="rk-row"><div class="chips">${RK_CATS.map(([k,l])=>`<button class="chip ${U.cat===k?'on':''}" data-a="rk-cat" data-v="${k}">${l}</button>`).join('')}</div><span class="rk-cnt">${c?c.count.toLocaleString('ko-KR')+'명':''}</span></div>`;
+    if(U.err&&!c)h+=`<p class="rk-empty">${esc(U.err)}</p>`;
+    else if(!c)h+=`<p class="rk-empty">불러오는 중…</p>`;
+    else if(!c.list.length)h+=`<p class="rk-empty">${U.day===0?'오늘':'이날'} 은퇴한 선수가 아직 없어요.<br>은퇴하면 그날 랭킹에 올라가요.</p>`;
+    else{
+      const L=c.list, top=[L[1],L[0],L[2]];
+      h+=`<div class="rk-pod">${top.map((r,i)=>!r?'<div></div>':`<div class="rk-pc ${i===1?'first':''} ${rkMe(r)?'me':''}"><span class="rk-n">${[2,1,3][i]}</span><div class="rk-av">${rkAva(r)}</div><b>${esc(r.name)}</b><small>${rkShort(r)} · OVR ${r.ovr}</small><span class="rk-mvp">${ICON.trophy}<i>MVP</i><b>${r.mvp}</b></span></div>`).join('')}</div>`;
+      if(L.length>3)h+=`<div class="rk-list">${L.slice(3).map((r,i)=>`<div class="rk-it ${rkMe(r)?'me':''}"><span class="rk-n">${i+4}</span><div class="rk-av">${rkAva(r)}</div><span class="rk-nm"><b>${esc(r.name)}</b><small>${rkPos(r)} · OVR ${r.ovr} · 개인상 ${r.aw}</small></span>${rkTro(r.mvp)}</div>`).join('')}</div>`;
+    }
+    if(!RK_ON())h+=`<p class="rk-note">지금은 이 기기에서 은퇴한 선수들끼리 순위를 매겨요.</p>`;
+  }else if(U.tab==='best'){
+    const c=RKC[day+'|best'];
+    if(U.err&&!c)h+=`<p class="rk-empty">${esc(U.err)}</p>`;
+    else if(!c)h+=`<p class="rk-empty">불러오는 중…</p>`;
+    else{
+      const SPOT={CF:[50,15],LF:[18,29],RF:[82,29],SS:[34,45],'2B':[66,45],'3B':[15,62],'1B':[85,62],SP:[50,63],RP:[85,86],C:[50,87]};
+      h+=`<div class="rk-field"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M50 98 L2 50 Q50 -14 98 50 Z" fill="#3f8a3a"/><path d="M50 92 L22 64 L50 36 L78 64 Z" fill="#c98d5b"/><path d="M50 86 L28 64 L50 42 L72 64 Z" fill="#4f9a43"/><circle cx="50" cy="62" r="4" fill="#c98d5b"/></svg>
+        ${POSORDER.map(p=>{const r=c.best[p],[x,y]=SPOT[p];return`<div class="rk-spot" style="left:${x}%;top:${y}%">${r?`<div class="rk-av">${rkAva(r)}</div><b>${esc(r.name)}</b><small>${RK_SH[p]} · ${ICON.trophy}${r.mvp}</small>`:`<div class="rk-av empty"></div><small>${RK_SH[p]}</small>`}</div>`}).join('')}</div>
+        <p class="rk-note">그날 은퇴한 선수 중 포지션마다 MVP·개인상·최고 OVR이 가장 높은 선수예요.</p>`;
+    }
+  }else{
+    h+=mine.length?`<div class="rk-list">${mine.slice().reverse().map(r=>`<div class="rk-it"><div class="rk-av">${rkAva(r)}</div><span class="rk-nm"><b>${esc(r.name)}</b><small>${r.day.slice(5).replace('-','.')} 은퇴 · ${rkPos(r)} · ${r.seasons}시즌 · OVR ${r.ovr} · 개인상 ${r.aw}${r.wbsc?` · WBSC ${r.wbsc}`:''}</small></span>${rkTro(r.mvp)}</div>`).join('')}</div>`
+      :`<p class="rk-empty">아직 은퇴한 선수가 없어요.<br>커리어를 끝내면 여기 기록이 쌓여요.</p>`;
+  }
+  h+=`<p class="rk-foot">MVP 횟수 → 개인상 → 최고 OVR → 통산 WAR 순으로 순위를 매겨요. 날짜는 한국 시간 기준이에요.</p></div>`;
+  rkLoad();
+  return h;
+}
+const rankEntry=()=>`<button class="rk-entry" data-a="rk-open">${ICON.trophy}<span><b>오늘의 랭킹</b><small>은퇴한 선수들의 MVP 순위</small></span>${ICON.chev||'›'}</button>`;
+
 /* ================= retire & hof ================= */
 function totals(){
   const rows=S.hist.filter(h=>h.top);
@@ -1755,6 +1893,7 @@ function retire(){
   list.sort((a,b)=>(b.mvp-a.mvp)||((b.wb||0)-(a.wb||0))||(b.maxOvr-a.maxOvr)||(b.aw-a.aw)||(b.war-a.war));
   try{localStorage.setItem(HOF,JSON.stringify(list.slice(0,30)))}catch(e){}
   addNews(`${S.name}, ${S.hist.length}시즌 선수 생활 마치고 은퇴`,'retire',3);
+  const rec=rkRecord(),rl=rkLocal();rl.push(rec);rkSaveLocal(rl);S.rkId=rec.id;Object.keys(RKC).forEach(k=>delete RKC[k]);rkSubmit(rec);
   S.phase='retired';ui.sheet=null;
 }
 
@@ -1854,7 +1993,7 @@ function renderCreate(){
     <div class="pcard"><div class="ava">${avaImg(AVS[C.avatar],sch)}</div><div><div style="font-size:20px;font-weight:800">${esc(C.name||'이름 없는 신인')} <span class="badge">${SUBPOS[C.pos].n}</span></div><div class="muted" style="font-size:13px">${c.style} · 등번호 ${parseInt(C.num)>=0&&C.num!==''?clamp(parseInt(C.num),0,99):'자동'} · 16세</div></div></div>
     <div class="rows"><div class="row"><span>소속</span><span>${emblem(sch,20)} ${sch}</span></div><div class="row"><span>국적 · 투타</span><span>대한민국 · ${C.hand}</span></div><div class="row"><span>능력치 합 · OVR</span><span>${Object.values(c.stats).reduce((a,b)=>a+b,0)} · 45</span></div><div class="row"><span>훈련 포커스</span><span>${C.focus.map(k=>SN[k]).join(', ')}</span></div><div class="row"><span>잠재력</span><span>스카우트도 아직 몰라요</span></div></div>
     <div class="btns"><button class="btn gray" data-a="c-noconfirm">다시 고르기</button><button class="btn play" data-a="c-start">입학하기</button></div></div></div>`}
-  return`<div class="page">${nav}<div class="stack">${body}</div><div></div>${btn}</div>${ov}${hofMini()}`;
+  return`<div class="page">${nav}<div class="stack">${body}</div><div></div>${btn}</div>${ov}${s===0?rankEntry():''}${hofMini()}`;
 }
 function hofMini(){const l=loadHof().slice(0,5);if(!l.length||C.step)return'';return`<section class="sec"><h2>명예의 전당 <span>이 기기</span></h2>${hofTable(l)}</section>`}
 function hofTable(l){return l.length?`<div class="tablewrap"><table><thead><tr><th>#</th><th>선수</th><th class="r">MVP</th><th class="r">WBSC</th><th class="r">최고</th><th class="r">개인상</th><th class="r">WAR</th></tr></thead><tbody>${l.map((h,i)=>`<tr><td>${i+1}</td><td>${esc(h.name)} <span class="muted">${esc(h.pos)}</span></td><td class="r">${h.mvp}</td><td class="r">${h.wb||0}</td><td class="r">${h.maxOvr}</td><td class="r">${h.aw}</td><td class="r">${h.war}</td></tr>`).join('')}</tbody></table></div>`:'<p class="desc">아직 은퇴한 선수가 없어요.</p>'}
@@ -1936,7 +2075,7 @@ function tabRecord(){
     h+=`<div class="chips">${cats.map(([k,l])=>`<button class="chip ${ui.recCat===k?'on':''}" data-a="rec-cat" data-v="${k}">${l} ${src.filter(x=>k==='all'||x.cat===k).length}</button>`).join('')}</div>`;
     h+=Object.keys(g).length?Object.entries(g).map(([n,ys])=>`<div class="tro"><span class="ic">${ui.recTab==='tro'?ICON.trophy:ICON.medal}</span><span><b>${esc(n)}</b><small>${ys.join(', ')}</small></span><span class="n">${ys.length}회</span></div>`).join(''):`<p class="desc">${ui.recTab==='tro'?'아직 우승 기록이 없어요.':'아직 개인상 기록이 없어요.'}</p>`;
   }
-  h+=`</section><section class="sec"><h2>명예의 전당 <span>이 기기</span></h2>${hofTable(loadHof().slice(0,10))}</section>`;
+  h+=`</section>${rankEntry()}<section class="sec"><h2>명예의 전당 <span>이 기기</span></h2>${hofTable(loadHof().slice(0,10))}</section>`;
   return h;
 }
 function renderApp(){
@@ -2039,8 +2178,8 @@ function momCard(e){
   const c=e.m.c, d=momDef(e.m.id), tot=S.prog.ev.filter(x=>x.t==='mom').length;
   return`<section class="sit" aria-label="승부처">${sitTop(c,c.my,c.op,bsoHTML(c.b,c.s,c.out))}
     <div class="bd">${diaHTML(c.on)}<div><p class="k">승부처 ${e.n}/${tot} · ${esc(d.title)}</p><p class="tx">${esc(d.txt(c))}</p></div></div></section>
-  <div class="calls" role="group" aria-label="작전 고르기">${d.o.map((o,i)=>{const p=Math.round(momP(o)*100);
-    return`<button class="call" data-a="mom" data-v="${i}"><span class="sv"><small>${SN[o.s]}</small><b>${Math.floor(S.stats[o.s])}</b></span><span class="ct">${esc(o.t)}<em class="rw${momMul(momP(o))>=1.3?' hi':''}">성공 보상 ×${momMul(momP(o)).toFixed(1)}</em></span><span class="mt ${p>=60?'hi':p<40?'lo':''}"><span><i style="width:${p}%"></i></span>${p}%</span></button>`}).join('')}</div>`;
+  <div class="calls" role="group" aria-label="작전 고르기">${(pp=>d.o.map((o,i)=>{const p=Math.round(pp[i]*100);
+    return`<button class="call" data-a="mom" data-v="${i}"><span class="sv"><small>${SN[o.s]}</small><b>${Math.floor(S.stats[o.s])}</b></span><span class="ct">${esc(o.t)}</span><span class="mt ${p>=60?'hi':p<40?'lo':''}"><span><i style="width:${p}%"></i></span>${p}%</span></button>`}).join(''))(momProbs(d))}</div>`;
 }
 function momResCard(e){
   const r=e.res, c=e.m.c, g=r.g;
@@ -2048,7 +2187,7 @@ function momResCard(e){
     <div class="big2">${r.ok?'성공!':'실패'}</div>
     <p class="k">${esc(r.title)} · ${esc(r.choice)}</p><p class="tx">${esc(r.text)}</p>
     <div class="fin"><span>경기 결과</span><b>${esc(c.me)} ${g.fm} : ${g.fo} ${esc(c.opp)}</b><em class="${g.win?'w':'l'}">${g.walk?'끝내기 승리':g.win?'승리':'패배'}</em></div>
-    <div class="chips"><span class="chip">${esc(r.stat)} ${r.val}</span><span class="chip">성공률 ${r.pct}%</span><span class="chip">${r.mul==null?(r.ok?'사기 +5 · 명성 +2 · 남은 시즌 활약 보너스':'사기 -3 · 남은 시즌 컨디션 조금 하락'):r.ok?`사기 +${r.mor} · 명성 +${r.fm} · 활약 보너스 ×${r.mul.toFixed(1)}`:`사기 ${r.mor}${r.brave?' · 과감한 승부로 명성 +1':' · 남은 시즌 컨디션 조금 하락'}`}</span></div></section>`;
+    <div class="chips"><span class="chip">${esc(r.stat)} ${r.val}</span><span class="chip">성공률 ${r.pct}%</span><span class="chip">${r.mul==null?(r.ok?'사기 +5 · 명성 +2 · 남은 시즌 활약 보너스':'사기 -3 · 남은 시즌 컨디션 조금 하락'):r.ok?`사기 +${r.mor} · 명성 +${r.fm} · 남은 시즌 활약 보너스`:`사기 ${r.mor} · 남은 시즌 컨디션 조금 하락`}</span></div></section>`;
 }
 function bigSides(e){const nat=e.kind==='nat';return{me:nat?'대한민국':shortT(S.team),mb:nat?natBadge('대한민국'):emblem(S.team,44),ob:nat?natBadge(e.opp):emblem(e.oppFull,44)}}
 function bigCard(e){
@@ -2176,6 +2315,7 @@ function renderRetired(){
   const TR={late:'대기만성',glass:'잦은 부상',iron:'강철 체력',clutch:'강심장','':'평범한 성장'};
   return`<section class="sec center" style="padding-block:28px"><div class="ava" style="width:88px;height:88px">${avaImg()}</div><p class="eyebrow">${S.year-1} 은퇴 · ${S.hist.length}시즌</p><div class="ttl">${esc(S.name)}의 야구 인생</div>${S.mvp||S.wbsc?`<p class="desc"><b class="blue">${[S.mvp?`MVP ${S.mvp}회`:'',S.wbsc?`${WBSC_AW} ${S.wbsc}회`:''].filter(Boolean).join(' · ')}</b></p>`:''}</section>
   <section class="sec"><h2>1군 통산</h2><p style="margin:0;font-weight:700">${tl}</p><div class="rows"><div class="row"><span>통산 WAR</span><span>${t.war}</span></div><div class="row"><span>최고 OVR</span><span>${S.maxOvr}</span></div><div class="row"><span>우승 · 개인상</span><span>${trophyCount()}회 · ${awardCount()}회</span></div><div class="row"><span>누적 수입</span><span>${money(r1(S.earn))}</span></div></div></section>
+  ${rankEntry()}
   <section class="sec"><h2>숨겨져 있던 재능</h2><div class="rows"><div class="row"><span>잠재력</span><span>${S.pot}</span></div><div class="row"><span>성장 특성</span><span>${TR[S.trait]}</span></div></div></section>
   <section class="sec"><h2>명예의 전당 <span>이 기기</span></h2>${hofTable(loadHof().slice(0,10))}</section>
   <button class="btn" data-a="reset-yes">새 커리어 시작</button>`;
@@ -2194,6 +2334,7 @@ function render(){
     if(ui.toast)app.insertAdjacentHTML('beforeend',`<div class="toast" role="status">${esc(ui.toast)}</div>`);
     return;
   }
+  if(ui.rank&&!(S&&S.phase==='progress')){app.className='app';app.innerHTML=renderRank();if(ui.toast)app.insertAdjacentHTML('beforeend',`<div class="toast" role="status">${esc(ui.toast)}</div>`);return}
   app.className='app'+(S&&S.phase==='app'?' tabs':'');
   if(!S)app.innerHTML=renderCreate();
   else app.innerHTML=({app:renderApp,progress:renderProgress,summary:renderSummary,award:renderAward,world:renderWorld,nat:renderNatRes,retired:renderRetired}[S.phase]||renderApp)();
@@ -3195,6 +3336,11 @@ function initHold(){
 /* ================= events ================= */
 function act(a,v){
   let top=false;
+  if(a&&a.startsWith('rk-')){
+    if(a==='rk-open')ui.rank={tab:'rank',day:0,cat:'all'};else if(a==='rk-close'){ui.rank=null;if(HAS_DOM&&location.hash==='#rank')history.replaceState(null,'',location.pathname+location.search)}
+    else if(ui.rank){ui.rank.err=null;ui.rank.errKey=null;if(a==='rk-tab')ui.rank.tab=v;else if(a==='rk-day')ui.rank.day=+v;else if(a==='rk-cat')ui.rank.cat=v}
+    render();if(HAS_DOM&&a!=='rk-day'&&a!=='rk-cat')window.scrollTo(0,0);return;
+  }
   if(a==='c-ava')C.avatar=+v;
   else if(a==='c-hand')C.hand=v;
   else if(a==='c-back')C.step=Math.max(0,C.step-1);
@@ -3287,7 +3433,7 @@ if(HAS_DOM){
   const up=()=>{if(PG.mapDrag){PG.mapDrag=false}if(PG.charge)pgRelease()};
   document.addEventListener('pointerup',up);document.addEventListener('pointercancel',up);
   document.addEventListener('keyup',e=>{if((e.code==='Space'||e.key===' ')&&PG.charge)pgRelease()});
-  const start=data=>{if(data&&data.S){S=migrate(data.S);fixState();if(data.C)Object.assign(C,data.C)}else load();render()};
+  const start=data=>{if(data&&data.S){S=migrate(data.S);fixState();if(data.C)Object.assign(C,data.C)}else load();if(location.hash==='#rank')ui.rank={tab:'rank',day:0,cat:'all'};render()};
   window.claude?.hot?.snapshot?.(()=>({S,C:{...C}}));
   window.claude?.hot?.ready?window.claude.hot.ready(start):start(window.claude?.hot?.data??{});
 }
