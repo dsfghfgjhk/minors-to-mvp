@@ -35,7 +35,8 @@ console.log('Live-pitch lifecycle passed');
 
 vm.runInContext(`
 S.stats.con=60;S.stats.pow=60;S.stats.spd=50;game.L=50;game.mode='bat';
-pgApply=(g,k)=>({k});
+// Fair grounders are provisional hits until the live fielding timeline resolves them.
+pgApply=(g,k)=>{const plan=g.lastBB?bbPlan(g,g.lastBB):null;return{k:plan?plan.k:k}};
 function playerTrial(inZ,dt,aim){game.cur={type:'직구',u:0,v:inZ?0:2.8,inZ,lh:false};return pgResolveBat(game,dt,aim,.5).k}
 const stats={zone:{miss:0,out:0,hit:0},ball:{miss:0,out:0,hit:0}};
 for(let i=0;i<1500;i++)for(const zone of [true,false]){const result=playerTrial(zone,0,{u:999,v:999}),r=stats[zone?'zone':'ball'];
