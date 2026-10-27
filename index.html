@@ -273,6 +273,35 @@ body,.ttl,h1,h2,.desc,.situ,.choice,.item,.fi,.art h3{word-break:keep-all;overfl
 .app.tabs{padding-bottom:16px}
 .app.tabs~.site-foot{padding-bottom:calc(170px + env(safe-area-inset-bottom,0px))}
 
+.donate{appearance:none;justify-self:start;display:inline-flex;align-items:center;gap:6px;background:#ffffff14;color:var(--chalk);border:1px solid #ffffff2e;border-radius:999px;padding:5px 12px 5px 9px;font-size:13px;font-weight:700;cursor:pointer;margin-top:-4px}
+.donate:hover{background:#ffffff26}
+.donate svg{color:var(--lamp)}
+.acct{background:var(--fill);border-radius:14px;padding:14px 16px;display:grid;gap:10px}
+.acct .no{font-family:var(--f-num);font-size:20px;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+.tpv{position:fixed;inset:0;z-index:45;background:var(--board);overflow-y:auto;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(28px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.tpv .in{max-width:760px;margin:0 auto;display:grid;gap:16px;color:var(--chalk)}
+.tpv .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tpv .when{font-size:13px;font-weight:700;color:var(--lamp);letter-spacing:.03em}
+.tvf{position:relative;border-radius:16px;padding:9px;background-color:#0a1f17;background-image:radial-gradient(circle,#ffc84570 1.4px,transparent 2px);background-size:11px 11px;box-shadow:inset 0 0 0 2px #24493a}
+.tvf img{display:block;width:100%;max-width:100%;aspect-ratio:96/56;border-radius:9px;image-rendering:pixelated}
+.l3{position:absolute;left:22px;right:22px;bottom:22px;display:flex;align-items:stretch;flex-wrap:wrap}
+.l3 .k{background:var(--accent);color:#ffffff;font-size:12px;font-weight:800;padding:0 10px;display:grid;place-items:center;letter-spacing:.04em}
+.l3 b{background:var(--lamp);color:var(--board);font-family:var(--f-display);font-weight:400;font-size:24px;line-height:1.3;padding:4px 14px;min-width:0;overflow-wrap:anywhere}
+.tpv .story{margin:0;font-size:16px;line-height:1.75;color:var(--chalk);max-width:62ch}
+.tpopts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.tpopt{appearance:none;border:0;text-align:left;background:var(--card);color:var(--ink);border-radius:16px;padding:16px;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-content:start;cursor:pointer;transition:transform .12s,box-shadow .12s}
+.tpopt:hover{transform:translateY(-2px);box-shadow:0 8px 20px #00000040}
+.tpopt .lt{grid-row:span 3;width:40px;height:40px;border-radius:50%;background:var(--blue);color:#ffffff;font-family:var(--f-num);font-weight:700;font-size:22px;display:grid;place-items:center}
+.tpopt b{font-size:16px;line-height:1.4}
+.tpopt small{font-size:13px;color:var(--ink2)}
+.tpopt .go{font-size:13px;font-weight:700;color:var(--accent);margin-top:6px}
+.tpv .later{appearance:none;background:transparent;border:0;color:var(--boardtxt);text-decoration:underline;font-size:14px;justify-self:center;cursor:pointer;padding:8px}
+.tpres{background:var(--card);color:var(--ink);border-radius:18px;padding:22px 18px;display:grid;gap:12px;justify-items:center;text-align:center}
+.tpres .stamp{font-family:var(--f-display);font-size:34px;line-height:1;color:var(--accent);border:4px solid var(--accent);border-radius:12px;padding:6px 18px 4px;transform:rotate(-6deg);animation:stamp .4s cubic-bezier(.2,1.4,.4,1)}
+.effs{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.eff{font-size:13px;font-weight:700;padding:5px 11px;border-radius:999px;background:var(--fill);color:var(--ink2)}
+.eff.g{background:#e9f8ef;color:#0f7a43} .eff.b{background:#fdf0f0;color:#b72f2f}
+@media (max-width:480px){.l3{left:16px;right:16px;bottom:16px}.l3 b{font-size:18px}}
 .momres{border-radius:18px;padding:22px 18px;display:grid;gap:8px;text-align:center;justify-items:center}
 .momres.ok{background:#e9f8ef;border:2px solid var(--green)}
 .momres.no{background:#fdf0f0;border:2px solid var(--red)}
@@ -522,8 +551,13 @@ const ICON={
   trophy:'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7 3h10v2h3v3a4 4 0 0 1-4 4h-.3A5 5 0 0 1 13 14.9V18h3v3H8v-3h3v-3.1A5 5 0 0 1 8.3 12H8a4 4 0 0 1-4-4V5h3z"/></svg>',
   medal:'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2h4l1 4 1-4h4l-3 7a6 6 0 1 1-4 0z"/></svg>',
   bars:'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M5 20V11h3v9zm5.5 0V5h3v15zM16 20v-7h3v7z"/></svg>',
+  ball:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M7.5 5.2c2.2 2.4 2.2 11.2 0 13.6M16.5 5.2c-2.2 2.4-2.2 11.2 0 13.6"/></svg>',
   check:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>'
 };
+
+/* ================= donation ================= */
+/* 후원 계좌: 값을 채우면 라커룸 왼쪽 위에 '개발자 서버비 내주기' 버튼이 나타나요 */
+const DONATE=null; // 예: {bank:'카카오뱅크',acct:'3333-00-0000000',holder:'홍길동'}
 
 /* ================= state ================= */
 let S=null;
@@ -688,7 +722,7 @@ function chooseTP(i){
   const d=tpDef(S.tp.id), op=d.opts()[i];
   const ch=op.eff()||[];
   S.morale=clamp(S.morale,20,100);S.fame=clamp(S.fame,0,100);
-  S.tp.done=true;S.tp.res={title:tpTitle(d),line:[op.t,...ch].join(' · ')};
+  S.tp.done=true;S.tp.res={title:tpTitle(d),choice:op.t,effs:ch,line:[op.t,...ch].join(' · ')};
   if(!S.role&&(!S.off||S.off.decided))ensureRole();
 }
 
@@ -1171,6 +1205,7 @@ function seasonInfoRows(){
 function tabHome(){
   return`<section class="scoreboard"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="lg">${S.year} · ${esc(stageTxt()||LG[playLg()].n)}</span><button class="icbtn" data-a="settings" aria-label="설정" style="color:var(--chalk)">${ICON.gear}</button></div>
   <h1>2군에서 MVP까지</h1>
+  ${DONATE?`<button class="donate" data-a="donate">${ICON.ball}<span>개발자 서버비 내주기</span></button>`:''}
   <div class="sbgrid">${careerTrio().map(([a,b])=>`<div><small>${a}</small><b>${b}</b></div>`).join('')}</div></section>
   <section class="sec tcard" style="--tc:${TC[S.team]||'#17305c'}">${pHead()}</section>
   <section class="sec"><h2>매니저 메모</h2><div class="list">${todos().map(itemHTML).join('')}</div></section>
@@ -1270,12 +1305,15 @@ function renderSheet(){
       ${d.c.map(c=>`<div class="cmt"><span class="pf">${esc(c.u.slice(0,1))}</span><div><b>${esc(c.u)}</b> <span class="muted" style="font-size:11px">${esc(c.from?d.from:d.to)} 팬</span><p>${esc(c.t)}</p></div><span class="lk">추천 ${c.l}</span></div>`).join('')}
       <button class="btn" data-a="close-sheet">확인</button>`,'커뮤니티 반응');
   }
-  if(sh.type==='tp'&&S.tp){const d=tpDef(S.tp.id);
-    if(S.tp.done)return sheetWrap(`<p class="eyebrow" style="font-weight:700;color:var(--accent)">선택 결과</p><div class="ttl" style="margin-top:-8px;font-size:22px">${esc(S.tp.res.title)}</div><div class="infobox" style="font-size:14px;color:var(--ink)">${esc(S.tp.res.line)}</div><p class="desc">능력치와 컨디션 변화는 바로 반영됐어요. 역할이 바뀌는 선택은 새 시즌부터 적용돼요.</p><button class="btn" data-a="close-sheet">라커룸으로</button>`,'나의 선택');
-    return sheetWrap(`<img class="scene" src="${sceneURL(d.scene)}" alt="">
-      <div><p class="eyebrow" style="font-weight:700;color:var(--accent)">선택의 순간</p><div style="font-size:20px;font-weight:800">${esc(tpTitle(d))}</div><p class="desc" style="margin-top:4px">${esc(d.dyn?d.dyn():d.desc)}</p></div>
-      <div style="display:grid;gap:8px">${d.opts().map((o,i)=>`<button class="choice" data-a="tp-pick" data-v="${i}"><b>${esc(o.t)}</b><small>${esc(o.sub)}</small></button>`).join('')}</div>
-      <button class="btn gray sm" data-a="close-sheet">일단 보류하기</button>`,'선택의 순간');
+  if(sh.type==='tp'&&S.tp)return tpView();
+  if(sh.type==='donate'&&DONATE){
+    return sheetWrap(`<div style="padding-right:30px"><p class="eyebrow" style="font-weight:700;color:var(--accent)">후원</p><div class="ttl" style="margin-top:-6px;font-size:24px">개발자 서버비 내주기</div></div>
+      <p class="desc">재밌게 하셨다면 커피 한 잔 값으로 개발을 응원해 주세요. 보내 주신 후원은 새 기능과 업데이트를 만드는 데 써요.</p>
+      <div class="acct"><div class="row"><span>은행</span><span>${esc(DONATE.bank)}</span></div>
+        <div class="row"><span>계좌번호</span><span class="no" id="acctno">${esc(DONATE.acct)}</span></div>
+        <div class="row"><span>예금주</span><span>${esc(DONATE.holder)}</span></div></div>
+      <button class="btn" data-a="copy-acct">계좌번호 복사</button>
+      <p class="desc" style="font-size:12px">후원은 자유예요. 후원하지 않아도 모든 기능을 똑같이 쓸 수 있어요.</p>`,'개발자 서버비 내주기');
   }
   if(sh.type==='nat'&&S.nat){
     return sheetWrap(`<div class="flag">${TAEGUK}</div><div class="center" style="display:grid;gap:2px"><p class="eyebrow">태극마크</p><div class="ttl" style="font-size:22px">${esc(S.name)},<br><b>대표팀 최종 엔트리</b>에 들었어요</div></div>
@@ -1289,6 +1327,28 @@ function renderSheet(){
       ${ui.settingsReset?`<div class="btns"><button class="btn red sm" data-a="reset-yes">커리어 삭제</button><button class="btn gray sm" data-a="reset-no">취소</button></div>`:`<button class="btn gray sm" data-a="reset">새 커리어 시작</button>`}`,'설정');
   }
   return'';
+}
+
+function effClass(t){return /하락|저하|위험|감소|재활|자산 -|-\d/.test(t)?'b':/\+|상승|보너스|깨어나|낮아/.test(t)?'g':''}
+function tpView(){
+  const d=tpDef(S.tp.id), title=tpTitle(d), when=`${S.year} · ${stageTxt()||esc(LG[playLg()].n)} · ${S.age}세`;
+  const frame=`<div class="tvf"><img src="${sceneURL(d.scene)}" alt=""><div class="l3"><span class="k">선택의 순간</span><b>${esc(title)}</b></div></div>`;
+  if(S.tp.done){const r=S.tp.res, effs=r.effs||String(r.line||'').split(' · ').slice(1), choice=r.choice||String(r.line||'').split(' · ')[0];
+    return`<div class="tpv" role="dialog" aria-label="선택 결과"><div class="in">
+      <div class="top"><span class="when">${when}</span><button class="icbtn" data-a="close-sheet" aria-label="닫기" style="color:var(--chalk)">${ICON.close}</button></div>
+      ${frame}
+      <div class="tpres"><div class="stamp">결정</div><div style="font-size:18px;font-weight:800">${esc(choice)}</div>
+        <div class="effs">${effs.map(t=>`<span class="eff ${effClass(t)}">${esc(t)}</span>`).join('')}</div>
+        <p class="desc" style="font-size:13px">능력치와 컨디션 변화는 바로 반영됐어요. 역할이 바뀌는 선택은 새 시즌부터 적용돼요.</p>
+        <button class="btn" data-a="close-sheet">라커룸으로</button></div>
+    </div></div>`;}
+  return`<div class="tpv" role="dialog" aria-label="선택의 순간"><div class="in">
+    <div class="top"><span class="when">${when}</span><button class="icbtn" data-a="close-sheet" aria-label="나중에 정하기" style="color:var(--chalk)">${ICON.close}</button></div>
+    ${frame}
+    <p class="story">${esc(d.dyn?d.dyn():d.desc)}</p>
+    <div class="tpopts">${d.opts().map((o,i)=>`<button class="tpopt" data-a="tp-pick" data-v="${i}"><span class="lt">${'ABC'[i]}</span><b>${esc(o.t)}</b><small>${esc(o.sub)}</small><span class="go">이 길로 간다 →</span></button>`).join('')}</div>
+    <button class="later" data-a="close-sheet">지금 말고 나중에 정할게요</button>
+  </div></div>`;
 }
 
 /* ================= render: full screens ================= */
@@ -1434,6 +1494,10 @@ function act(a,v){
   else if(a==='skip'){const P=S.prog;if(P.mom){P.mom.done=true;P.mom.ack=true}rollSecond(0);P.p=1;finishSeason();top=true}
   else if(a==='sum-ok'){S.phase=S.natRes?'nat':'app';ui.tab='home';top=true}
   else if(a==='nat-ok'){S.natRes=null;S.phase='app';ui.tab='home';top=true}
+  else if(a==='donate')ui.sheet={type:'donate'};
+  else if(a==='copy-acct'){const txt=DONATE?DONATE.acct:'', el=document.getElementById('acctno');
+    const fb=()=>{if(el){const r=document.createRange();r.selectNodeContents(el);const sel=getSelection();sel.removeAllRanges();sel.addRange(r)}toast('계좌번호를 선택했어요. 길게 눌러 복사해 주세요');render()};
+    try{navigator.clipboard.writeText(txt).then(()=>{toast('계좌번호를 복사했어요');render()},fb)}catch(e){fb()}return}
   else if(a==='rec-tab')ui.recTab=v;
   else if(a==='rec-cat')ui.recCat=v;
   else if(a==='copy-exp'){const t=document.getElementById('exp'), txt=t?t.value:'';
