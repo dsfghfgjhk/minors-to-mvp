@@ -302,6 +302,12 @@ body,.ttl,h1,h2,.desc,.situ,.choice,.item,.fi,.art h3{word-break:keep-all;overfl
 .eff{font-size:13px;font-weight:700;padding:5px 11px;border-radius:999px;background:var(--fill);color:var(--ink2)}
 .eff.g{background:#e9f8ef;color:#0f7a43} .eff.b{background:#fdf0f0;color:#b72f2f}
 @media (max-width:480px){.l3{left:16px;right:16px;bottom:16px}.l3 b{font-size:18px}}
+.tpres .stamp.gold{color:var(--gold);border-color:var(--gold)}
+.tpv.award{background:#150d24}
+.confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+.confetti i{position:absolute;top:-12px;width:8px;height:12px;border-radius:2px;opacity:.9;animation:fall linear infinite}
+@keyframes fall{from{transform:translateY(-20px) rotate(0)}to{transform:translateY(110vh) rotate(540deg)}}
+.tpv.award .in{position:relative;z-index:1}
 .momres{border-radius:18px;padding:22px 18px;display:grid;gap:8px;text-align:center;justify-items:center}
 .momres.ok{background:#e9f8ef;border:2px solid var(--green)}
 .momres.no{background:#fdf0f0;border:2px solid var(--red)}
@@ -520,6 +526,17 @@ function sceneURL(type){
     for(let a=0;a<360;a+=6)F(Math.round(66+10*Math.cos(a*Math.PI/180)),Math.round(16+10*Math.sin(a*Math.PI/180)),1,1,'#f8fafc');
     F(66,26,1,18,'#6b7280');F(10,20,16,10,'#4b5563');F(26,23,4,4,'#111111');F(13,22,6,3,'#9ca3af');F(17,30,1,14,'#6b7280');F(12,44,12,1,'#6b7280');F(72,6,2,2,'#ef4444');
     sprite(x,46,30,me);sprite(x,62,32,{skin:'#f6d3b3',hair:'#111827',uni:'#a78bfa',cap:false,pants:'#1f2937'});
+  }else if(type==='award'){
+    F(0,0,96,56,'#150d24');
+    for(let i=0;i<96;i+=6)F(i,0,3,40,'#1d1330');
+    F(26,3,44,9,'#2b1d42');F(28,5,40,1,'#f2c14e');F(28,10,40,1,'#f2c14e');
+    x.fillStyle='rgba(255,236,190,0.16)';
+    [[14,0],[82,0]].forEach(([sx,sy])=>{x.beginPath();x.moveTo(sx-2,sy);x.lineTo(sx+2,sy);x.lineTo(60,44);x.lineTo(36,44);x.closePath();x.fill()});
+    F(0,44,96,12,'#7f1d1d');F(0,44,96,2,'#b91c1c');F(30,42,36,2,'#5b1414');
+    const cf=['#f87171','#60a5fa','#fbbf24','#34d399','#f472b6','#ffffff'];
+    for(let n=0;n<46;n++){const cx=(n*37+11)%96, cy=(n*23+5)%40;if(cx>36&&cx<60&&cy>18)continue;F(cx,cy,1+(n%2),1,cf[n%6])}
+    sprite(x,40,26,me);
+    F(53,30,5,3,'#f5c542');F(52,30,1,2,'#d4a017');F(58,30,1,2,'#d4a017');F(54,30,1,1,'#fff3b0');F(55,33,1,2,'#d4a017');F(54,35,3,1,'#b8860b');
   }else{
     F(0,0,96,24,'#0f172a');F(0,24,96,10,'#1e293b');
     [8,84].forEach(a=>{F(a,4,3,22,'#64748b');F(a-3,2,9,4,'#fef08a')});
@@ -1071,7 +1088,7 @@ function finishSeason(){
   if(top&&tot.G>30&&tot.war<0)addNews(`부진에 빠진 ${S.name}, 반등 가능할까`,'slump');
   if(callup)addNews(`${S.team} 2군의 ${S.name}, 내년 1군 경쟁 후보로 급부상`,'join',1);
   S.hist.push({y,age:S.age,team:S.team,org,lg:LG[pl].n,role:roleName(role),line:tot,war:tot.war,aw:[...trs,...aw],top:top&&tot.G>0});
-  S.last={y,team:S.team,org,lg:LG[pl].n,role,roleN:roleName(role),line:tot,war:tot.war,rank:fin.rank,n:fin.n,aw,trs,ob,oa,diff,stage:stageTxt(),callup,momRes:P.mom&&P.mom.res?{ok:P.mom.res.ok,title:P.mom.res.title}:null};
+  S.last={y,team:S.team,org,lg:LG[pl].n,role,roleN:roleName(role),line:tot,war:tot.war,rank:fin.rank,n:fin.n,aw,trs,ob,oa,diff,stage:stageTxt(),callup,momRes:P.mom&&P.mom.res?{ok:P.mom.res.ok,title:P.mom.res.title}:null,mvpAw:aw.find(a=>/^(KBO|NPB|MLB) MVP$/.test(a))||null,mvpN:S.mvp,awSeen:false};
   S.prevStats=before;S.prevOvr=ob;
   S.natRes=natRes;
   S.flags={abroad:S.flags.abroad,callup:S.flags.callup,forceMinor:0};
@@ -1407,6 +1424,20 @@ function renderSummary(){
     </div>
     <button class="btn" data-a="sum-ok">라커룸으로</button></div>`;
 }
+function renderAward(){
+  const L=S.last, aw=L.mvpAw, n=L.mvpN||1, extra=L.aw.filter(a=>a!==aw).slice(0,3);
+  const cf=['#f87171','#60a5fa','#fbbf24','#34d399','#f472b6','#ffffff'];
+  const confetti=[...Array(28)].map((_,i)=>`<i style="left:${(i*37+7)%100}%;background:${cf[i%6]};animation-delay:${(i%9)*.35}s;animation-duration:${3.2+(i%5)*.5}s"></i>`).join('');
+  return`<div class="tpv award" role="dialog" aria-label="MVP 시상식"><div class="confetti" aria-hidden="true">${confetti}</div><div class="in">
+    <div class="top"><span class="when">${L.y} ${esc(L.lg)} 시상식</span></div>
+    <div class="tvf"><img src="${sceneURL('award')}" alt="시상대에서 트로피를 든 내 선수"><div class="l3"><span class="k">시상식</span><b>${esc(aw)}</b></div></div>
+    <div class="tpres"><div class="stamp gold">MVP</div>
+      <div class="ttl" style="margin:0;font-size:26px">${n===1?'첫':n+'번째'} <b>${esc(aw)}</b>를 받았어요</div>
+      <p class="desc">${esc(S.name)} 선수가 ${L.y} ${esc(L.lg)} 최우수 선수로 뽑혔어요.</p>
+      <div class="effs"><span class="eff g">${esc(lineTxt(L.line))}</span><span class="eff g">WAR ${(+L.war).toFixed(1)}</span>${extra.map(a=>`<span class="eff">${esc(a)}</span>`).join('')}</div>
+      <button class="btn play" data-a="award-ok">트로피 들어 올리기</button></div>
+  </div></div>`;
+}
 function renderNatRes(){
   const N=S.natRes;
   return`<div class="page">
@@ -1433,7 +1464,7 @@ function render(){
   const app=document.getElementById('app');
   app.className='app'+(S&&S.phase==='app'?' tabs':'');
   if(!S)app.innerHTML=renderCreate();
-  else app.innerHTML=({app:renderApp,progress:renderProgress,summary:renderSummary,nat:renderNatRes,retired:renderRetired}[S.phase]||renderApp)();
+  else app.innerHTML=({app:renderApp,progress:renderProgress,summary:renderSummary,award:renderAward,nat:renderNatRes,retired:renderRetired}[S.phase]||renderApp)();
   if(ui.toast)app.insertAdjacentHTML('beforeend',`<div class="toast" role="status">${esc(ui.toast)}</div>`);
   if(S&&S.phase==='progress'&&!timer)timer=setInterval(tick,90);
   if((!S||S.phase!=='progress')&&timer){clearInterval(timer);timer=null}
@@ -1497,7 +1528,8 @@ function act(a,v){
     if(P.mom&&!P.mom.done&&P.p<.5){P.p=.5;save();render();return}
     if(P.mom){P.mom.done=true;P.mom.ack=true}rollSecond(0);P.p=1;finishSeason();top=true}
   else if(a==='skip'){const P=S.prog;if(P.mom){P.mom.done=true;P.mom.ack=true}rollSecond(0);P.p=1;finishSeason();top=true}
-  else if(a==='sum-ok'){S.phase=S.natRes?'nat':'app';ui.tab='home';top=true}
+  else if(a==='sum-ok'){S.phase=S.last&&S.last.mvpAw&&!S.last.awSeen?'award':S.natRes?'nat':'app';ui.tab='home';top=true}
+  else if(a==='award-ok'){S.last.awSeen=true;S.phase=S.natRes?'nat':'app';ui.tab='home';top=true}
   else if(a==='nat-ok'){S.natRes=null;S.phase='app';ui.tab='home';top=true}
   else if(a==='donate')ui.sheet={type:'donate'};
   else if(a==='copy-acct'){const txt=DONATE?(DONATE.copy||DONATE.acct):'', el=document.getElementById('acctno');
