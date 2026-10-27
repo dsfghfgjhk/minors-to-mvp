@@ -4,7 +4,11 @@
 
 ## 플레이 방법
 
-`index.html` 하나로 돌아가요. 브라우저로 열거나 GitHub Pages로 배포하면 바로 플레이할 수 있어요.
+바로 플레이: https://dsfghfgjhk.github.io/minors-to-mvp/
+
+게임 가이드: https://dsfghfgjhk.github.io/minors-to-mvp/guide.html
+
+`index.html` 하나로 돌아가요. 브라우저로 열어도 플레이할 수 있어요.
 
 ## 주요 기능
 
