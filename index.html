@@ -2637,12 +2637,74 @@ function bbGround(ev,la,sp){
   }
   return pts;
 }
+function bbLegPosition(leg,t,speed){
+  if(leg.source)return bbLegPosition(leg.source,t,speed);
+  if(leg.mode==='brake'){const q=clamp((t-leg.start)/(leg.end-leg.start),0,1);return leg.from+(leg.to-leg.from)*(2*q-q*q)}
+  const f=clamp((t-leg.start)/Math.max(.001,leg.end-leg.start),0,1);
+  if(leg.mode==='run'){
+    const elapsed=Math.max(0,t-leg.start),distance=elapsed<.38?.5*speed/.38*elapsed*elapsed:speed*(elapsed-.19);
+    return leg.from+Math.sign(leg.to-leg.from)*Math.min(Math.abs(leg.to-leg.from),distance/27.4);
+  }
+  // 귀루 구간은 방향을 바꾸는 지점에서 감속·가속한다.
+  return leg.from+(leg.to-leg.from)*f*f*(3-2*f);
+}
+function bbRunnerLeg(r,to,start,mode='turn'){
+  const from=r.legs?.length?r.legs.at(-1).to:r.from;
+  const distance=Math.abs(to-from)*27.4;
+  if(distance<.001)return start;
+  const end=start+distance/r.speed*(mode==='run'?1:1.6)+(mode==='run'?.19:.12);
+  (r.legs||(r.legs=[])).push({from,to,start,end,mode});return end;
+}
+function bbRunnerSetDestination(r,to,start){
+  r.to=to;
+  if(r.legs?.length)bbRunnerLeg(r,to,Math.max(start,r.legs.at(-1).end),'run');
+  else r.start=start;
+}
+function bbRunnerFlyRead(r,bb,play,caution){
+  const flight=bb.fly;if(!flight)return;
+  // 예상 낙구점과 수비 범위로 판단하며 확정된 안타·아웃 결과는 읽지 않는다.
+  let reach=Infinity;
+  for(const key of [...IFK,...OFK]){const pos=FPOS[key],distance=Math.hypot(pos[0]-flight.x,pos[1]-flight.z);reach=Math.min(reach,.45+Math.max(0,distance-1.2)/(OFK.includes(key)?6.8:6))}
+  r.readCatch=reach<flight.t+caution;
+  const lead=r.readCatch?Math.min(2.3,Math.max(.2,(play.catchAt-.45)*r.speed/4)):Math.min(5.5,Math.max(.3,(play.catchAt-.45)*r.speed/4));
+  const out=bbRunnerLeg(r,r.from+lead/27.4,.18);
+  if(r.readCatch){
+    r.retouchAt=bbRunnerLeg(r,r.from,Math.max(out,.38));r.decision='return';
+  }
+}
+function bbRunnerRetreat(r,at,base){
+  const current=bbRunnerProgress(r,at),oldTo=r.to;
+  if(current<=base+.002){
+    // 베이스를 돌기 전이면 그 베이스까지만 달린 뒤 멈춘다.
+    r.to=base;r.decision='hold';
+    if(r.legs?.length){const kept=[];for(const leg of r.legs){
+      if(leg.from<base&&leg.to>=base){kept.push({...leg,to:base,end:leg.start+(base-leg.from)*27.4/r.speed*(leg.mode==='run'?1:1.6)+(leg.mode==='run'?.19:.12)});break}
+      kept.push(leg);
+    }r.legs=kept}
+    return;
+  }
+  const history=[];
+  for(const leg of r.legs||[]){if(leg.start>=at)break;if(leg.end<=at)history.push(leg);else history.push({...leg,source:{...leg},end:at,to:current});}
+  if(!history.length)history.push({from:r.from,to:current,start:r.start,end:at,mode:'run'});
+  r.legs=history;r.to=base;r.decision='retreat';r.retreatFrom=oldTo;
+  const epsilon=.002,velocity=(bbRunnerProgress({...r,legs:history},at)-bbRunnerProgress({...r,legs:history},at-epsilon))/epsilon;
+  const stopped=current+Math.max(0,velocity)*.08;
+  if(stopped>current+.00001)r.legs.push({from:current,to:stopped,start:at,end:at+.16,mode:'brake'});
+  bbRunnerLeg(r,base,at+.16);
+}
+function pgLearnRunning(G,res){
+  const lesson=res.runningLesson;if(!lesson||lesson.done)return;lesson.done=true;
+  const memory=G.runningMemory||(G.runningMemory={caution:.3,plays:0});
+  memory.plays++;
+  memory.caution=clamp(memory.caution+(lesson.tagOuts?.14:lesson.safeAdvance?-.015:0),.2,.95);
+}
 function bbRunnerProgress(r,t){
+  if(r.legs?.length){let position=r.from;for(const leg of r.legs){if(t<leg.start)break;if(t>=leg.end){position=leg.to;continue}return bbLegPosition(leg,t,r.speed)}return position}
   const elapsed=Math.max(0,t-r.start),ramp=.38,speed=r.speed;
   const distance=elapsed<ramp?.5*speed/ramp*elapsed*elapsed:speed*(elapsed-ramp/2);
   return Math.min(r.to,r.from+distance/27.4);
 }
-function bbRunArrival(r){return r.start+(r.to-r.from)*27.4/r.speed+.19}
+function bbRunArrival(r){if(r.legs?.length)return r.legs.at(-1).end;return r.start+(r.to-r.from)*27.4/r.speed+.19}
 function bbPlaySnapshot(G){return{pa:{...G.pa},my:G.my,op:G.op,ms:{...G.ms},msT:{...G.msT}}}
 function bbPlayRestore(G,s){Object.assign(G.pa,s.pa);G.my=s.my;G.op=s.op;Object.assign(G.ms,s.ms);Object.assign(G.msT,s.msT)}
 function bbPlan(G,bb){
@@ -2656,8 +2718,9 @@ function bbPlan(G,bb){
     }
   }
   if(!play.at||!Number.isFinite(play.catchAt))return null;
-  const caught=['FO','LO'].includes(bb.k),runners=play.runners;
+  const caught=['FO','LO'].includes(bb.k),runners=play.runners,caution=G.runningMemory?.caution??.3;
   for(const b of on.split('').map(Number))runners.push({from:b,to:b,start:.18,speed:6.6,bat:false});
+  if(before<2&&!bb.ground)for(const r of runners)bbRunnerFlyRead(r,bb,play,caution);
   const batter={from:0,to:1,start:.24,speed:batSpeed,bat:true};runners.push(batter);
   const pos3=([x,z],y=1.15)=>[x,y,z];
   const throwTo=(from,to,t0,by,receiver,base)=>{
@@ -2672,13 +2735,22 @@ function bbPlan(G,bb){
   const pickup=pos3(play.at),first=pos3(BASEP[1]),second=pos3(BASEP[2]),home=pos3(BASEP[0]);
   if(caught){
     eventOut(batter,play.catchAt,0,false);
+    // 포구 가능성을 낮게 봤더라도 실제 포구를 보면 즉시 귀루한다.
+    if(before>=2)for(const r of runners.filter(r=>!r.bat)){r.to=Math.min(4,r.from+1);r.start=.18}
+    if(before<2)for(const r of runners.filter(r=>!r.bat)){
+      if(!r.retouchAt){bbRunnerRetreat(r,play.catchAt+.16,r.from);r.retouchAt=r.legs?.at(-1)?.end||play.catchAt;r.decision='return'}
+    }
     const third=runners.find(r=>r.from===3);
     if(third&&before<2&&bb.fly.dist>45){
-      third.to=4;third.start=play.catchAt+.28;const arrival=bbRunArrival(third);
-      let returned;
-      if(Math.hypot(...play.at)>58){const cutoff=pos3([play.at[0]*.25,36]);const cut=throwTo(pickup,cutoff,play.catchAt+.3,bb.fielder,'SS',null);returned=throwTo(cutoff,home,cut+.28,'SS','C',4)}
-      else returned=throwTo(pickup,home,play.catchAt+.32,bb.fielder,'C',4);
-      if(returned+.08<arrival)eventOut(third,arrival,4,false);
+      const start=Math.max(play.catchAt+.28,third.retouchAt+.08),runnerArrival=start+27.4/third.speed+.19;
+      const distance=Math.hypot(...play.at),estimatedReturn=play.catchAt+.32+distance/30+(distance>58?.28:0);
+      if(runnerArrival+caution*.1<estimatedReturn){
+        bbRunnerSetDestination(third,4,start);third.decision='tagup';const arrival=bbRunArrival(third);
+        let returned;
+        if(distance>58){const cutoff=pos3([play.at[0]*.25,36]);const cut=throwTo(pickup,cutoff,play.catchAt+.3,bb.fielder,'SS',null);returned=throwTo(cutoff,home,cut+.28,'SS','C',4)}
+        else returned=throwTo(pickup,home,play.catchAt+.32,bb.fielder,'C',4);
+        if(returned+.08<arrival)eventOut(third,arrival,4,false);
+      }
     }
   }else if(bb.ground){
     for(const r of runners)if(!r.bat)r.to=r.from===1||(r.from===2&&on.includes('1'))||(r.from===3&&on.includes('1')&&on.includes('2'))?r.from+1:r.from;
@@ -2699,22 +2771,50 @@ function bbPlan(G,bb){
     play.k=batter.out||lead?.out?'GO':'1B';
   }else{
     const bases={'1B':1,'2B':2,'3B':3}[bb.k]||1;
-    for(const r of runners){r.to=Math.min(4,r.from+bases);
+    for(const r of runners){
+      const destination=Math.min(4,r.from+bases);
+      const start=r.readCatch?Math.max(r.retouchAt||0,bb.fly.t+.18):r.legs?.at(-1)?.end||r.start;
+      bbRunnerSetDestination(r,destination,start);
       // 2루 주자는 외야 단타에서 홈 쇄도: 송구가 먼저 오면 실제 태그아웃.
-      if(r.from===2&&bases===1&&Math.hypot(...play.at)>48)r.to=4;
+      if(r.from===2&&bases===1&&Math.hypot(...play.at)>48){
+        // 실제 공을 본 뒤 추가 진루를 결정하며, 목적지만 몰래 바꾸지 않는다.
+        if(r.legs?.length)r.legs.pop();bbRunnerSetDestination(r,4,start);
+      }
     }
     let threat=runners.filter(r=>r.to>r.from).sort((a,b)=>b.to-a.to||b.from-a.from)[0];
     if(threat){const dest=pos3(BASEP[threat.to%4]),receiver=threat.to===4?'C':threat.to===3?'3B':threat.to===2?'2B':'1B';
       let returned;const distance=Math.hypot(pickup[0]-dest[0],pickup[2]-dest[2]);
       if(distance>58){const cutoff=pos3([play.at[0]*.3,38.8]);const cut=throwTo(pickup,cutoff,play.catchAt+.32,bb.fielder,'SS',null);returned=throwTo(cutoff,dest,cut+.28,'SS',receiver,threat.to)}
       else returned=throwTo(pickup,dest,play.catchAt+.32,bb.fielder,receiver,threat.to);
-      if(returned+.08<bbRunArrival(threat))eventOut(threat,bbRunArrival(threat),threat.to,false);
+      const forced=threat.to===threat.from+1&&(threat.bat||threat.from===1||threat.from===2&&on.includes('1')||threat.from===3&&on.includes('1')&&on.includes('2'));
+      if(forced?returned+.08<bbRunArrival(threat):returned<bbRunArrival(threat)+caution){
+        const mandatory=threat.bat||threat.from===1||threat.from===2&&on.includes('1')||threat.from===3&&on.includes('1')&&on.includes('2')?threat.from+1:threat.from;
+        const lastSafe=Math.max(mandatory,Math.min(threat.to-1,Math.floor(bbRunnerProgress(threat,play.throws[0].t0+.18))));
+        if(!forced&&lastSafe>0){
+          const decisionAt=play.throws[0].t0+.18;
+          bbRunnerRetreat(threat,decisionAt,lastSafe);
+          // 홈 송구를 보고 귀루하면 수비도 되돌려 던진다.
+          const receiver=lastSafe===3?'3B':lastSafe===2?'2B':'1B',dest=pos3(BASEP[lastSafe]);
+          const returnFrom=play.throws.at(-1).to;
+          const back=throwTo(returnFrom,dest,returned+.3,play.throws.at(-1).receiver,receiver,lastSafe);
+          if(threat.decision==='retreat'&&back+.08<bbRunArrival(threat))eventOut(threat,bbRunArrival(threat),lastSafe,false);
+          // 뒤 주자는 앞 주자가 멈춘 베이스를 침범하지 않는다.
+          let reserved=lastSafe;
+          for(const trailing of runners.filter(r=>r.from<threat.from).sort((a,b)=>b.from-a.from)){
+            if(trailing.to>=reserved){const to=Math.max(trailing.from,reserved-1);trailing.to=to;
+              if(trailing.legs?.length){const initial=trailing.legs.slice(0,trailing.readCatch?2:1);trailing.legs=initial;bbRunnerSetDestination(trailing,to,initial.at(-1)?.end||trailing.start)}
+            }
+            reserved=trailing.to;
+          }
+        }else eventOut(threat,forced?returned:bbRunArrival(threat),threat.to,forced);
+      }
     }
   }
+  if(!caught&&!bb.ground&&play.events.some(e=>e.kind==='out'&&e.force))play.k='GO';
   const outEvents=play.events.filter(e=>e.kind==='out').sort((a,b)=>a.t-b.t),third=before+play.outs>=3?outEvents[outEvents.length-1]:null;
   for(const r of runners){
     if(r.out)continue;
-    if(r.to===r.from){if(!r.bat)play.on+=r.from;continue}
+    if(r.to===r.from){if(!r.bat)play.on+=r.from;if(r.legs?.length)play.events.push({t:bbRunArrival(r),kind:'return',base:r.from,from:r.from,bat:false});continue}
     const time=bbRunArrival(r);
     if(third&&time>=third.t)continue;
     if(r.to===4){if(third&&third.force)continue;play.runs++;play.events.push({t:time,kind:'run',from:r.from,bat:r.bat,base:4})}
@@ -2722,9 +2822,9 @@ function bbPlan(G,bb){
   }
   play.on=[...new Set(play.on)].sort().join('');
   play.events.sort((a,b)=>a.t-b.t);play.thirdAt=third?.t;
-  play.end=Math.max(play.catchAt,...play.events.map(e=>e.t),...play.throws.map(tr=>tr.t0+tr.dur))+.65;
+  play.end=Math.max(play.catchAt,...runners.map(r=>r.legs?.at(-1)?.end||0),...play.events.map(e=>e.t),...play.throws.map(tr=>tr.t0+tr.dur))+.65;
   const tag=outEvents.some(e=>!e.bat&&!e.force);
-  play.text=play.outs>=2?(tag?'태그아웃 · 더블 플레이':'병살타!'):tag?'안타 뒤 주루사!':play.k==='GO'?(batter.out?'땅볼 아웃':'선행 주자 아웃 · 야수 선택'):caught?(play.runs?'희생플라이':bb.k==='LO'?'직선타 아웃':'뜬공 아웃'):{'1B':'안타!','2B':'2루타!','3B':'3루타!'}[play.k];
+  play.text=play.outs>=2?(tag?'태그아웃 · 더블 플레이':'병살타!'):tag?'안타 뒤 주루사!':play.k==='GO'?(batter.out?(bb.ground?'땅볼 아웃':'타자 주자 아웃'):'선행 주자 아웃 · 야수 선택'):caught?(play.runs?'희생플라이':bb.k==='LO'?'직선타 아웃':'뜬공 아웃'):{'1B':'안타!','2B':'2루타!','3B':'3루타!'}[play.k];
   return play;
 }
 function pgApplyPlanned(G,bb,play){
@@ -2733,7 +2833,7 @@ function pgApplyPlanned(G,bb,play){
   pa.out=Math.min(3,pa.out+play.outs);pa.on=play.on;pa.runs+=play.runs;pa.b=pa.s=0;
   if(bat){G.my+=play.runs;ms.PA++;if(!sac)ms.AB++;if(hit)ms.H++;ms.RBI+=play.runs}
   else{G.op+=play.runs;ms.outs+=play.outs;if(hit)ms.Ha++;ms.ER+=play.runs}
-  return{k:play.k,end:true,runs:play.runs,txt:play.text+(play.runs?' · '+play.runs+'점':''),cls:bat?(hit?'good':'bad'):(hit?'bad':'good'),sub:'타구 속도 '+Math.round(bb.ev)+'km'};
+  return{k:play.k,end:true,runs:play.runs,txt:play.text+(play.runs?' · '+play.runs+'점':''),cls:bat?(hit?'good':'bad'):(hit?'bad':'good'),sub:'타구 속도 '+Math.round(bb.ev)+'km',runningLesson:{tagOuts:play.events.filter(e=>e.kind==='out'&&!e.force&&e.base>0).length,safeAdvance:play.runners.some(r=>!r.out&&r.to>r.from&&!r.bat)}};
 }
 
 function pgApply(G,k,dt,npc){
@@ -2774,6 +2874,7 @@ function pgSimRest(G,pa){
   }
 }
 function pgAfterBat(G,res){
+  pgLearnRunning(G,res);
   if(!res.end)return;
   const pa=G.pa,i=pa.i;
   pgLog(G,`${i}회말 ${S.name}: ${res.txt}`);
@@ -2872,6 +2973,7 @@ function pgResolvePit(G){
   return pgApply(G,k,null);
 }
 function pgAfterPit(G,res){
+  pgLearnRunning(G,res);
   const pa=G.pa;G.a[G.inn-1]=pa.runs;
   if(res.end){pgLog(G,`${G.inn}회초 ${G.lu[G.bi].lab}: ${res.txt}`);G.bi=(G.bi+1)%9}
   if(pa.out<3&&pa.runs>=4){pa.out=3;pgLog(G,G.role==='pit'?'투구 수가 많아 마운드를 내려왔어요':'마무리 투수가 강판됐어요')}
@@ -3463,7 +3565,7 @@ function p3LiveAdvance(G,B,t){
     const e=p.events[B.eventIndex++];
     if(e.from)G.pa.on=G.pa.on.replace(String(e.from),'');
     if(e.kind==='out'){G.pa.out=Math.min(3,G.pa.out+1);pgFlash((e.base===0?'포구 아웃':e.force?'포스 아웃':'태그 아웃')+' · '+G.pa.out+'아웃',G.mode==='bat'?'bad':'good',e.base===4?'홈':e.base?e.base+'루':'포구')}
-    if(e.kind==='safe'){G.pa.on=[...new Set((G.pa.on+e.base).split(''))].sort().join('')}
+    if(e.kind==='safe'||e.kind==='return'){G.pa.on=[...new Set((G.pa.on+e.base).split(''))].sort().join('')}
     if(e.kind==='run'){G.pa.runs++;if(G.mode==='bat')G.my++;else G.op++;pgFlash('홈인!','good','주자 득점')}
     P3.board='';pgHud();
   }
@@ -3553,7 +3655,8 @@ function p3Frame(G,now,dt){
       B.runners.forEach(r=>{const fig=r.bat?A.batter:A.runners[ri++];if(!fig)return;
         const sp=r.speed||6.4, f=Math.min(r.to,r.from+Math.max(0,t-(r.bat?.35:.1))*sp/27.4), lim=B.play?bbRunnerProgress(r,Math.min(t,r.retireAt??B.play.thirdAt??t)):f, [x,z]=p3BasePt(lim);
         fig.visible=!(r.to===4&&lim>=4)&&!(r.out&&t>(r.retireAt!=null?r.retireAt+.18:B.dur-.6));fig.position.set(-x,0,z);
-        if(lim<r.to){const [nx,nz]=p3BasePt(Math.min(r.to,lim+.05));fig.rotation.y=Math.atan2(-(nx-x),nz-z);if(B.play&&!r.bat&&r.to>r.from&&bbRunArrival(r)-t<.48&&bbRunArrival(r)-t>-.1){
+        const next=B.play?bbRunnerProgress(r,Math.min(t+.04,r.retireAt??B.play.thirdAt??(t+.04))):Math.min(r.to,lim+.05);
+        if(Math.abs(next-lim)>.00001){const [nx,nz]=p3BasePt(next);fig.rotation.y=Math.atan2(-(nx-x),nz-z);if(B.play&&!r.bat&&r.to>r.from&&bbRunArrival(r)-t<.48&&bbRunArrival(r)-t>-.1){
           p3Pose(fig,{hy:.3,hips:[0,0,0],spine:[-.55,0,0],head:[.3,0,0],thL:[-1.3,0,.12],knL:[.2,0,0],thR:[-1.1,0,-.15],knR:[.5,0,0],hL:[.24,.38,-.1],hR:[-.24,.38,-.1]},1);
         }else p3Run(fig,t*11*(sp/6.4),1)}else p3Idle(fig)});
     }
