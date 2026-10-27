@@ -524,6 +524,34 @@ body,.ttl,h1,h2,.desc,.situ,.choice,.item,.fi,.art h3{word-break:keep-all;overfl
 .pg-types button small{font-size:11px;color:#9cc3ad;font-weight:600}
 .pg-types button.on{background:#ffd35a;color:#0f172a;border-color:#ffd35a}.pg-types button.on small{color:#0f172a}
 .pg-types button:disabled{opacity:.5;cursor:default}
+/* 투구 조작은 오른쪽 패널, 경기 화면은 나머지 영역을 사용한다. */
+.pg3.pitch-side{--pitch-panel:224px;--pitch-gap:12px}
+.pg3.pitch-side .pg3c{right:calc(var(--pitch-panel) + var(--pitch-gap)*2 + env(safe-area-inset-right,0px))}
+.p3btm.p3side{left:auto;right:max(12px,env(safe-area-inset-right,0px));top:112px;bottom:max(12px,env(safe-area-inset-bottom,0px));width:var(--pitch-panel);max-width:none;margin:0;padding:0;display:block;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;pointer-events:auto}
+.p3side .pitw{gap:10px;padding:12px}
+.p3side .pitr{grid-template-columns:minmax(0,1fr);gap:10px}
+.p3side .amap{width:100%;height:auto;aspect-ratio:176/150}
+.p3side .amap svg{width:100%;height:100%}
+.p3side .pg-types{grid-template-columns:repeat(2,minmax(0,1fr))}
+.p3side .pg-types button{min-height:44px;min-width:0}
+.p3side .pitc .pg-big{height:52px;font-size:16px;padding:8px 4px}
+.pit-help{font-size:12px;color:#cbd5e1}.pit-help summary{cursor:pointer;padding:4px 0}.pit-help .p3hint{text-align:left;padding-top:5px}
+@media(max-width:600px){
+ .pg3.pitch-side{--pitch-panel:clamp(128px,34vw,180px);--pitch-gap:8px}
+ .p3btm.p3side{right:max(8px,env(safe-area-inset-right,0px));top:138px;bottom:max(8px,env(safe-area-inset-bottom,0px))}
+ .p3side .pitw{padding:8px;gap:7px}.p3side .pitr{gap:7px}
+ .p3side .pg-types{gap:4px}.p3side .pg-types button{font-size:12px;padding:5px 2px}.p3side .pg-types button small{font-size:9px}
+ .p3side .pitc .pg-big{font-size:13px;height:48px}.p3side .pwr b{font-size:10px}
+}
+@media(max-height:520px){
+ .pg3.pitch-side{--pitch-panel:190px;--pitch-gap:8px}
+ .p3btm.p3side{top:86px;right:max(8px,env(safe-area-inset-right,0px));bottom:max(6px,env(safe-area-inset-bottom,0px))}
+ .p3side .pitw{padding:7px;gap:6px}.p3side .pitr{gap:6px}
+ .p3side .pg-types{display:flex;overflow-x:auto;gap:5px}.p3side .pg-types button{flex:0 0 70px;min-height:40px;font-size:12px;padding:4px}
+ .p3side .amap{width:112px;justify-self:center}.p3side .pitc{gap:5px}.p3side .pitc .pg-big{height:44px;font-size:13px}
+}
+@media(max-height:360px){.p3btm.p3side{top:70px}.p3side .amap{width:96px}.p3side .pitw,.p3side .pitr{gap:5px}}
+
 .lsc-w{overflow-x:auto;border-radius:10px}
 .lsc{width:100%;border-collapse:collapse;background:rgba(15,43,33,.9);font-family:var(--f-num);font-variant-numeric:tabular-nums}
 .lsc th,.lsc td{padding:4px 2px;text-align:center;border:0;font-size:14px;color:#e6f2ea;min-width:18px}
@@ -3893,7 +3921,7 @@ function pgCtlHTML(G){
   const map=`<div class="amap" id="p3map" role="img" aria-label="던질 곳 조준판. 누르거나 끌어서 위치를 정해요">${pgMapSVG(G)}</div>`;
   const right=G.st==='anim'?`<button class="btn play pg-big" disabled>투구 중</button>`
     :`<div class="pwr" aria-hidden="true"><i id="pg-pwr"></i><b id="pg-pwrv">꾹 누르면 힘이 차요</b></div><button class="btn play pg-big" data-pg="throw">꾹 눌러 던지기</button>`;
-  return`<div class="pitw">${types}<div class="pitr">${map}<div class="pitc">${right}</div></div><p class="p3hint">조준판 어디든 눌러 고르고, 버튼을 꾹 눌렀다 떼서 던져요. 세게 던질수록 빠르지만 제구가 흔들리고, 타자 몸에 맞으면 데드볼이에요.</p></div>`;
+  return`<div class="pitw">${types}<div class="pitr">${map}<div class="pitc">${right}</div></div><details class="pit-help"><summary>조작 안내</summary><p class="p3hint">조준판에서 던질 위치를 고르고, 버튼을 꾹 눌렀다 떼세요. 세게 던질수록 빠르지만 제구가 흔들려요. 몸에 맞으면 데드볼이에요.</p></details></div>`;
 }
 const powLab=p=>p<.34?'맞히기':p<.67?'보통':'풀스윙';
 function pgHud(){
@@ -3902,6 +3930,8 @@ function pgHud(){
   if(b)b.innerHTML=pgBugHTML(G);
   if(PG.rv){if(c)c.innerHTML='<p class="p3hint" style="text-align:center;font-size:14px">타구를 끝까지 지켜보세요…</p>'}
   else{if(b)b.innerHTML=pgBugHTML(G);if(c)c.innerHTML=pgCtlHTML(G)}
+  const side=!!c?.querySelector('.pitw');
+  c?.classList.toggle('p3side',side);document.getElementById('pg3')?.classList.toggle('pitch-side',side);
   if(t)t.innerHTML=`<button class="${P3.snd?'on':''}" data-a="pg-snd" aria-pressed="${P3.snd}">소리</button>${G.done?'':'<button data-a="pg-auto">자동 진행</button>'}`;
 }
 function pgFlash(t,cls,sub){const el=document.getElementById('pg-fl');if(!el)return;el.className='p3fl';void el.offsetWidth;el.querySelector('b').textContent=t;el.querySelector('small').textContent=sub||'';el.className='p3fl on '+(cls||'')}
