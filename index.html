@@ -389,7 +389,7 @@ body,.ttl,h1,h2,.desc,.situ,.choice,.item,.fi,.art h3{word-break:keep-all;overfl
 .sit .verdict{font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px;background:#ffffff1f}
 .sit.ok .verdict{color:#4ade80}.sit.no .verdict{color:#fca5a5}
 .sit .big2{font-family:var(--f-display);font-size:54px;line-height:1;animation:stamp .4s cubic-bezier(.2,1.4,.4,1)}
-.sit.ok .big2{color:var(--lamp)}.sit.no .big2{color:#fca5a5}
+.sit.ok .big2{color:var(--lamp)}.sit.no .big2{color:#fca5a5;font-size:34px;margin-top:4px}
 .sit.res .tx{max-width:34em;margin:0}
 .sit .fin{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;background:#ffffff12;border-radius:12px;padding:8px 14px}
 .sit .fin span{font-size:12px;color:var(--boardtxt)}.sit .fin b{font-family:var(--f-num);font-size:18px}
@@ -896,14 +896,9 @@ function genMom(){
 function momTxt(e){const d=momDef(e.m.id);return d?d.txt(e.m.c):''}
 function momGame(c,runs,ok){
   let my=c.my,op=c.op;if(c.def)op+=runs;else my+=runs;
-  const late=c.inn>=9;let win;
-  if(late){
-    if(!c.def&&c.home)win=my>op?true:my===op?R()<(ok?.6:.45):false;
-    else if(!c.def)win=my>op?R()<.85:my===op?R()<.45:R()<.1;
-    else win=my>op?true:my===op?R()<.5:(c.home?R()<.2:false);
-  }else win=R()<clamp(.5+(my-op)*.16+(ok?.06:-.06),.08,.92);
-  let fm=my,fo=op;if(!late){fm+=ri(0,2);fo+=ri(0,2)}
-  if(win&&fm<=fo)fm=fo+1;if(!win&&fo<=fm)fo=fm+1;
+  const late=c.inn>=9, win=ok;   // 승부처를 잡으면 이기고, 놓치면 져요
+  let fm=my,fo=op;if(!late){fm+=ri(0,2);fo+=ri(0,1)}
+  if(win&&fm<=fo)fm=fo+(late?1:ri(1,2));if(!win&&fo<=fm)fo=fm+(late?1:ri(1,2));
   const walk=late&&win&&!c.def&&c.home&&my>op;
   return{my2:my,op2:op,fm,fo,win,walk};
 }
@@ -1594,7 +1589,8 @@ function chooseMoment(i){
   const runs=(o.r||(c.def?[0,1]:[1,0]))[ok?0:1];
   e.done=true;e.ack=false;
   const mul=momMul(pr),pen=momPen(pr),mor=ok?Math.round(5*mul):-Math.round(3*pen),fm=ok?Math.round(2*mul):0;
-  e.res={ok,title:d.title,choice:o.t,text:ok?o.ok:o.no,stat:SN[o.s],val:Math.floor(S.stats[o.s]),pct,g:momGame(c,runs,ok),mul:r1(mul),mor,fm};
+  const brave=!ok&&pr<.4;if(brave)S.fame=clamp(S.fame+1,0,100);
+  e.res={ok,title:d.title,choice:o.t,text:ok?o.ok:o.no,stat:SN[o.s],val:Math.floor(S.stats[o.s]),pct,g:momGame(c,runs,ok),mul:r1(mul),mor,fm,brave};
   S.morale=clamp(S.morale+mor,20,100);if(ok)S.fame=clamp(S.fame+fm,0,100);
   P.bonus+=ok?1.8*mul:-.8*pen;
   P.feed.push({p:e.p,x:`${d.title}: ${ok?o.ok:o.no}`,k:ok?'hl':'bad'});
@@ -1644,7 +1640,7 @@ function grow(pt,lgL,bonus){
   S.maxOvr=Math.max(S.maxOvr,ovr());
 }
 /* 시즌 성적 → OVR 보너스: 잘할수록 더 오르고, 99에 가까울수록 오르기 어려워요 (최대 99) */
-const OVR_MAX=99, NAT_G=.6, PERF_G=[['S',3.6,3],['A',2.6,2],['B',1.6,1.2],['C',.7,.5],['D',-99,0]];
+const OVR_MAX=99, NAT_G=.72, PERF_G=[['S',3.4,4],['A',2.4,3],['B',1.4,2],['C',.5,1],['D',-99,0]];
 function perfGrade(l,pt,awN,champ){
   if(!l||!l.G)return{gr:'-',sc:0,base:0,why:'출전 기록 없음'};
   l=derive(l);let sc,why;
@@ -1679,7 +1675,7 @@ function finishSeason(){
   const fullG=LG[pl].G;
   if(top&&tot.G){
     const lg=LGS[org], war=tot.war;
-    if(war>(org==='US'?rnd(6.2,8.4):org==='JP'?rnd(5.9,8):rnd(5.7,7.9))){addA(`${lg} MVP`,'pro');S.mvp++}
+    if(war>(org==='US'?rnd(7.3,9.6):org==='JP'?rnd(7,9.2):rnd(6.8,9.1))){addA(`${lg} MVP`,'pro');S.mvp++}
     if(!S.rookie[org]&&(tot.PA>150||tot.IP>40)){S.rookie[org]=1;if(war>rnd(1.2,3)&&S.age<=27)addA(`${lg} 신인왕`,'pro')}
     if(war>=rnd(3.4,5))addA(POSAW[org],'pro');
     if(ACEAW[org]&&S.pos==='SP'&&tot.GS>=15&&war>rnd(5,7))addA(ACEAW[org],'pro');
@@ -1703,7 +1699,7 @@ function finishSeason(){
   grow(pt,L,momEv.filter(e=>e.res.ok).reduce((a,e)=>a+(e.res.mul||1),0)*.35);
   const perf=perfGrade(tot,pt,aw.length,fin.champ&&role!=='minor'),o1=ovr(),o1r=ovrOf(S.pos,S.stats);
   const lvf=role==='minor'?.7:{HS:.75,UNIV:.8,ARMY:.7}[org]||1;
-  const over=o1r>S.pot?clamp(1-(o1r-S.pot)/10,.2,1):1;
+  const over=o1r>S.pot?clamp(1-(o1r-S.pot)/12,.25,1):1;
   addOvr(perf.base*lvf*over*clamp((OVR_MAX-o1r)/16,.5,1));perf.d=ovr()-o1;S.maxOvr=Math.max(S.maxOvr,ovr());
   const oa=ovr(), diff={};Object.keys(S.stats).forEach(k=>diff[k]=Math.floor(S.stats[k])-Math.floor(before[k]));
   S.fame=clamp(Math.round(S.fame*.9+Math.max(0,tot.war)*2+aw.length*4+trs.length*2),0,100);
@@ -2052,7 +2048,7 @@ function momResCard(e){
     <div class="big2">${r.ok?'성공!':'실패'}</div>
     <p class="k">${esc(r.title)} · ${esc(r.choice)}</p><p class="tx">${esc(r.text)}</p>
     <div class="fin"><span>경기 결과</span><b>${esc(c.me)} ${g.fm} : ${g.fo} ${esc(c.opp)}</b><em class="${g.win?'w':'l'}">${g.walk?'끝내기 승리':g.win?'승리':'패배'}</em></div>
-    <div class="chips"><span class="chip">${esc(r.stat)} ${r.val}</span><span class="chip">성공률 ${r.pct}%</span><span class="chip">${r.mul==null?(r.ok?'사기 +5 · 명성 +2 · 남은 시즌 활약 보너스':'사기 -3 · 남은 시즌 컨디션 조금 하락'):r.ok?`사기 +${r.mor} · 명성 +${r.fm} · 활약 보너스 ×${r.mul.toFixed(1)}`:`사기 ${r.mor} · 남은 시즌 컨디션 하락`}</span></div></section>`;
+    <div class="chips"><span class="chip">${esc(r.stat)} ${r.val}</span><span class="chip">성공률 ${r.pct}%</span><span class="chip">${r.mul==null?(r.ok?'사기 +5 · 명성 +2 · 남은 시즌 활약 보너스':'사기 -3 · 남은 시즌 컨디션 조금 하락'):r.ok?`사기 +${r.mor} · 명성 +${r.fm} · 활약 보너스 ×${r.mul.toFixed(1)}`:`사기 ${r.mor}${r.brave?' · 과감한 승부로 명성 +1':' · 남은 시즌 컨디션 조금 하락'}`}</span></div></section>`;
 }
 function bigSides(e){const nat=e.kind==='nat';return{me:nat?'대한민국':shortT(S.team),mb:nat?natBadge('대한민국'):emblem(S.team,44),ob:nat?natBadge(e.opp):emblem(e.oppFull,44)}}
 function bigCard(e){
@@ -2652,91 +2648,225 @@ function p3BuildStadium(){
   P3.A.grid=new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(gp),new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.5}));sc.add(P3.A.grid);
 }
 /* ---- 선수 ---- */
+/* ---- 선수 3D 모델: 골반·허리·가슴·목·어깨·팔꿈치·손목·고관절·무릎·발목이 있는 리그 ---- */
 let GEO=null;
-function p3Geo(){if(GEO)return GEO;GEO={thigh:new THREE.CapsuleGeometry(.105,.26,4,10),shin:new THREE.CapsuleGeometry(.085,.26,4,10),shoe:new THREE.BoxGeometry(.13,.08,.26),
-  torso:new THREE.CapsuleGeometry(.26,.34,6,14),belt:new THREE.CylinderGeometry(.265,.265,.06,16),head:new THREE.SphereGeometry(.19,18,14),cap:new THREE.SphereGeometry(.205,18,10,0,Math.PI*2,0,Math.PI/2),
-  helm:new THREE.SphereGeometry(.228,18,12,0,Math.PI*2,0,Math.PI/1.75),brim:new THREE.CylinderGeometry(.14,.14,.025,18),arm:new THREE.CapsuleGeometry(.07,.28,4,8),hand:new THREE.SphereGeometry(.07,10,8),
-  glove:new THREE.SphereGeometry(.12,12,10),bat:(()=>{const g=new THREE.CylinderGeometry(.036,.016,.86,12);g.translate(0,.43,0);return g})()};return GEO}
+const LT=.44,LS=.43,FH=.07,UA=.29,FA=.27;      // 허벅지·정강이·발 높이·위팔·아래팔(손 포함) 길이
+function p3Geo(){if(GEO)return GEO;const cp=(r,l,s=10)=>new THREE.CapsuleGeometry(r,l,4,s);
+  GEO={pelvis:(()=>{const g=cp(.15,.15,12);g.rotateZ(Math.PI/2);g.scale(1,1,.78);return g})(),
+    torso:(()=>{const g=cp(.185,.25,14);g.scale(1.2,1,.74);return g})(),chestU:(()=>{const g=cp(.155,.1,14);g.rotateZ(Math.PI/2);g.scale(1,.95,.8);return g})(),
+    neck:new THREE.CylinderGeometry(.052,.058,.1,10),head:(()=>{const g=new THREE.SphereGeometry(.112,18,14);g.scale(.94,1.1,1.02);return g})(),
+    ear:new THREE.SphereGeometry(.025,8,6),
+    thigh:cp(.088,LT-.13),shinP:cp(.07,.1),sock:cp(.062,.2),
+    shoe:(()=>{const g=new THREE.BoxGeometry(.105,.075,.27,1,1,1);g.translate(0,0,.055);return g})(),
+    sleeve:cp(.066,.05),ua:cp(.058,UA-.1),fa:cp(.047,FA-.13),hand:(()=>{const g=new THREE.SphereGeometry(.046,10,8);g.scale(.9,1.15,.7);return g})(),
+    cap:new THREE.SphereGeometry(.122,18,10,0,Math.PI*2,0,Math.PI/2),
+    brim:(()=>{const g=new THREE.CylinderGeometry(.1,.1,.012,18);g.scale(1,1,.9);g.translate(0,0,.04);return g})(),
+    helm:new THREE.SphereGeometry(.132,20,12,0,Math.PI*2,0,Math.PI/1.62),flap:(()=>{const g=new THREE.SphereGeometry(.062,12,10);g.scale(.45,1.15,1.05);return g})(),
+    belt:new THREE.CylinderGeometry(.168,.168,.045,18),collar:new THREE.TorusGeometry(.066,.014,6,18),
+    glove:(()=>{const g=new THREE.SphereGeometry(.1,14,10);g.scale(.95,1.2,.5);g.translate(0,-.05,.03);return g})(),
+    pad:(()=>{const g=new THREE.BoxGeometry(.36,.42,.08);g.translate(0,0,.16);return g})(),guard:(()=>{const g=new THREE.BoxGeometry(.11,.36,.07);g.translate(0,-.2,.07);return g})(),
+    mask:(()=>{const g=new THREE.BoxGeometry(.2,.21,.05);g.translate(0,0,.11);return g})(),num:new THREE.PlaneGeometry(.2,.18),
+    bat:(()=>{const g=new THREE.CylinderGeometry(.032,.013,.86,14);g.translate(0,.43,0);return g})(),knob:new THREE.CylinderGeometry(.022,.022,.012,10)};return GEO}
+const NUMT={};
+function numTex(n,col){const k=n+'|'+col;if(NUMT[k])return NUMT[k];
+  return NUMT[k]=cvTex(128,128,x=>{x.clearRect(0,0,128,128);x.font='700 96px "Barlow Condensed","Noto Sans KR",sans-serif';x.textAlign='center';x.textBaseline='middle';
+    x.lineJoin='round';x.lineWidth=9;x.strokeStyle='rgba(0,0,0,.22)';x.strokeText(String(n),64,70);x.fillStyle=col;x.fillText(String(n),64,70)})}
 function p3Player(o){
-  const G_=p3Geo(), g=new THREE.Group(), body=new THREE.Group();g.add(body);
-  const mats={uni:new THREE.MeshLambertMaterial({color:o.uni}),pants:new THREE.MeshLambertMaterial({color:o.pants}),cap:new THREE.MeshLambertMaterial({color:o.cap}),skin:new THREE.MeshLambertMaterial({color:o.skin||0xe8b98f})};
-  const add=(geo,mat,x,y,z,par)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=true;(par||body).add(m);return m};
-  let headY,legL=null,legR=null;
-  if(o.crouch){
-    for(const sx of [-1,1]){add(G_.thigh,mats.pants,sx*.17,.42,.12).rotation.x=1.25;add(G_.shin,mats.cap,sx*.19,.22,.3)}
-    add(G_.torso,mats.uni,0,.8,0).rotation.x=.25;headY=1.3;
-  }else{
-    const leg=sx=>{const L=new THREE.Group();L.position.set(sx*.12,.8,0);body.add(L);add(G_.thigh,mats.pants,0,-.22,0,L);add(G_.shin,mats.cap,0,-.56,0,L);add(G_.shoe,ML(0x1f2430),0,-.77,.05,L);return L};
-    legL=leg(1);legR=leg(-1);add(G_.torso,mats.uni,0,1.1,0);add(G_.belt,mats.cap,0,.86,0);headY=1.64;
-  }
-  add(G_.head,mats.skin,0,headY,0);
-  add(o.helmet?G_.helm:G_.cap,mats.cap,0,headY+.02,0);
-  add(G_.brim,mats.cap,0,headY+.03,.19).scale.set(1,1,.8);
-  if(o.mask)add(new THREE.BoxGeometry(.3,.26,.05),ML(0x2b2b2b),0,headY-.02,.2);
-  const sY=headY-.36;
-  const arm=sx=>{const a=new THREE.Group();a.position.set(sx*.33,sY,0);body.add(a);add(G_.arm,mats.uni,0,-.2,0,a);add(G_.hand,mats.skin,0,-.4,0,a);return a};
-  const armL=arm(1),armR=arm(-1);
-  if(o.glove)add(G_.glove,ML(0x8a4b22),0,-.45,.04,o.lh?armR:armL).scale.set(1,1.1,.6);
+  const G_=p3Geo(),g=new THREE.Group(),body=new THREE.Group();g.add(body);
+  const L=c=>new THREE.MeshLambertMaterial({color:c});
+  const mats={uni:L(0xf6f6f2),pants:L(0xf0f1f3),trim:L(0x17305c),cap:L(0x17305c),skin:L(0xe8b98f),
+    helm:new THREE.MeshPhongMaterial({color:0x17305c,shininess:110,specular:0x777777}),num:new THREE.MeshLambertMaterial({transparent:true,depthWrite:false,color:0xffffff})};
+  const J=(par,x,y,z)=>{const j=new THREE.Group();j.position.set(x,y,z);par.add(j);return j};
+  const M=(geo,mat,par,x=0,y=0,z=0)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=true;par.add(m);return m};
+  const hips=J(body,0,LT+LS+FH,0);M(G_.pelvis,mats.pants,hips,0,.02,0);M(G_.belt,o.ump?ML(0x111111):mats.trim,hips,0,.12,0).scale.set(1,1,.8);
+  const spine=J(hips,0,.12,0);M(G_.torso,mats.uni,spine,0,.2,0);
+  const chest=J(spine,0,.3,0);M(G_.chestU,mats.uni,chest,0,.06,0);M(G_.neck,mats.skin,chest,0,.2,0);
+  if(!o.ump){M(G_.collar,mats.trim,chest,0,.17,.0).rotation.x=Math.PI/2}
+  const nm=new THREE.Mesh(G_.num,mats.num);nm.position.set(0,.0,-.152);nm.rotation.y=Math.PI;chest.add(nm);
+  if(o.gear){M(G_.pad,ML(0x23262d),spine,0,.24,-.02)}
+  const head=J(chest,0,.25,0);M(G_.head,mats.skin,head,0,.07,0);for(const sx of [-1,1])M(G_.ear,mats.skin,head,sx*.105,.06,0);
+  const flaps={};
+  if(o.helmet){const h=M(G_.helm,mats.helm,head,0,.085,-.01);h.rotation.x=-.12;M(G_.brim,mats.helm,head,0,.105,.085).scale.set(.95,1,.75);
+    for(const sx of [-1,1]){flaps[sx]=M(G_.flap,mats.helm,head,sx*.115,.045,.005)}}
+  else{M(G_.cap,mats.cap,head,0,.095,-.005);M(G_.brim,mats.cap,head,0,.1,.085)}
+  if(o.mask)M(G_.mask,ML(0x26282e),head,0,.05,0);
+  const arm=sx=>{const sh=J(chest,sx*.215,.12,0);M(G_.sleeve,o.ump?mats.uni:mats.uni,sh,0,-.06,0);M(G_.ua,mats.trim,sh,0,-UA*.55,0);
+    const el=J(sh,0,-UA,0);M(G_.fa,mats.trim,el,0,-(FA-.06)/2,0);const hd=J(el,0,-FA+.05,0);M(G_.hand,mats.skin,hd,0,0,0);return{sh,el,hd}};
+  const AL=arm(1),AR=arm(-1);
+  const gloves={L:M(G_.glove,ML(0x8a4b22),AL.hd,0,0,0),R:M(G_.glove,ML(0x8a4b22),AR.hd,0,0,0)};gloves.L.visible=gloves.R.visible=false;
+  const leg=sx=>{const th=J(hips,sx*.098,-.02,0);M(G_.thigh,mats.pants,th,0,-LT/2,0);const kn=J(th,0,-LT,0);M(G_.shinP,mats.pants,kn,0,-.1,0);
+    M(G_.sock,o.ump?ML(0x111111):mats.trim,kn,0,-.27,0);if(o.gear)M(G_.guard,ML(0x23262d),kn,0,0,0);const ft=J(kn,0,-LS,0);M(G_.shoe,ML(0x15171c),ft,0,-.03,0);return{th,kn,ft}};
+  const LL=leg(1),LR=leg(-1);
   let batPivot=null;
-  if(o.bat){batPivot=new THREE.Group();batPivot.position.set(-.05,sY-.14,.22);body.add(batPivot);const b=new THREE.Mesh(G_.bat,ML(0xd5a05a));b.castShadow=true;batPivot.add(b);armL.rotation.x=armR.rotation.x=-1.1;armL.rotation.z=-.25;armR.rotation.z=.25}
-  g.userData={body,armL,armR,legL,legR,batPivot,mats,lh:!!o.lh,ph:Math.random()*6};
+  if(o.bat){batPivot=new THREE.Group();body.add(batPivot);const b=new THREE.Mesh(G_.bat,ML(0xd2a15e));b.castShadow=true;batPivot.add(b);const kb=new THREE.Mesh(G_.knob,ML(0x5b3a1c));batPivot.add(kb)}
+  g.userData={body,hips,spine,chest,head,AL,AR,LL,LR,batPivot,mats,gloves,flaps,num:nm,lh:!!o.lh,ph:Math.random()*6,o};
+  if(o.glove)gloves.L.visible=true;
   return g;
 }
-function p3Run(p,ph,amt){const u=p.userData;if(!u.legL)return;const s=Math.sin(ph)*amt;u.legL.rotation.x=s;u.legR.rotation.x=-s;if(!u.batPivot){u.armL.rotation.x=-s*.8;u.armR.rotation.x=s*.8}u.body.rotation.x=amt>.1?.18:0}
-function p3Idle(p){const u=p.userData;if(u.legL){u.legL.rotation.x=0;u.legR.rotation.x=0}u.body.rotation.set(0,0,0);if(!u.batPivot){u.armL.rotation.set(0,0,0);u.armR.rotation.set(0,0,0)}}
-const BATKF=[[0,[.45,.85,-.2]],[.16,[.78,.52,-.15]],[.45,[.08,.05,1]],[.7,[-.85,.25,.3]],[1,[-.3,.62,-.72]]];
-function p3SwingPose(p,t){
-  const u=p.userData;if(!u.batPivot)return;t=clamp(t,0,1);const m=u.lh?1:-1;let d=null;
-  for(let i=0;i<BATKF.length-1;i++){const [t0,a]=BATKF[i],[t1,b]=BATKF[i+1];if(t<=t1){const k=(t-t0)/(t1-t0);d=[a[0]+(b[0]-a[0])*k,a[1]+(b[1]-a[1])*k,a[2]+(b[2]-a[2])*k];break}}
-  if(!d)d=BATKF[BATKF.length-1][1];
-  const v=new THREE.Vector3(d[0]*m,d[1],d[2]).normalize();u.batPivot.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),v);
-  u.body.rotation.y=m*(t<.16?.25:t<.5?.25-(t-.16)*2.4:-.57-(t-.5)*.6);
+/* ---- 자세: 관절 각도(라디안)와 손 목표(IK) ---- */
+const PJ=['hips','spine','head','thL','knL','ftL','thR','knR','ftR','shL','elL','shR','elR'],Z3=[0,0,0];
+function jointOf(u,k){switch(k){case'hips':return u.hips;case'spine':return u.spine;case'head':return u.head;case'thL':return u.LL.th;case'knL':return u.LL.kn;case'ftL':return u.LL.ft;
+  case'thR':return u.LR.th;case'knR':return u.LR.kn;case'ftR':return u.LR.ft;case'shL':return u.AL.sh;case'elL':return u.AL.el;case'shR':return u.AR.sh;default:return u.AR.el}}
+const MIRK={thL:'thR',thR:'thL',knL:'knR',knR:'knL',ftL:'ftR',ftR:'ftL',shL:'shR',shR:'shL',elL:'elR',elR:'elL',hL:'hR',hR:'hL',pL:'pR',pR:'pL'};
+function mirPose(P){const o={_m:1};for(const k in P){const v=P[k],k2=MIRK[k]||k;
+  if(['hL','hR','knob','bdir','pL','pR'].includes(k))o[k2]=[-v[0],v[1],v[2]];else if(Array.isArray(v))o[k2]=[v[0],-v[1],-v[2]];else if(k==='bx')o[k]=-v;else o[k2]=v}return o}
+let _ia,_ib,_ic,_in,_iq,DN,_iw,_bq,_bu,_bh,_cw;   // three.js가 늦게 불러와져서 3D를 처음 만들 때 채워요
+function p3Vec(){const V=()=>new THREE.Vector3();_ia=V();_ib=V();_ic=V();_in=V();_iq=new THREE.Quaternion();DN=new THREE.Vector3(0,-1,0);_iw=V();_bq=V();_bu=new THREE.Vector3(0,1,0);_bh=V();_cw=V()}
+function p3IK(sh,el,W,pole){
+  const T=sh.parent.worldToLocal(_ia.copy(W)).sub(sh.position);let d=T.length();const mx=(UA+FA)*.995;
+  if(d>mx){T.multiplyScalar(mx/d);d=mx}if(d<.06)return;
+  const ang=Math.acos(clamp((UA*UA+d*d-FA*FA)/(2*UA*d),-1,1)),dir=_ib.copy(T).normalize();
+  _in.set(pole[0],pole[1],pole[2]);_in.crossVectors(dir,_in);if(_in.lengthSq()<1e-6)_in.set(1,0,0);_in.normalize();
+  const up=_ic.copy(dir).applyAxisAngle(_in,ang);sh.quaternion.setFromUnitVectors(DN,up);
+  T.addScaledVector(up,-UA).normalize().applyQuaternion(_iq.copy(sh.quaternion).invert());el.quaternion.setFromUnitVectors(DN,T);
 }
-function p3PitchPose(p,t){
-  const u=p.userData,s=u.lh?-1:1,th=s>0?u.armR:u.armL,gl=s>0?u.armL:u.armR,lead=s>0?u.legL:u.legR,e=x=>x*x*(3-2*x);
-  const a=e(clamp(t/.35,0,1)),b=e(clamp((t-.35)/.3,0,1)),c=e(clamp((t-.65)/.12,0,1)),d=clamp((t-.77)/.4,0,1);
-  lead.rotation.x=-1.4*a+1.0*b+.4*d;th.rotation.x=-.4*a+2.2*b-4.6*c+1.6*d;th.rotation.z=-s*.5*b*(1-c);gl.rotation.x=-.6*a-.6*b+1.2*c;
-  u.body.rotation.x=.2*b+.35*c-.25*d;
+const legExt=(th,kn)=>LT*Math.cos(th[0])*Math.cos(th[2])+LS*Math.cos(th[0]+kn[0])*Math.cos(th[2]);
+function p3Pose(p,P,k=1){
+  const u=p.userData;if(!u.hips||!P)return;if(u.lh&&!P._m)P=mirPose(P);
+  const c=u.cur||(u.cur={});
+  for(const key of PJ){const t=P[key]||Z3,cv=c[key]||(c[key]=[0,0,0]);cv[0]+=(t[0]-cv[0])*k;cv[1]+=(t[1]-cv[1])*k;cv[2]+=(t[2]-cv[2])*k;jointOf(u,key).rotation.set(cv[0],cv[1],cv[2])}
+  c.bz=(c.bz||0)+((P.bz||0)-(c.bz||0))*k;c.bx=(c.bx||0)+((P.bx||0)-(c.bx||0))*k;u.body.position.set(c.bx,0,c.bz);
+  u.hips.position.y=Math.max(legExt(c.thL,c.knL),legExt(c.thR,c.knR))+FH+(P.dy||0);
+  const ik=[];
+  for(const s of ['L','R']){const hk='h'+s,T=P[hk];
+    if(!T){c[hk+'on']=0;continue}
+    const cv=c[hk]||(c[hk]=T.slice());if(c[hk+'on']&&k<1)for(let i=0;i<3;i++)cv[i]+=(T[i]-cv[i])*k;else{cv[0]=T[0];cv[1]=T[1];cv[2]=T[2]}c[hk+'on']=1;ik.push([s,cv,P['p'+s]])}
+  p.updateMatrixWorld(true);
+  if(ik.length){for(const [s,cv,pl] of ik){const ar=s==='L'?u.AL:u.AR;p3IK(ar.sh,ar.el,p.localToWorld(_iw.set(cv[0],cv[1],cv[2])),pl||(s==='L'?[.7,-1,-.5]:[-.7,-1,-.5]))}}
+  // 땅에 닿은 발은 발바닥이 평평하게(발끝 방향만 다리 쪽으로)
+  const gy=p.getWorldPosition(_iw).y;
+  for(const lg of [u.LL,u.LR]){const ft=lg.ft;ft.getWorldPosition(_ia);if(_ia.y-gy>.16)continue;
+    lg.kn.getWorldQuaternion(_iq);_ib.set(0,0,1).applyQuaternion(_iq);const yaw=Math.atan2(_ib.x,_ib.z);
+    _ic.set(0,1,0);ft.quaternion.copy(_iq.invert().multiply(new THREE.Quaternion().setFromAxisAngle(_ic,yaw)));}
 }
+/* Hermite 보간: 키 사이를 끊김 없이 부드럽게 이어요 */
+function kfPose(K,t){
+  const n=K.length;if(t<=K[0].t)return K[0];if(t>=K[n-1].t)return K[n-1];
+  let i=0;while(i<n-2&&t>K[i+1].t)i++;
+  const a=K[i],b=K[i+1],p=K[i-1]||a,q=K[i+2]||b,h=b.t-a.t,x=(t-a.t)/h,x2=x*x,x3=x2*x;
+  const h00=2*x3-3*x2+1,h10=x3-2*x2+x,h01=-2*x3+3*x2,h11=x3-x2,o={};
+  const f=(va,vb,vp,vq)=>{const ma=(vb-vp)/Math.max(1e-3,b.t-p.t)*h*(p===a?.0:1),mb=(vq-va)/Math.max(1e-3,q.t-a.t)*h*(q===b?0:1);return h00*va+h10*ma+h01*vb+h11*mb};
+  for(const k in a){if(k==='t')continue;const va=a[k],vb=b[k]!=null?b[k]:va,vp=p[k]!=null?p[k]:va,vq=q[k]!=null?q[k]:vb;
+    o[k]=Array.isArray(va)?va.map((v,j)=>f(v,vb[j],vp[j],vq[j])):f(va,vb,vp,vq)}
+  return o;
+}
+const P_STAND={spine:[.04,0,0],thL:[0,0,.04],knL:[.06,0,0],ftL:[-.06,0,0],thR:[0,0,-.04],knR:[.06,0,0],ftR:[-.06,0,0],shL:[.05,0,.1],elL:[-.22,0,0],shR:[.05,0,-.1],elR:[-.22,0,0]};
+const P_READY={spine:[.62,0,0],head:[-.55,0,0],thL:[-.62,0,.24],knL:[1.08,0,0],ftL:[-.46,0,0],thR:[-.62,0,-.24],knR:[1.08,0,0],ftR:[-.46,0,0],shL:[-.95,0,.28],elL:[-.55,0,0],shR:[-.95,0,-.28],elR:[-.55,0,0]};
+const P_OFREADY={spine:[.36,0,0],head:[-.3,0,0],thL:[-.36,0,.2],knL:[.62,0,0],ftL:[-.26,0,0],thR:[-.36,0,-.2],knR:[.62,0,0],ftR:[-.26,0,0],shL:[-.4,0,.25],elL:[-.9,0,0],shR:[-.4,0,-.25],elR:[-.9,0,0]};
+const P_LEAD={spine:[.45,0,0],head:[-.35,-.7,0],thL:[-.45,0,.3],knL:[.85,0,0],ftL:[-.4,0,0],thR:[-.45,0,-.3],knR:[.85,0,0],ftR:[-.4,0,0],shL:[-.5,0,.35],elL:[-.7,0,0],shR:[-.5,0,-.35],elR:[-.7,0,0]};
+const P_CROUCH={spine:[.28,0,0],head:[-.2,0,0],thL:[-1.5,0,.5],knL:[2.35,0,0],ftL:[-.85,0,0],thR:[-1.5,0,-.5],knR:[2.35,0,0],ftR:[-.85,0,0],shR:[.35,0,-.25],elR:[-.4,0,0],shL:[-.6,0,.3],elL:[-.6,0,0]};
+const P_UMP={spine:[.58,0,0],head:[-.45,0,0],thL:[-1.05,0,.34],knL:[1.65,0,0],ftL:[-.6,0,0],thR:[-1.05,0,-.34],knR:[1.65,0,0],ftR:[-.6,0,0],shL:[-.55,0,.3],elL:[-.65,0,0],shR:[-.55,0,-.3],elR:[-.65,0,0]};
+const P_UMPK={...P_UMP,spine:[.15,0,0],head:[-.1,0,0],shR:[-2.5,0,-.35],elR:[-1.5,0,0],shL:[.1,0,.2],elL:[-.3,0,0]};
+const P_SCOOP={spine:[1.05,0,0],head:[-.75,0,0],thL:[-.95,0,.32],knL:[1.45,0,0],ftL:[-.5,0,0],thR:[-.85,0,-.32],knR:[1.4,0,0],ftR:[-.55,0,0],hL:[.08,.22,.62],hR:[-.06,.3,.58],pL:[.4,-1,.2],pR:[-.4,-1,.2]};
+function runPose(ph,amt=1){const s=Math.sin(ph),c=Math.cos(ph),kn=x=>.18+1.3*Math.pow(Math.max(0,x),1.3);
+  return{hips:[0,.1*s*amt,0],spine:[.3*amt,-.14*s*amt,0],head:[-.22*amt,.12*s*amt,0],
+    thL:[-(.88*s+.12)*amt,0,.04],knL:[kn(c)*amt+.06,0,0],ftL:[-.25*Math.max(0,s)*amt,0,0],
+    thR:[-(-.88*s+.12)*amt,0,-.04],knR:[kn(-c)*amt+.06,0,0],ftR:[-.25*Math.max(0,-s)*amt,0,0],
+    shL:[.78*s*amt,0,.16],elL:[-1.5*amt-.2,0,0],shR:[-.78*s*amt,0,-.16],elR:[-1.5*amt-.2,0,0]}}
+/* 투구: 세트 → 키킹 → 스트라이드 → 레이백 → 릴리스 → 팔로스루 → 수비 자세 (우투 기준, +z=홈 쪽) */
+const PITK=[
+ {t:0,  hips:[0,-.2,0],spine:[.05,-.05,0],head:[0,.2,0],thL:[-.05,0,.1],knL:[.12,0,0],ftL:[-.07,0,0],thR:[0,0,-.1],knR:[.12,0,0],ftR:[-.1,0,0],bz:0,hL:[.03,1.3,.3],hR:[-.03,1.28,.3]},
+ {t:.3, hips:[0,-1.38,0],spine:[-.08,-.12,0],head:[0,1.4,0],thL:[-1.55,0,.12],knL:[1.8,0,0],ftL:[.35,0,0],thR:[-.12,0,-.05],knR:[.26,0,0],ftR:[-.12,0,0],bz:0,hL:[-.27,1.4,.04],hR:[-.27,1.38,-.02]},
+ {t:.5, hips:[0,-1.3,0],spine:[0,-.12,0],head:[0,1.3,0],thL:[-.95,0,.55],knL:[.55,0,0],ftL:[.35,0,0],thR:[-.22,0,-.05],knR:[.55,0,0],ftR:[-.3,0,0],bz:.25,hL:[.12,1.42,.62],hR:[-.32,1.02,-.42],pR:[-1,-.6,-.2]},
+ {t:.66,hips:[.12,-.45,0],spine:[.22,-.78,0],head:[0,.95,0],thL:[-1.05,0,.25],knL:[.35,0,0],ftL:[.6,0,0],thR:[.45,0,-.15],knR:[.78,0,0],ftR:[-.35,0,0],bz:.62,hL:[.35,1.22,.66],hR:[-.5,1.58,.22],pR:[-1,-.15,-.6]},
+ {t:.72,hips:[.25,.25,0],spine:[.55,.35,0],head:[-.3,0,0],thL:[-1.0,0,.12],knL:[.2,0,0],ftL:[.75,0,0],thR:[.72,0,-.1],knR:[1.12,0,0],ftR:[-.65,0,0],bz:.78,hL:[.3,1.0,.6],hR:[-.55,1.6,1.14],pR:[-1,-.4,-.1]},
+ {t:.95,hips:[.3,.6,0],spine:[.95,.55,0],head:[-.25,-.1,0],thL:[-.85,0,.1],knL:[.35,0,0],ftL:[.48,0,0],thR:[-.2,0,.05],knR:[1.4,0,0],ftR:[-.25,0,0],bz:.95,hL:[.25,.95,.78],hR:[.3,.78,1.05],pR:[.3,-1,-.6]},
+ {t:1.4,hips:[0,0,0],spine:[.42,0,0],head:[-.35,0,0],thL:[-.48,0,.22],knL:[.85,0,0],ftL:[-.38,0,0],thR:[-.48,0,-.22],knR:[.85,0,0],ftR:[-.38,0,0],bz:.95,hL:[.2,.98,1.38],hR:[-.2,.98,1.38]}];
+function p3PitchPose(p,t){p3Pose(p,kfPose(PITK,t),1)}
+/* 타격: 스탠스 → 로드(앞발 들기) → 컨택트 → 익스텐션 → 팔로스루 (우타자 기준, +x=투수 쪽, +z=홈플레이트 쪽) */
+const SWK=[
+ {t:0,  hips:[0,-.15,0],spine:[.28,-.12,0],head:[.12,1.42,0],thL:[-.12,0,.3],knL:[.42,0,0],ftL:[-.28,0,-.05],thR:[-.18,0,-.3],knR:[.5,0,0],ftR:[-.3,0,.05],knob:[-.14,1.3,.2],bdir:[-.38,.9,-.18]},
+ {t:.16,hips:[0,-.32,0],spine:[.28,-.3,0],head:[.12,1.55,0],thL:[-.5,0,.2],knL:[.9,0,0],ftL:[-.22,0,0],thR:[-.18,0,-.3],knR:[.58,0,0],ftR:[-.35,0,.05],knob:[-.22,1.32,.14],bdir:[-.78,.52,-.15]},
+ {t:.45,hips:[0,.8,0],spine:[.18,.35,0],head:[.32,.5,0],thL:[-.04,0,.42],knL:[.08,0,0],ftL:[0,0,0],thR:[.12,.55,-.15],knR:[.8,0,0],ftR:[.4,0,0],knob:[.04,.98,.36],bdir:[-.08,.05,1]},
+ {t:.7, hips:[0,1.2,0],spine:[.12,.55,0],head:[.22,.15,0],thL:[-.04,0,.4],knL:[.1,0,0],ftL:[0,0,0],thR:[.2,.7,-.05],knR:[.95,0,0],ftR:[.55,0,0],knob:[.22,1.08,.3],bdir:[.85,.25,.3]},
+ {t:1,  hips:[0,1.4,0],spine:[.05,.72,0],head:[.1,-.15,0],thL:[-.04,0,.38],knL:[.14,0,0],ftL:[0,0,0],thR:[.15,.85,.05],knR:[1.0,0,0],ftR:[.6,0,0],knob:[.14,1.5,.02],bdir:[.3,.62,-.72]}];
+function p3BatPose(p,P){
+  const u=p.userData;if(u.lh)P=mirPose(P);
+  const hp={...P};delete hp.knob;delete hp.bdir;hp._m=1;p3Pose(p,hp,1);
+  if(!u.batPivot||!u.batPivot.visible)return;
+  u.batPivot.position.set(P.knob[0],P.knob[1],P.knob[2]);u.batPivot.quaternion.setFromUnitVectors(_bu,_bq.set(P.bdir[0],P.bdir[1],P.bdir[2]).normalize());
+  p.updateMatrixWorld(true);const lo=u.lh?u.AR:u.AL,hi=u.lh?u.AL:u.AR,sl=u.lh?-1:1;
+  p3IK(lo.sh,lo.el,u.batPivot.localToWorld(_bh.set(0,.06,0)),[sl*.5,-1,-.2]);
+  p3IK(hi.sh,hi.el,u.batPivot.localToWorld(_bh.set(0,.155,0)),[-sl*.6,-1,-.1]);
+}
+function p3SwingPose(p,t){if(!p.userData.batPivot)return;p3BatPose(p,kfPose(SWK,clamp(t,0,1)))}
+function p3BatStance(p,now,ld){
+  if(!p.userData.batPivot)return;const P=kfPose(SWK,.16*clamp(ld,0,1)),w=(1-clamp(ld,0,1));
+  P.bdir=[P.bdir[0]+Math.sin(now/260)*.12*w,P.bdir[1],P.bdir[2]+Math.cos(now/310)*.08*w];P.knob=[P.knob[0],P.knob[1]+Math.sin(now/260)*.012*w,P.knob[2]];
+  p3BatPose(p,P);
+}
+/* 수비수 송구: 글러브 쪽 다리 디딤 → 팔 뒤로 → 던지기 → 팔로스루 */
+const THRK=[
+ {t:0, spine:[.35,-.2,0],head:[-.2,.2,0],thL:[-.3,0,.12],knL:[.5,0,0],ftL:[-.2,0,0],thR:[-.3,0,-.12],knR:[.5,0,0],ftR:[-.2,0,0],hL:[.15,1.15,.45],hR:[-.12,1.12,.42]},
+ {t:.45,spine:[.15,-.75,0],head:[-.1,.75,0],thL:[-.65,0,.15],knL:[.35,0,0],ftL:[.3,0,0],thR:[.2,0,-.12],knR:[.4,0,0],ftR:[-.2,0,0],hL:[.38,1.35,.55],hR:[-.42,1.62,-.32],pR:[-1,-.3,-.3]},
+ {t:.7,spine:[.55,.35,0],head:[-.2,0,0],thL:[-.7,0,.12],knL:[.25,0,0],ftL:[.45,0,0],thR:[.55,0,-.08],knR:[.9,0,0],ftR:[-.5,0,0],hL:[.3,1.0,.3],hR:[-.25,1.5,.85],pR:[-1,-.4,-.1]},
+ {t:1, spine:[.8,.5,0],head:[-.2,-.1,0],thL:[-.6,0,.1],knL:[.4,0,0],ftL:[.2,0,0],thR:[-.1,0,.05],knR:[1.1,0,0],ftR:[-.2,0,0],hL:[.25,.95,.35],hR:[.28,.82,.65],pR:[.3,-1,-.6]}];
+function p3CatchPose(p,ball,k){
+  const L=p.worldToLocal(_cw.copy(ball)),near=L.distanceTo(_bh.set(.15,1.7,.3))<3.2&&L.z>-.5;
+  const tg=near?[clamp(L.x,-.2,.55),clamp(L.y,1.1,2.25),clamp(L.z,.15,.7)]:[.18,2.05,.38];
+  p3Pose(p,{spine:[-.12,0,0],head:[-.65,0,0],thL:[-.1,0,.12],knL:[.2,0,0],ftL:[-.1,0,0],thR:[-.05,0,-.12],knR:[.15,0,0],ftR:[-.1,0,0],hL:tg,hR:[tg[0]-.16,tg[1]-.12,tg[2]],pL:[1,-.4,-.3],pR:[-1,-.4,-.3]},k);
+}
+function p3Idle(p){p3Pose(p,p.userData.o.ump?P_UMP:p.userData.o.crouch?P_CROUCH:P_STAND,1)}
+function p3Run(p,ph,amt){p3Pose(p,runPose(ph,amt),1)}
 function p3BuildActors(){
-  const sc=P3.sc,A=P3.A;
-  A.pitcher=p3Player({uni:0xffffff,pants:0xe5e7eb,cap:0x17305c,glove:true});A.pitcher.position.set(0,.25,18.44);A.pitcher.rotation.y=Math.PI;sc.add(A.pitcher);
-  A.catcher=p3Player({uni:0xffffff,pants:0xe5e7eb,cap:0x17305c,crouch:true,mask:true});A.catcher.position.set(0,0,-1.05);sc.add(A.catcher);
-  A.ump=p3Player({uni:0x111827,pants:0x374151,cap:0x111827,crouch:true,mask:true});A.ump.position.set(0,.1,-1.95);A.ump.scale.setScalar(1.04);sc.add(A.ump);
-  A.mitt=new THREE.Mesh(new THREE.SphereGeometry(.16,16,12),ML(0x7a3f1c));A.mitt.scale.set(1,1.1,.55);A.mitt.position.set(0,.75,-.72);sc.add(A.mitt);
-  A.batter=p3Player({uni:0xffffff,pants:0xe5e7eb,cap:0x17305c,helmet:true,bat:true});sc.add(A.batter);
-  A.f={};for(const k of FKEYS.slice(2)){A.f[k]=p3Player({uni:0xffffff,pants:0xe5e7eb,cap:0x17305c,glove:true});sc.add(A.f[k])}
-  A.runners=[0,1,2].map(()=>{const r=p3Player({uni:0xffffff,pants:0xe5e7eb,cap:0x17305c,helmet:true});r.visible=false;sc.add(r);return r});
-  A.ball=new THREE.Mesh(new THREE.SphereGeometry(.037*1.9,20,14),new THREE.MeshLambertMaterial({map:ballTex(),emissive:0x222222}));A.ball.castShadow=true;A.ball.visible=false;sc.add(A.ball);
-  A.shadow=new THREE.Mesh(new THREE.CircleGeometry(.09,16),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.35,depthWrite:false}));A.shadow.rotation.x=-Math.PI/2;A.shadow.visible=false;sc.add(A.shadow);
-  const tp=new Float32Array(30*3);A.trailG=new THREE.BufferGeometry();A.trailG.setAttribute('position',new THREE.BufferAttribute(tp,3));
-  A.trail=new THREE.Line(A.trailG,new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.45}));A.trail.frustumCulled=false;A.trail.visible=false;sc.add(A.trail);
+  p3Vec();const sc=P3.sc,A=P3.A;
+  A.pitcher=p3Player({glove:true});A.pitcher.position.set(0,.25,18.44);A.pitcher.rotation.y=Math.PI;sc.add(A.pitcher);
+  A.catcher=p3Player({crouch:true,mask:true,gear:true,helmet:true});A.catcher.position.set(0,0,-1.05);sc.add(A.catcher);
+  A.ump=p3Player({crouch:true,mask:true,ump:true,gear:true});A.ump.position.set(0,0,-1.95);sc.add(A.ump);
+  A.mitt=new THREE.Mesh(new THREE.SphereGeometry(.13,16,12),ML(0x6b3416));A.mitt.scale.set(1,1.15,.55);A.mitt.position.set(0,.75,-.72);sc.add(A.mitt);
+  A.batter=p3Player({helmet:true,bat:true});sc.add(A.batter);
+  A.f={};for(const k of FKEYS.slice(2)){A.f[k]=p3Player({glove:true});sc.add(A.f[k])}
+  A.runners=[0,1,2].map(()=>{const r=p3Player({helmet:true});r.visible=false;sc.add(r);return r});
+  A.ball=new THREE.Mesh(new THREE.SphereGeometry(.037*1.3,20,14),new THREE.MeshLambertMaterial({map:ballTex(),emissive:0x2a2a2a}));A.ball.castShadow=true;A.ball.visible=false;sc.add(A.ball);
+  A.shadow=new THREE.Mesh(new THREE.CircleGeometry(.07,16),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.32,depthWrite:false}));A.shadow.rotation.x=-Math.PI/2;A.shadow.visible=false;sc.add(A.shadow);
+  // 공이 멀리 가도 보이게: 화면 크기가 일정한 빛 + 꼬리처럼 남는 리본 궤적
+  A.glow=new THREE.Sprite(new THREE.SpriteMaterial({map:cvTex(64,64,x=>{const g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.22,'rgba(255,248,222,.9)');g.addColorStop(.55,'rgba(255,214,140,.25)');g.addColorStop(1,'rgba(255,200,120,0)');x.fillStyle=g;x.fillRect(0,0,64,64)}),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
+  A.glow.visible=false;A.glow.renderOrder=4;sc.add(A.glow);
+  const rg=new THREE.BufferGeometry();rg.setAttribute('position',new THREE.BufferAttribute(new Float32Array(RIBN*6),3));rg.setAttribute('a',new THREE.BufferAttribute(new Float32Array(RIBN*2),1));
+  const ix=[];for(let i=0;i<RIBN-1;i++){const a=i*2;ix.push(a,a+1,a+2,a+1,a+3,a+2)}rg.setIndex(ix);
+  A.trail=new THREE.Mesh(rg,new THREE.ShaderMaterial({uniforms:{c:{value:new THREE.Color(0xfff0c4)}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
+    vertexShader:'attribute float a;varying float v;void main(){v=a;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+    fragmentShader:'uniform vec3 c;varying float v;void main(){gl_FragColor=vec4(c*v,v);}'}));
+  A.trail.frustumCulled=false;A.trail.visible=false;A.trail.renderOrder=3;sc.add(A.trail);
   const rm=new THREE.MeshBasicMaterial({color:0xffc845,transparent:true,opacity:.85,side:THREE.DoubleSide,depthTest:false});
-  A.ret=new THREE.Group();const rg=new THREE.Mesh(new THREE.RingGeometry(.86,1,40),rm);rg.renderOrder=5;A.ret.add(rg);
+  A.ret=new THREE.Group();const rgm=new THREE.Mesh(new THREE.RingGeometry(.86,1,40),rm);rgm.renderOrder=5;A.ret.add(rgm);
   const dot=new THREE.Mesh(new THREE.CircleGeometry(.08,12),rm);dot.renderOrder=5;A.ret.add(dot);A.ret.visible=false;sc.add(A.ret);
   A.land=new THREE.Mesh(new THREE.RingGeometry(.05,.065,28),new THREE.MeshBasicMaterial({color:0xffc845,transparent:true,opacity:.9,side:THREE.DoubleSide,depthTest:false}));A.land.renderOrder=6;A.land.visible=false;sc.add(A.land);
   A.tgt=new THREE.Mesh(new THREE.RingGeometry(.06,.085,28),new THREE.MeshBasicMaterial({color:0x4ade80,transparent:true,opacity:.95,side:THREE.DoubleSide,depthTest:false}));A.tgt.renderOrder=6;A.tgt.visible=false;sc.add(A.tgt);
+  A.ump.userData.mats.uni.color.set(0x1d2433);A.ump.userData.mats.pants.color.set(0x5b616b);A.ump.userData.mats.trim.color.set(0x1d2433);A.ump.userData.mats.cap.color.set(0x111318);A.ump.userData.num.visible=false;
 }
-function p3Color(p,o){const m=p.userData.mats;m.uni.color.set(o.uni);m.pants.color.set(o.pants);m.cap.color.set(o.cap);if(o.skin)m.skin.color.set(o.skin)}
+/* 홈팀(우리)은 흰 유니폼, 원정팀은 팀 컬러 유니폼. 모자·헬멧·언더셔츠·스타킹은 팀 컬러 */
+function p3Kit(home,col){const c=new THREE.Color(col),hsl={};c.getHSL(hsl);
+  if(home)return{uni:0xf6f6f2,pants:0xf1f2f4,trim:c.getHex(),cap:c.getHex(),numc:'#'+c.getHexString()};
+  const d=c.clone().offsetHSL(0,0,-.12);return{uni:c.getHex(),pants:0xaab1bb,trim:d.getHex(),cap:d.getHex(),numc:hsl.l>.62?'#1b2230':'#ffffff'}}
+const RIBN=44;
+let NUMSEED=7;
+function p3Color(p,kit,skin,num){
+  const u=p.userData,m=u.mats;m.uni.color.set(kit.uni);m.pants.color.set(kit.pants);m.trim.color.set(kit.trim);m.cap.color.set(kit.cap);m.helm.color.set(kit.cap);if(skin)m.skin.color.set(skin);
+  if(u.o.gear&&!u.o.ump){m.uni.color.set(kit.uni)}
+  const n=num!=null?num:(NUMSEED=(NUMSEED*37+11)%97)+1;m.num.map=numTex(n,kit.numc);m.num.needsUpdate=true;
+}
 function p3Dress(G){
-  const us={uni:0xf4f4f1,pants:0xe2e5ea,cap:G.mc[1]}, op={uni:G.oc[1],pants:0x9aa3b2,cap:G.oc[1]};
-  const batUs=G.mode==='bat', bt=batUs?us:op, fd=batUs?op:us, A=P3.A, sk=()=>pick(SKINS);
-  p3Color(A.pitcher,{...fd,skin:!batUs&&G.role==='pit'?S.avatar.skin:sk()});p3Color(A.catcher,{...fd,skin:sk()});
-  for(const k in A.f)p3Color(A.f[k],{...fd,skin:sk()});
-  p3Color(A.batter,{...bt,skin:batUs?S.avatar.skin:sk()});A.runners.forEach(r=>p3Color(r,{...bt,skin:sk()}));
+  const us=p3Kit(true,G.mc[1]),op=p3Kit(false,G.oc[1]);
+  const batUs=G.mode==='bat',bt=batUs?us:op,fd=batUs?op:us,A=P3.A,sk=()=>pick(SKINS);
+  p3Color(A.pitcher,fd,!batUs&&G.role==='pit'?S.avatar.skin:sk(),!batUs&&G.role==='pit'?S.num:null);p3Color(A.catcher,fd,sk());
+  for(const k in A.f)p3Color(A.f[k],fd,sk());
+  p3Color(A.batter,bt,batUs?S.avatar.skin:sk(),batUs?S.num:null);A.runners.forEach(r=>p3Color(r,bt,sk()));
   A.pitcher.userData.lh=G.mode==='bat'?!!(G.pit&&G.pit.lh):G.role==='pit'&&/^좌투/.test(S.hand);
-  const lb=batUs?isLeftBat():!!G.lu[G.bi].lh;A.batter.userData.lh=lb;
+  const pg=A.pitcher.userData.gloves;pg.L.visible=!A.pitcher.userData.lh;pg.R.visible=A.pitcher.userData.lh;
+  const lb=batUs?isLeftBat():!!G.lu[G.bi].lh;A.batter.userData.lh=lb;const fl=A.batter.userData.flaps;if(fl[1]){fl[1].visible=!lb;fl[-1].visible=lb}
+  A.runners.forEach(r=>{const f=r.userData.flaps;if(f[1]){f[1].visible=true;f[-1].visible=false}});
   P3.dressed=G.mode+(G.mode==='bat'?'':G.bi);
 }
 function p3ResetField(G){
   const A=P3.A;
   if(P3.dressed!==G.mode+(G.mode==='bat'?'':G.bi))p3Dress(G);
-  A.pitcher.position.set(0,.25,18.44);A.pitcher.rotation.y=Math.PI;p3Idle(A.pitcher);
+  A.pitcher.position.set(0,.25,18.44);A.pitcher.rotation.y=Math.PI;p3PitchPose(A.pitcher,0);p3Idle(A.catcher);p3Idle(A.ump);
   for(const k in A.f){const [x,z]=FPOS[k];A.f[k].position.set(-x,0,z);A.f[k].rotation.y=Math.atan2(x,-z);p3Idle(A.f[k])}
   const lb=A.batter.userData.lh;A.batter.position.set(lb?-.95:.95,0,.15);A.batter.rotation.y=lb?Math.PI/2:-Math.PI/2;A.batter.visible=true;
   if(A.batter.userData.batPivot)A.batter.userData.batPivot.visible=true;p3Idle(A.batter);p3SwingPose(A.batter,0);
-  const on=G.pa?G.pa.on:'';A.runners.forEach((r,i)=>{const b=i+1;if(on.includes(String(b))){const [x,z]=BASEP[b];r.position.set(-(x+(b===1?-1.2:b===3?1.2:-.8)),0,z-.6);r.rotation.y=Math.atan2(x,-z);r.visible=true;p3Idle(r)}else r.visible=false});
-  A.ball.visible=false;A.shadow.visible=false;A.trail.visible=false;A.land.visible=false;A.mitt.position.set(0,.75,-.72);P3.trailN=0;
+  const on=G.pa?G.pa.on:'';A.runners.forEach((r,i)=>{const b=i+1;if(on.includes(String(b))){const [x,z]=BASEP[b];r.position.set(-(x+(b===1?-1.2:b===3?1.2:-.8)),0,z-.6);r.rotation.y=Math.atan2(x,-z);r.visible=true;p3Pose(r,P_LEAD,1)}else r.visible=false});
+  A.ball.visible=false;A.shadow.visible=false;A.trail.visible=false;A.land.visible=false;A.mitt.position.set(0,.75,-.72);P3.trailN=0;P3.rh=[];A.glow.visible=false;
 }
 function p3Board(G){
   const key=[G.a.join(','),G.h.join(','),G.my,G.op,G.inn,G.top,G.pa&&G.pa.b,G.pa&&G.pa.s,G.pa&&G.pa.out].join('|');if(key===P3.board)return;P3.board=key;
@@ -2802,15 +2932,18 @@ function p3Frame(G,now,dt){
   const A=P3.A,an=PG.an,V=P3.V||(P3.V={a:new THREE.Vector3(),b:new THREE.Vector3(),pos:new THREE.Vector3(0,26,-30),look:new THREE.Vector3(0,2,30),tp:new THREE.Vector3(),tl:new THREE.Vector3()});
   // 투수
   if(an&&an.k==='wind')p3PitchPose(A.pitcher,(now-an.t0)/an.dur*.72);
-  else if(an&&an.k==='fly')p3PitchPose(A.pitcher,.72+(now-an.t0)/1000*1.1);
+  else if(an&&an.k==='fly'){P3.relAt=an.t0;p3PitchPose(A.pitcher,.72+(now-an.t0)/1000*1.1)}
+  else if(an&&(an.k==='post'||an.k==='bb')&&P3.relAt&&!(P3.bb&&P3.bb.fielder==='P'&&P3.bb.t>.25))p3PitchPose(A.pitcher,Math.min(1.4,.72+(now-P3.relAt)/1000*1.1));
   // 타자 스윙
   if(PG.aiSw&&now>=PG.aiSw&&!PG.swAt){PG.swAt=PG.aiSw;PG.aiSw=0}
   A.batter.rotation.z=P3.hbp&&now-P3.hbp<650?Math.sin((now-P3.hbp)/40)*.18*(1-(now-P3.hbp)/650):0;
   if(PG.swAt&&A.batter.visible&&(!P3.bb||P3.bb.t<.4))p3SwingPose(A.batter,(now-PG.swAt)/260);
-  else if(!P3.bb&&A.batter.visible){A.batter.userData.body.position.y=Math.sin(now/400)*.01}
+  else if(!P3.bb&&A.batter.visible){const ld=an&&an.k==='fly'?clamp((now-an.t0)/an.dur*1.5,0,1):an&&an.k==='wind'?clamp(((now-an.t0)/an.dur-.55)*1.2,0,.45):an&&an.k==='post'?Math.max(0,1-(now-an.t0)/320):0;p3BatStance(A.batter,now,ld)}
   // 포수 미트
   let mt=null;if(G.mode==='pit'&&G.sel&&G.sel.u!=null)mt=[-zx(G.sel.u),zy(G.sel.v)];else if(an&&(an.k==='wind'||an.k==='fly')&&(G.cur||PG.last)){const c=G.cur||PG.last;mt=[-zx(c.u)*.85,zy(c.v)*.9+.08]}
   if(mt){mt[0]=clamp(mt[0],-.75,.75);mt[1]=clamp(mt[1],.15,1.7);A.mitt.position.x+=(mt[0]-A.mitt.position.x)*.15;A.mitt.position.y+=(mt[1]-A.mitt.position.y)*.15}
+  if(A.catcher.visible){const ml=A.catcher.worldToLocal(_cw.copy(A.mitt.position));p3Pose(A.catcher,{...P_CROUCH,hL:[ml.x,ml.y,ml.z-.04],pL:[1,-.2,-.7]},1)}
+  if(A.ump.visible)p3Pose(A.ump,P3.umpT&&now-P3.umpT<950?P_UMPK:P_UMP,1-Math.exp(-dt*11));
   const batCam=P3.view==='bat';A.catcher.visible=A.ump.visible=A.mitt.visible=!batCam;
   A.zone.visible=!P3.bb;A.grid.visible=false;
   A.tgt.visible=G.mode==='pit'&&G.sel&&G.sel.u!=null&&!P3.bb;if(A.tgt.visible)A.tgt.position.set(-zx(G.sel.u),zy(G.sel.v),-.01);
@@ -2820,7 +2953,7 @@ function p3Frame(G,now,dt){
   // 공
   A.land.visible=false;
   if(an&&an.k==='fly'&&G.cur){
-    const t0=(now-an.t0)/an.dur,hb=bodyHit(G.cur,p3BatLH(G)),t=hb?Math.min(t0,1):t0;p3PitchPos(G.cur,t,V.a);A.ball.position.copy(V.a);A.ball.visible=t<1.12;{const sp=(PTY[G.cur.type]||PTY['직구']).spin;A.ball.rotation.x+=dt*sp[0];A.ball.rotation.y+=dt*sp[1];A.ball.rotation.z+=dt*sp[2]}A.ball.scale.setScalar(clamp(P3.cam.position.distanceTo(V.a)/11,1,2.2));
+    const t0=(now-an.t0)/an.dur,hb=bodyHit(G.cur,p3BatLH(G)),t=hb?Math.min(t0,1):t0;p3PitchPos(G.cur,t,V.a);A.ball.position.copy(V.a);A.ball.visible=t<1.12;{const sp=(PTY[G.cur.type]||PTY['직구']).spin;A.ball.rotation.x+=dt*sp[0];A.ball.rotation.y+=dt*sp[1];A.ball.rotation.z+=dt*sp[2]}A.ball.scale.setScalar(clamp(P3.cam.position.distanceTo(V.a)/16,1,1.5));
     if(G.mode==='bat'){const rf=clamp(.82-(S.stats.eye-40)*.007,.45,.82);if(t>=rf){A.land.visible=true;A.land.position.set(-zx(G.cur.u),zy(G.cur.v),-.03);A.land.material.color.set(G.cur.inZ?0xffc845:0xdddddd)}}
     p3Trail(V.a);
   }else if(an&&an.k==='post'&&PG.last&&!P3.bb&&!bodyHit(PG.last,p3BatLH(G))){A.ball.visible=true;A.ball.scale.setScalar(1);A.ball.position.set(A.mitt.position.x,A.mitt.position.y,-.7)}
@@ -2834,14 +2967,20 @@ function p3Frame(G,now,dt){
     else p3PathAt(B.pts,t,V.a);
     V.a.x=-V.a.x;A.ball.visible=!(B.hr&&t>B.crossT+1.2);A.ball.position.copy(V.a);A.ball.rotation.x+=dt*25;
     A.shadow.visible=A.ball.visible;A.shadow.position.set(V.a.x,.03,V.a.z);
-    const dc=P3.cam.position.distanceTo(V.a), sc=clamp(dc/10,1,7);A.ball.scale.setScalar(sc);A.shadow.scale.setScalar(sc*(1+V.a.y*.02));
+    const dc=P3.cam.position.distanceTo(V.a), sc=clamp(dc/26,1,2.4);A.ball.scale.setScalar(sc);A.shadow.scale.setScalar(sc*(1+V.a.y*.02));
     p3Trail(V.a);
     if(B.hr&&!B.fw&&t>=B.crossT){B.fw=1;p3Fireworks(V.a.x*1.15,V.a.z*1.15);SND.cheer(true)}
     // 수비수 이동
     if(B.fielder&&B.fAt){const fp=B.fielder==='P'?A.pitcher:B.fielder==='C'?null:A.f[B.fielder];
       if(fp){const st=FPOS[B.fielder],k=clamp((t-.25)/Math.max(.3,(B.fT||2)-.25),0,1),tx=st[0]+(B.fAt[0]-st[0])*k,tz=st[1]+(B.fAt[1]-st[1])*k;
-        fp.position.set(-tx,B.fielder==='P'?.25*(1-k):0,tz);if(k<1){fp.rotation.y=Math.atan2(-(B.fAt[0]-st[0]),B.fAt[1]-st[1]);p3Run(fp,t*13,.9)}else{p3Idle(fp);fp.rotation.y=Math.atan2(tx,-tz);fp.userData.armL.rotation.x=-1.8}}}
-    if(B.thr&&A.f['1B']){const k=clamp(t/.9,0,1),s=FPOS['1B'];A.f['1B'].position.set(-(s[0]+(18.6-s[0])*k),0,s[1]+(19.6-s[1])*k)}
+        fp.position.set(-tx,B.fielder==='P'?.25*(1-k):0,tz);const kk=1-Math.exp(-dt*14);
+        if(k<1){fp.rotation.y=Math.atan2(-(B.fAt[0]-st[0]),B.fAt[1]-st[1]);p3Pose(fp,runPose(t*12.5,1),k>.85?kk:1)}
+        else if(B.thr&&t>=B.thr.t0-.3){fp.rotation.y=Math.atan2(-19.4-fp.position.x,19.4-fp.position.z);p3Pose(fp,kfPose(THRK,clamp((t-B.thr.t0+.3)/.45,0,1)),1)}
+        else if(B.k==='FO'||B.k==='LO'){fp.rotation.y=Math.atan2(tx,-tz);p3CatchPose(fp,A.ball.position,kk)}
+        else{fp.rotation.y=Math.atan2(tx,-tz);p3Pose(fp,P_SCOOP,kk)}}}
+    if(B.thr&&A.f['1B']&&B.fielder!=='1B'){const f1=A.f['1B'],k=clamp(t/.9,0,1),s1=FPOS['1B'];f1.position.set(-(s1[0]+(18.6-s1[0])*k),0,s1[1]+(19.6-s1[1])*k);
+      if(k<1){f1.rotation.y=Math.atan2(-(18.6-s1[0]),19.6-s1[1]);p3Pose(f1,runPose(t*12,.85),1)}
+      else{f1.rotation.y=Math.atan2(-B.fAt[0]-f1.position.x,B.fAt[1]-f1.position.z);p3Pose(f1,{...P_STAND,spine:[.35,0,0],head:[-.1,0,0],thL:[-.8,0,.1],knL:[.4,0,0],ftL:[.35,0,0],thR:[.25,0,-.12],knR:[.1,0,0],hL:[.15,1.25,.75],hR:[-.1,1.05,.4]},1-Math.exp(-dt*10))}}
     // 주자
     if(!B.foul){let ri=0;
       if(A.batter.visible&&t>.35){A.batter.userData.batPivot.visible=false}
@@ -2854,7 +2993,7 @@ function p3Frame(G,now,dt){
   // 불꽃
   P3.fx=P3.fx.filter(f=>{f.t+=dt;const a=f.p.geometry.attributes.position;for(let i=0;i<f.vel.length;i++){f.vel[i][1]-=9*dt;a.array[i*3]+=f.vel[i][0]*dt;a.array[i*3+1]+=f.vel[i][1]*dt;a.array[i*3+2]+=f.vel[i][2]*dt}a.needsUpdate=true;f.p.material.opacity=Math.max(0,1-f.t/1.8);if(f.t>1.8){P3.sc.remove(f.p);f.p.geometry.dispose();return false}return true});
   // 수비수 숨쉬기
-  for(const k in A.f){const p=A.f[k];if(!B||k!==B.fielder)p.userData.body.rotation.z=Math.sin(now/700+p.userData.ph)*.03}
+  {const pit=an&&(an.k==='wind'||an.k==='fly');for(const k in A.f){const p=A.f[k];if(B&&(k===B.fielder||(k==='1B'&&B.thr)))continue;p3Pose(p,pit?(OFK.includes(k)?P_OFREADY:P_READY):P_STAND,1-Math.exp(-dt*(pit?7:2.5)));p.userData.body.rotation.z=pit?0:Math.sin(now/900+p.userData.ph)*.015}}
   // 카메라
   let vw;
   if(B){vw='hit';const bx=A.ball.position;const far=Math.hypot(bx.x,bx.z);V.tp.set(bx.x*.32,7+Math.min(far,130)*.1,-13+bx.z*.28);V.tl.copy(bx)}
@@ -2865,8 +3004,19 @@ function p3Frame(G,now,dt){
   V.pos.lerp(V.tp,kk);V.look.lerp(V.tl,vw==='hit'?1-Math.exp(-dt*6):kk);
   P3.cam.position.copy(V.pos);P3.cam.lookAt(V.look);
   const fv=vw==='bat'||vw==='pit'?p3Fov(VIEW3[vw].h,VIEW3[vw].v):p3Fov(48,40);if(Math.abs(P3.cam.fov-fv)>.01){P3.cam.fov=fv;P3.cam.updateProjectionMatrix()}
+  const gv=A.ball.visible&&an&&(an.k==='fly'||an.k==='bb');A.glow.visible=gv;
+  if(gv){A.glow.position.copy(A.ball.position);A.glow.scale.setScalar(clamp(P3.cam.position.distanceTo(A.ball.position)*.014,.04,2.5));p3Rib()}else A.trail.visible=false;
 }
-function p3Trail(p){const A=P3.A,arr=A.trailG.attributes.position.array;P3.trailN=Math.min(30,(P3.trailN||0)+1);arr.copyWithin(3,0,29*3);arr[0]=p.x;arr[1]=p.y;arr[2]=p.z;A.trailG.setDrawRange(0,P3.trailN);A.trailG.attributes.position.needsUpdate=true;A.trail.visible=P3.trailN>2}
+function p3Trail(p){if(!P3.trailN)P3.rh=[];const H=P3.rh;H.unshift(p.x,p.y,p.z);if(H.length>RIBN*3)H.length=RIBN*3;P3.trailN=H.length/3}
+function p3Rib(){
+  const A=P3.A,H=P3.rh||[],n=H.length/3;if(n<3||!A.ball.visible){A.trail.visible=false;return}
+  const g=A.trail.geometry,pos=g.attributes.position.array,al=g.attributes.a.array,cm=P3.cam.position;
+  for(let i=0;i<RIBN;i++){const j=Math.min(i,n-1),px=H[j*3],py=H[j*3+1],pz=H[j*3+2],j0=Math.max(0,j-1),j1=Math.min(n-1,j+1);
+    let tx=H[j0*3]-H[j1*3],ty=H[j0*3+1]-H[j1*3+1],tz=H[j0*3+2]-H[j1*3+2];const vx=cm.x-px,vy=cm.y-py,vz=cm.z-pz,dc=Math.hypot(vx,vy,vz)||1;
+    let sx=ty*vz-tz*vy,sy=tz*vx-tx*vz,sz=tx*vy-ty*vx;const sl=Math.hypot(sx,sy,sz)||1,f=i<n?1-i/Math.min(n,RIBN):0,w=clamp(dc*.0042,.014,.5)*Math.pow(f,.55);
+    sx*=w/sl;sy*=w/sl;sz*=w/sl;pos.set([px+sx,py+sy,pz+sz,px-sx,py-sy,pz-sz],i*6);al[i*2]=al[i*2+1]=Math.pow(f,1.4)*.85}
+  g.attributes.position.needsUpdate=true;g.attributes.a.needsUpdate=true;A.trail.visible=true;
+}
 /* ---- 입력 ---- */
 function p3Pick(e){
   const cv=P3.r.domElement,r=cv.getBoundingClientRect(),nx=((e.clientX-r.left)/r.width)*2-1,ny=-((e.clientY-r.top)/r.height)*2+1;
@@ -2919,7 +3069,8 @@ function p3Post(G,res,now,ob){
   PG.last=G.cur;G.cur=null;
   const bbd=G.lastBB, B=p3MakeBB(G,res,ob), sub=res.sub||(PG.last&&PG.last.type?`${PG.last.type} ${PG.last.vk}km`:'');
   if(res.k==='HBP'){P3.hbp=now;SND.pop()}
-  if(B){P3.bb=B;PG.an={k:'bb',t0:now,dur:B.dur*1000/1.15};SND.crack();
+  if(res.k==='CS'||(res.k==='K'&&!PG.swAt))P3.umpT=now;
+  if(B){P3.bb=B;P3.trailN=0;PG.an={k:'bb',t0:now,dur:B.dur*1000/1.15};SND.crack();
     PG.rv={at:now+p3RevealT(B,bbd)*1000/1.15,txt:res.txt,cls:res.cls,sub,hit:['1B','2B','3B'].includes(res.k)}}
   else{PG.an={k:'post',t0:now,dur:850};if(res.k!=='F')SND.pop();else SND.crack();pgFlash(res.txt,res.cls,sub)}
   if(G.mode==='bat')pgAfterBat(G,res);else pgAfterPit(G,res);
