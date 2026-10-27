@@ -313,6 +313,17 @@ body,.ttl,h1,h2,.desc,.situ,.choice,.item,.fi,.art h3{word-break:keep-all;overfl
 .site-foot a{color:var(--ink2)}
 .app.tabs{padding-bottom:16px}
 .app.tabs~.site-foot{padding-bottom:calc(170px + env(safe-area-inset-bottom,0px))}
+.site-foot{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+.app.tabs~.site-foot{padding-bottom:calc(230px + env(safe-area-inset-bottom,0px))}
+/* 개발자 서버비 내주기: 경기 화면만 빼고 늘 떠 있는 버튼 */
+.dfab{position:fixed;right:max(14px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:30;appearance:none;border:0;cursor:pointer;display:none;align-items:center;gap:7px;padding:10px 17px 10px 12px;border-radius:999px;font:inherit;font-size:14px;font-weight:800;letter-spacing:-.01em;color:#2a1600;background:linear-gradient(135deg,#ffe58a,#ffb21e 55%,#ff7a1a);box-shadow:0 0 0 3px #ffffffe6,0 10px 24px #ff7a1a66,0 2px 6px #0003;overflow:hidden;isolation:isolate;animation:dfabBob 3.6s ease-in-out infinite;-webkit-tap-highlight-color:transparent}
+.dfab.on{display:inline-flex}
+.fab-on .page{min-height:calc(100vh - 88px)}
+.dfab svg{width:21px;height:21px;flex:none}
+.dfab::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(110deg,transparent 30%,#fffb 50%,transparent 70%);transform:translateX(-130%);animation:dfabShine 3.6s ease-in-out infinite}
+.dfab:hover{filter:brightness(1.05)}.dfab:active{transform:scale(.95)}
+@keyframes dfabBob{0%,64%,100%{transform:translateY(0) rotate(0)}70%{transform:translateY(-7px) rotate(-4deg)}76%{transform:translateY(0) rotate(3deg)}82%{transform:translateY(-3px) rotate(-1.5deg)}88%{transform:translateY(0) rotate(0)}}
+@keyframes dfabShine{0%,40%{transform:translateX(-130%)}62%,100%{transform:translateX(130%)}}
 
 .donate{appearance:none;justify-self:start;display:inline-flex;align-items:center;gap:6px;background:#ffffff14;color:var(--chalk);border:1px solid #ffffff2e;border-radius:999px;padding:5px 12px 5px 9px;font-size:13px;font-weight:700;cursor:pointer;margin-top:-4px}
 .donate:hover{background:#ffffff26}
@@ -1026,6 +1037,7 @@ function emblem(team,size=36){
 }
 const TAEGUK=`<svg width="52" height="52" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="20" fill="#cd2e3a"/><path d="M6 26 A20 20 0 0 0 46 26 A10 10 0 0 0 26 26 A10 10 0 0 1 6 26 Z" fill="#0047a0"/></svg>`;
 const ICON={
+  coffee:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.5 9.5h13.5v4.5a6 6 0 0 1-6 6H9.5a6 6 0 0 1-6-6zM17 10.5h1.6a2.6 2.6 0 0 1 0 5.2H17v-1.9h1.6a.7.7 0 0 0 0-1.4H17z"/><path d="M7.5 2.8c1 1.2-1 2.1 0 3.6M10.5 2.8c1 1.2-1 2.1 0 3.6M13.5 2.8c1 1.2-1 2.1 0 3.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
   home:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 3 10.5V21h6v-6h6v6h6V10.5z"/></svg>',
   news:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h16v12H8l-4 4z"/></svg>',
   season:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 20V11h3v9zm5.5 0V5h3v15zM16 20v-7h3v7z"/></svg>',
@@ -1046,7 +1058,7 @@ const ICON={
 };
 
 /* ================= donation ================= */
-/* 후원 계좌: 값을 채우면 라커룸 왼쪽 위에 '개발자 서버비 내주기' 버튼이 나타나요 */
+/* 후원 계좌: 값을 채우면 경기 화면을 뺀 모든 화면 오른쪽 아래에 '개발자 서버비 내주기' 버튼이 떠 있어요 */
 const DONATE={bank:'카카오뱅크',acct:'7777-03-6811587',copy:'7777036811587',holder:'서익'};
 
 /* ================= state ================= */
@@ -2015,7 +2027,6 @@ function seasonInfoRows(){
 function tabHome(){
   return`<section class="scoreboard"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="lg">${S.year} · ${esc(stageTxt()||LG[playLg()].n)}</span><button class="icbtn" data-a="settings" aria-label="설정" style="color:var(--chalk)">${ICON.gear}</button></div>
   <h1>2군에서 MVP까지</h1>
-  ${DONATE?`<button class="donate" data-a="donate">${ICON.ball}<span>개발자 서버비 내주기</span></button>`:''}
   <div class="sbgrid">${careerTrio().map(([a,b])=>`<div><small>${a}</small><b>${b}</b></div>`).join('')}</div></section>
   <section class="sec tcard" style="--tc:${TC[S.team]||'#17305c'}">${pHead()}</section>
   <section class="sec"><h2>매니저 메모</h2><div class="list">${todos().map(itemHTML).join('')}</div></section>
@@ -2324,9 +2335,16 @@ function renderRetired(){
 
 /* ================= main render ================= */
 let timer=null;
+function dFab(on){
+  if(!HAS_DOM||!DONATE)return;let b=document.getElementById('dfab');
+  if(!b){document.body.insertAdjacentHTML('beforeend',`<button id="dfab" class="dfab" data-a="donate" aria-label="개발자 서버비 내주기">${ICON.coffee}<span>개발자 서버비 내주기</span></button>`);b=document.getElementById('dfab')}
+  b.classList.toggle('on',on);document.documentElement.classList.toggle('fab-on',on);if(!on)return;
+  const d=document.querySelector('#app .dock>div');b.style.bottom=d?Math.round(innerHeight-d.getBoundingClientRect().top+8)+'px':'';
+}
 function render(){
   if(!HAS_DOM)return;
   const app=document.getElementById('app');
+  dFab(!(S&&S.phase==='play'&&S.play));
   if(S&&S.phase==='play'&&S.play){
     if(timer){clearInterval(timer);timer=null}
     if(!document.getElementById('pg3')){app.className='app';app.innerHTML=pgShell();pgInit()}
@@ -2335,7 +2353,7 @@ function render(){
     if(ui.toast)app.insertAdjacentHTML('beforeend',`<div class="toast" role="status">${esc(ui.toast)}</div>`);
     return;
   }
-  if(ui.rank&&!(S&&S.phase==='progress')){app.className='app';app.innerHTML=renderRank();if(ui.toast)app.insertAdjacentHTML('beforeend',`<div class="toast" role="status">${esc(ui.toast)}</div>`);return}
+  if(ui.rank&&!(S&&S.phase==='progress')){app.className='app';app.innerHTML=renderRank();dFab(true);if(ui.toast)app.insertAdjacentHTML('beforeend',`<div class="toast" role="status">${esc(ui.toast)}</div>`);return}
   app.className='app'+(S&&S.phase==='app'?' tabs':'');
   if(!S)app.innerHTML=renderCreate();
   else app.innerHTML=({app:renderApp,progress:renderProgress,summary:renderSummary,award:renderAward,world:renderWorld,nat:renderNatRes,retired:renderRetired}[S.phase]||renderApp)();
@@ -2344,6 +2362,7 @@ function render(){
   if((!S||S.phase!=='progress')&&timer){clearInterval(timer);timer=null}
   if(ui.sheet&&ui.sheet.type==='offer')initHold();
   const lg=document.getElementById('dmlog');if(lg)lg.scrollTop=lg.scrollHeight;
+  dFab(true);
 }
 function tick(){
   const P=S&&S.prog;if(!P||S.phase!=='progress'){clearInterval(timer);timer=null;return}
