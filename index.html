@@ -1787,7 +1787,7 @@ function finishSeason(){
 
 /* ================= ranking ================= */
 /* 전 세계 랭킹: 무료 Supabase 프로젝트 주소와 anon 키를 넣으면 켜져요(RANKING.md 참고). 비어 있으면 이 기기 기록으로 보여요. */
-const RANK_CFG={url:'',key:''};
+const RANK_CFG={url:'https://xdoumdgrsbnmktpcvgxd.supabase.co',key:'sb_publishable_QCL89LDJdRqOf6FOYoRvtw_62zXa0yL'};
 const RKEY='b2mvp_rank', RK_ON=()=>!!(RANK_CFG.url&&RANK_CFG.key);
 const rkDay=(off=0)=>new Date(Date.now()+9*3600e3-off*864e5).toISOString().slice(0,10);   // 한국 시간 날짜
 const rkLocal=()=>{try{return JSON.parse(localStorage.getItem(RKEY)||'[]')}catch(e){return[]}};
@@ -1816,7 +1816,7 @@ async function rkFetch(day,cat){
   let out;
   if(!RK_ON()){const l=rkLocal().filter(r=>r.day===day&&RK_FIL[cat](r)).sort(rkSort);out={list:l.slice(0,100),count:l.length,at:Date.now()}}
   else{const r=await fetch(`${RANK_CFG.url}/rest/v1/careers?select=*&day=eq.${day}${RK_Q[cat]}&order=mvp.desc,aw.desc,ovr.desc,war.desc,ts.asc&limit=100`,{headers:{...rkHead(),Prefer:'count=exact'}});
-    if(!r.ok)throw new Error('rank '+r.status);const list=await r.json(),cr=r.headers.get('content-range')||'';out={list,count:+(cr.split('/')[1])||list.length,at:Date.now()}}
+    if(!r.ok){let b='';try{b=await r.text()}catch(e){}throw new Error(r.status+' '+b)}const list=await r.json(),cr=r.headers.get('content-range')||'';out={list,count:+(cr.split('/')[1])||list.length,at:Date.now()}}
   return RKC[key]=out;
 }
 async function rkBest(day){
@@ -1828,9 +1828,10 @@ async function rkBest(day){
   return RKC[key]={best,at:Date.now()};
 }
 function rkLoad(){
+  if(RK_ON()&&!rkLoad.synced){rkLoad.synced=1;rkLocal().filter(r=>r.mine&&!r.sent&&r.day>=rkDay(1)).forEach(r=>rkSubmit(r))}
   const U=ui.rank;if(!U||U.tab==='mine')return;const day=rkDay(U.day),key=U.tab==='best'?day+'|best':day+'|'+U.cat;
   if(RKC[key]&&Date.now()-RKC[key].at<60e3)return;if(U.loading===key||U.errKey===key)return;U.loading=key;U.err=null;
-  (U.tab==='best'?rkBest(day):rkFetch(day,U.cat)).catch(e=>{U.err='랭킹 서버에 연결하지 못했어요. 잠시 뒤 다시 열어 주세요.';U.errKey=key}).finally(()=>{if(ui.rank===U){U.loading=null;render()}});
+  (U.tab==='best'?rkBest(day):rkFetch(day,U.cat)).catch(e=>{const m=String(e&&e.message||'');U.err=/PGRST205|42P01|careers/.test(m)?'랭킹 서버에 careers 표가 없어요. Supabase SQL Editor에서 SQL을 실행해 주세요.':/^40[13]/.test(m)?'랭킹 서버 키가 맞지 않아요.':'랭킹 서버에 연결하지 못했어요. 잠시 뒤 다시 열어 주세요.';U.errKey=key}).finally(()=>{if(ui.rank===U){U.loading=null;render()}});
 }
 const rkAva=r=>`<img src="${avatarURL(r.ava||{skin:'#e8b98f',hair:'#2b2118'},r.col||'#1f4fa3')}" alt="">`;
 const rkPos=r=>(SUBPOS[r.pos]||{n:r.pos}).n, RK_SH={SP:'선발',RP:'구원',C:'포수','1B':'1루',SS:'유격','2B':'2루','3B':'3루',LF:'좌익',CF:'중견',RF:'우익'}, rkShort=r=>RK_SH[r.pos]||r.pos, rkMe=r=>!!(S&&S.rkId&&r.id===S.rkId);
