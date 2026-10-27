@@ -380,6 +380,7 @@ body,.ttl,h1,h2,.desc,.situ,.choice,.item,.fi,.art h3{word-break:keep-all;overfl
 .call .sv{grid-row:span 2;display:grid;justify-items:center;background:var(--fill);border-radius:10px;padding:7px 0}
 .call .sv small{font-size:11px;color:var(--ink2);font-weight:700}.call .sv b{font-family:var(--f-num);font-size:26px;line-height:1}
 .call .ct{font-size:15px;font-weight:700;line-height:1.4}
+.call .rw{display:block;font-style:normal;font-size:12px;font-weight:700;color:var(--ink2);margin-top:2px}.call .rw.hi{color:#d97706}
 .call .mt{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800;font-family:var(--f-num);color:var(--ink2)}
 .call .mt span{flex:1;height:6px;border-radius:3px;background:var(--fill);overflow:hidden}.call .mt span i{display:block;height:100%;background:var(--blue)}
 .call .mt.hi span i{background:var(--green)}.call .mt.lo span i{background:var(--red)}
@@ -467,8 +468,8 @@ body,.ttl,h1,h2,.desc,.situ,.choice,.item,.fi,.art h3{word-break:keep-all;overfl
 .meter{position:relative;height:14px;border-radius:7px;background:#334155;overflow:hidden}
 .meter .ok{position:absolute;left:42%;width:16%;top:0;bottom:0;background:#22c55e}
 .meter .nd{position:absolute;top:0;bottom:0;width:4px;margin-left:-2px;background:#ffd35a;box-shadow:0 0 6px #ffd35a}
-.pg-types{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
-.pg-types button{appearance:none;border:1.5px solid #ffffff33;background:transparent;color:#ffffff;border-radius:12px;padding:7px 6px;font-weight:800;font-size:15px;cursor:pointer;display:grid;gap:1px}
+.pg-types{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:6px}
+.pg-types button{appearance:none;border:1.5px solid #ffffff33;background:transparent;color:#ffffff;border-radius:12px;padding:7px 4px;font-weight:800;font-size:14px;cursor:pointer;display:grid;gap:1px}
 .pg-types button small{font-size:11px;color:#9cc3ad;font-weight:600}
 .pg-types button.on{background:#ffd35a;color:#0f172a;border-color:#ffd35a}.pg-types button.on small{color:#0f172a}
 .pg-types button:disabled{opacity:.5;cursor:default}
@@ -1574,6 +1575,8 @@ function prepNat(P){
   if(reach)P.ev.push({t:'big',kind:'nat',p:at,label:`${ev} 결승`,opp:pick(NAT_OPP[ev]||NAT_OPP.WBC),done:false});
   else P.feed.push({p:at,x:`대표팀이 ${ev}를 ${res}로 마쳤어요`,k:'hl'});
 }
+/* 성공 확률이 낮을수록 성공 보상이 크고, 실패해도 덜 깎여요 */
+const momMul=p=>clamp(Math.pow(.55/p,1.6),.5,2.6), momPen=p=>clamp(1.6*p,.3,1.5);
 function momP(o){const L=LG[S.prog?S.prog.pl:playLg()].L;return clamp(.5+(S.stats[o.s]-(L+o.d))/40+(S.trait==='clutch'?.06:0),.1,.9)}
 function evPending(P){const a=P.ev.find(e=>e.done&&e.res&&!e.ack);if(a)return a;let b=null;P.ev.forEach(e=>{if(!e.done&&P.p>=e.p-1e-9&&(!b||e.p<b.p))b=e});return b}
 function momReady(P,e){
@@ -1590,9 +1593,10 @@ function chooseMoment(i){
   const pr=momP(o), pct=Math.round(pr*100), ok=R()<pr;
   const runs=(o.r||(c.def?[0,1]:[1,0]))[ok?0:1];
   e.done=true;e.ack=false;
-  e.res={ok,title:d.title,choice:o.t,text:ok?o.ok:o.no,stat:SN[o.s],val:Math.floor(S.stats[o.s]),pct,g:momGame(c,runs,ok)};
-  S.morale=clamp(S.morale+(ok?5:-3),20,100);if(ok)S.fame=clamp(S.fame+2,0,100);
-  P.bonus+=ok?1.8:-.8;
+  const mul=momMul(pr),pen=momPen(pr),mor=ok?Math.round(5*mul):-Math.round(3*pen),fm=ok?Math.round(2*mul):0;
+  e.res={ok,title:d.title,choice:o.t,text:ok?o.ok:o.no,stat:SN[o.s],val:Math.floor(S.stats[o.s]),pct,g:momGame(c,runs,ok),mul:r1(mul),mor,fm};
+  S.morale=clamp(S.morale+mor,20,100);if(ok)S.fame=clamp(S.fame+fm,0,100);
+  P.bonus+=ok?1.8*mul:-.8*pen;
   P.feed.push({p:e.p,x:`${d.title}: ${ok?o.ok:o.no}`,k:ok?'hl':'bad'});
 }
 function bigSimWin(e){
@@ -1696,7 +1700,7 @@ function finishSeason(){
   // growth
   const ob=ovr(), before={...S.stats};
   const pt=isP()?clamp(tot.IP/fullIP(pitType(role)),0,1):clamp(tot.G/(fullG*.93),0,1);
-  grow(pt,L,momOk*.35);
+  grow(pt,L,momEv.filter(e=>e.res.ok).reduce((a,e)=>a+(e.res.mul||1),0)*.35);
   const perf=perfGrade(tot,pt,aw.length,fin.champ&&role!=='minor'),o1=ovr(),o1r=ovrOf(S.pos,S.stats);
   const lvf=role==='minor'?.7:{HS:.75,UNIV:.8,ARMY:.7}[org]||1;
   const over=o1r>S.pot?clamp(1-(o1r-S.pot)/10,.2,1):1;
@@ -2040,7 +2044,7 @@ function momCard(e){
   return`<section class="sit" aria-label="승부처">${sitTop(c,c.my,c.op,bsoHTML(c.b,c.s,c.out))}
     <div class="bd">${diaHTML(c.on)}<div><p class="k">승부처 ${e.n}/${tot} · ${esc(d.title)}</p><p class="tx">${esc(d.txt(c))}</p></div></div></section>
   <div class="calls" role="group" aria-label="작전 고르기">${d.o.map((o,i)=>{const p=Math.round(momP(o)*100);
-    return`<button class="call" data-a="mom" data-v="${i}"><span class="sv"><small>${SN[o.s]}</small><b>${Math.floor(S.stats[o.s])}</b></span><span class="ct">${esc(o.t)}</span><span class="mt ${p>=60?'hi':p<40?'lo':''}"><span><i style="width:${p}%"></i></span>${p}%</span></button>`}).join('')}</div>`;
+    return`<button class="call" data-a="mom" data-v="${i}"><span class="sv"><small>${SN[o.s]}</small><b>${Math.floor(S.stats[o.s])}</b></span><span class="ct">${esc(o.t)}<em class="rw${momMul(momP(o))>=1.3?' hi':''}">성공 보상 ×${momMul(momP(o)).toFixed(1)}</em></span><span class="mt ${p>=60?'hi':p<40?'lo':''}"><span><i style="width:${p}%"></i></span>${p}%</span></button>`}).join('')}</div>`;
 }
 function momResCard(e){
   const r=e.res, c=e.m.c, g=r.g;
@@ -2048,7 +2052,7 @@ function momResCard(e){
     <div class="big2">${r.ok?'성공!':'실패'}</div>
     <p class="k">${esc(r.title)} · ${esc(r.choice)}</p><p class="tx">${esc(r.text)}</p>
     <div class="fin"><span>경기 결과</span><b>${esc(c.me)} ${g.fm} : ${g.fo} ${esc(c.opp)}</b><em class="${g.win?'w':'l'}">${g.walk?'끝내기 승리':g.win?'승리':'패배'}</em></div>
-    <div class="chips"><span class="chip">${esc(r.stat)} ${r.val}</span><span class="chip">성공률 ${r.pct}%</span><span class="chip">${r.ok?'사기 +5 · 명성 +2 · 남은 시즌 활약 보너스':'사기 -3 · 남은 시즌 컨디션 조금 하락'}</span></div></section>`;
+    <div class="chips"><span class="chip">${esc(r.stat)} ${r.val}</span><span class="chip">성공률 ${r.pct}%</span><span class="chip">${r.mul==null?(r.ok?'사기 +5 · 명성 +2 · 남은 시즌 활약 보너스':'사기 -3 · 남은 시즌 컨디션 조금 하락'):r.ok?`사기 +${r.mor} · 명성 +${r.fm} · 활약 보너스 ×${r.mul.toFixed(1)}`:`사기 ${r.mor} · 남은 시즌 컨디션 하락`}</span></div></section>`;
 }
 function bigSides(e){const nat=e.kind==='nat';return{me:nat?'대한민국':shortT(S.team),mb:nat?natBadge('대한민국'):emblem(S.team,44),ob:nat?natBadge(e.opp):emblem(e.oppFull,44)}}
 function bigCard(e){
@@ -2220,8 +2224,21 @@ function tick(){
 /* ================= 큰 경기 직접 플레이: 경기 진행과 타구 물리 =================
    좌표(m): 홈플레이트 (0,0,0), z는 마운드 쪽(18.44), x는 1루 쪽, y는 높이 */
 const PG={raf:0,an:null,next:0,sw:null,swAt:0,m0:0,last:null,aim:null,hover:null};
-const PTY={'직구':{dv:0,bx:0,by:0,s:'vel'},'투심':{dv:-4,bx:.3,by:.2,s:'vel'},'슬라이더':{dv:-12,bx:-.7,by:.3,s:'brk'},'커브':{dv:-22,bx:-.3,by:1.1,s:'brk'},
-  '체인지업':{dv:-15,bx:.3,by:.6,s:'brk'},'포크':{dv:-11,bx:0,by:1,s:'brk'},'스위퍼':{dv:-14,bx:-1.1,by:.15,s:'brk'}};
+/* 구종: dv 구속 차(km) · mx/my 홈플레이트에서 처음 날아오던 방향 대비 꺾이는 양(m, 우투 기준 +x=1루 쪽=글러브 쪽, my=떨어지는 양)
+   spin 공 회전(rad/s, 회전축 그대로 보여요) · wh 헛스윙 유도 · la 맞았을 때 발사각 변화(°) */
+const PTY={
+ '직구':{dv:0,mx:-.17,my:.45,spin:[-34,0,0],wh:0,la:3,s:'vel'},
+ '투심':{dv:-3,mx:-.36,my:.62,spin:[-28,10,0],wh:-.02,la:-4,s:'vel'},
+ '싱커':{dv:-4,mx:-.4,my:.74,spin:[-22,14,0],wh:-.02,la:-7,s:'vel'},
+ '커터':{dv:-8,mx:.11,my:.58,spin:[-26,0,12],wh:.02,la:-2,s:'brk'},
+ '슬라이더':{dv:-14,mx:.27,my:.8,spin:[0,0,38],wh:.05,la:-1,s:'brk'},
+ '스위퍼':{dv:-18,mx:.5,my:.72,spin:[0,-36,6],wh:.06,la:0,s:'brk'},
+ '커브':{dv:-26,mx:.2,my:1.35,spin:[34,0,8],wh:.06,la:-2,s:'brk'},
+ '체인지업':{dv:-18,mx:-.33,my:.84,spin:[-20,12,0],wh:.05,la:-3,s:'brk'},
+ '스플리터':{dv:-12,mx:-.16,my:.95,spin:[-8,4,0],wh:.07,la:-5,s:'brk'},
+ '포크':{dv:-16,mx:-.07,my:1.08,spin:[-4,2,0],wh:.08,la:-5,s:'brk'},
+ '너클볼':{dv:-40,mx:0,my:.95,spin:[1.2,.8,.5],wh:.07,la:-1,kn:1,s:'brk'}};
+function aiArs(){if(R()<.03)return['직구','너클볼','커브'];return['직구',...shuffle(['슬라이더','커브','체인지업','포크','투심','커터','스위퍼','스플리터','싱커']).slice(0,ri(2,3))]}
 const LINEUP=[['1번','교타자',.66,.25,.6],['2번','작전형',.6,.3,.55],['3번','강타자',.66,.6,.6],['4번','거포',.5,.88,.5],['5번','해결사',.56,.66,.45],['6번','중장거리',.52,.48,.45],['7번','수비형',.46,.34,.4],['8번','하위 타선',.42,.3,.4],['9번','하위 타선',.42,.26,.36]];
 const ZW=.145, ZH=.19, ZC=.78;           // 스트라이크존 한 칸 너비·높이, 존 가운데 높이
 const zx=u=>u*ZW, zy=v=>ZC-v*ZH;
@@ -2230,7 +2247,7 @@ const FKEYS=['P','C','1B','2B','SS','3B','LF','CF','RF'], IFK=['1B','2B','SS','3
 const BASEP=[[0,0],[19.4,19.4],[0,38.8],[-19.4,19.4]];
 function fenceR(d){return 98+24*Math.cos(2*clamp(d,-45,45)*Math.PI/180)}
 function gauss(){let u=0,v=0;while(!u)u=R();while(!v)v=R();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
-function myPitches(){const st=S.style||'';return /변화구/.test(st)?['직구','커브','포크']:/컨트롤/.test(st)?['직구','투심','체인지업']:['직구','슬라이더','포크']}
+function myPitches(){const st=S.style||'';return /변화구/.test(st)?['직구','커브','스위퍼','포크']:/컨트롤/.test(st)?['직구','투심','체인지업','커터']:['직구','슬라이더','스플리터','싱커']}
 function halfRuns(k=1){const p0=clamp(.7-(k-1)*.18,.45,.85);if(R()<p0)return 0;const x=R();return x<.55?1:x<.82?2:x<.94?3:x<.985?4:5}
 const onTxt=on=>!on?'주자 없음':on==='123'?'만루':on.split('').join(', ')+'루';
 function msLine(ms){if(!ms)return'';if(ms.outs!=null)return`${ipStr(ms.outs/3)}이닝 ${ms.K}탈삼진 ${ms.ER}실점${ms.HBP?` ${ms.HBP}사구`:''}`;if(!ms.PA)return'';return`${ms.AB}타수 ${ms.H}안타${ms.HR?` ${ms.HR}홈런`:''}${ms.RBI?` ${ms.RBI}타점`:''}${ms.BB?` ${ms.BB}볼넷`:''}${ms.HBP?` ${ms.HBP}사구`:''}`}
@@ -2303,7 +2320,7 @@ function newPlay(e){
   G.pitBase=nat?150:({HS:134,UNIV:139,KR:145,JP:147,US:152}[S.org]||145);
   if(role==='bat'){
     G.batInn=[ri(1,3),ri(4,6),9];G.pitInn=[9];
-    G.cl={vel:L+10,ctl:L+6,brk:L+9,sta:L,men:L+6,fld:L};G.ars=['직구','슬라이더','포크'];
+    G.cl={vel:L+10,ctl:L+6,brk:L+9,sta:L,men:L+6,fld:L};G.ars=['직구','슬라이더','스플리터','커브'];
   }else{
     const close=S.pos==='RP', sit=close?9:7;
     G.batInn=[];G.pitInn=[sit];G.ars=myPitches();
@@ -2350,7 +2367,7 @@ function pgSetPA(G,i){
   else if(i>=9){if(d<=0){on=pick(['2','1','12']);out=ri(1,2)}else if(d===1){on=pick(['2','12','23']);out=2}else if(d===2){on=pick(['12','23']);out=2}else{on='123';out=2}}
   else{on=pick(['','1','2','12','13','3','123']);out=ri(0,2)}
   const late=i>=8, v=G.pitBase+(late?ri(4,9):ri(-2,4));
-  G.pit={lab:`${G.opp} ${late?(i>=9?'마무리':'필승조'):pick(['선발','에이스'])}`,v,ars:['직구',...shuffle(['슬라이더','커브','체인지업','포크','투심']).slice(0,2)],lh:R()<.3};
+  G.pit={lab:`${G.opp} ${late?(i>=9?'마무리':'필승조'):pick(['선발','에이스'])}`,v,ars:aiArs(),lh:R()<.3};
   G.pa={i,on,out,b:0,s:0,runs:0};G.cur=null;
   const tail=i>=9?(d<=0?'한 점이면 끝내기 승리예요.':`${d}점 뒤져 있어요. 여기서 뒤집어야 해요.`):'';
   G.intro=`${i}회말 ${out}사 ${onTxt(on)}. ${G.me} ${G.my} : ${G.op} ${G.opp}. 상대는 ${G.pit.lab}, 최고 ${G.pit.v}km. ${tail}`.trim();
@@ -2375,7 +2392,7 @@ function pgAiPitch(G){
   let u,v;
   if(wantZ){u=pick([-1,0,1])+rnd(-.35,.35);v=pick([-1,0,1])+rnd(-.35,.35);if(R()<.4)u=pick([-1.2,1.2])}
   else{const sd=ri(0,3);if(sd===0){u=rnd(-2.2,2.2);v=rnd(1.8,2.4)}else if(sd===1){u=rnd(1.8,2.4)*pick([-1,1]);v=rnd(-1.5,1.5)}else if(sd===2){u=rnd(-1.8,1.8);v=rnd(-2.3,-1.8)}else{u=rnd(1.7,2.2)*pick([-1,1]);v=rnd(1.6,2.2)}}
-  if(PTY[type].by>.6&&!wantZ&&R()<.6)v=rnd(1.75,2.4);
+  if(PTY[type].my>.9&&!wantZ&&R()<.6)v=rnd(1.75,2.4);
   const vk=G.pit.v+PTY[type].dv+ri(-2,1);
   return{type,u,v,vk,inZ:Math.abs(u)<=1.62&&Math.abs(v)<=1.62,ms:clamp(1180-(vk-125)*13,640,1320),lh:G.pit.lh};
 }
@@ -2390,13 +2407,13 @@ function pgResolveBat(G,dt,aim,pw){
     if(a>W.fl||d>rr)k='SW';
     else{
       const qt=a<=W.pf?1:a<=W.gd?1-.5*(a-W.pf)/(W.gd-W.pf):.5*(1-(a-W.gd)/(W.fl-W.gd));
-      let Q=qt*.62+(1-d/rr)*.38;if(!c.inZ)Q*=.72;if(c.type!=='직구')Q*=.93;if(!aim)Q*=.88;
+      let Q=qt*.62+(1-d/rr)*.38;if(!c.inZ)Q*=.72;Q*=1-((PTY[c.type]||{}).wh||0)-(c.type!=='직구'?.02:0);if(!aim)Q*=.88;
       if(Q<.2)k='F';
       else{
         const evMax=156+Math.max(0,st.pow-40)*.5+(st.pow-G.L)*.2;
         const ev=clamp(evMax*(.9+.2*P)*(.62+.38*Math.pow(Q,.8))*rnd(.95,1.04),40,192);
         const dy=aim?(zy(c.v)-zy(aim.v))/rr:rnd(-.35,.55);
-        const la=clamp(11+(P-.5)*6+dy*42+rnd(-7,7),-35,75);
+        const la=clamp(11+(P-.5)*6+dy*42+rnd(-7,7)+((PTY[c.type]||{}).la||0),-35,75);
         const pull=clamp(-dt/W.gd,-1.3,1.3), sp=(isLeftBat()?1:-1)*pull*26+c.u*6+rnd(-9,9);
         G.lastBB=bbResolve(ev,la,sp,st.spd);k=G.lastBB.k;
       }
@@ -2472,7 +2489,7 @@ function pgThrow(G,pw){
 function pgAIBall(G,c,bt,q,mid,corner){
   const Q=clamp(Math.pow(R(),1.25-bt.c*.55)+(mid?.14:0)-(corner?.1:0)-q*.18,0,1);
   const ev=clamp((146+bt.p*44+(G.kO-1)*40)*(.7+.3*Q)+rnd(-7,7),45,188);
-  const la=clamp(10+gauss()*24+bt.p*5-c.v*6,-40,75), sp=gauss()*20+(bt.lh?8:-8);
+  const la=clamp(10+gauss()*24+bt.p*5-c.v*6+((PTY[c.type]||{}).la||0),-40,75), sp=gauss()*20+(bt.lh?8:-8);
   return bbResolve(ev,la,sp,50);
 }
 function pgResolvePit(G){
@@ -2486,7 +2503,7 @@ function pgResolvePit(G){
   let k;G.aiSwing=R()<sw;
   if(!G.aiSwing)k=c.inZ?'CS':'B';
   else{
-    const ct=c.inZ?.84-q*.25-(corner?.12:0)+(mid?.1:0)+bt.c*.12-seq:.46-q*.2+bt.c*.1-(edge-1.6)*.3-seq;
+    const wh=(PTY[c.type]||{}).wh||0, ct=c.inZ?.84-q*.25-(corner?.12:0)+(mid?.1:0)+bt.c*.12-seq-wh:.46-q*.2+bt.c*.1-(edge-1.6)*.3-seq-wh;
     if(R()>ct)k='SW';
     else if(R()<(c.inZ?.38:.52))k='F';
     else{G.lastBB=pgAIBall(G,c,bt,q,mid,corner);k=G.lastBB.k}
@@ -2734,8 +2751,11 @@ function p3Board(G){
   P3.boardTex.needsUpdate=true;
 }
 /* ---- 투구 궤적 ---- */
-function p3PitchPos(c,t,out){const e=clamp(t,0,1.15),p=PTY[c.type]||PTY['직구'],rx=c.lh?-.55:.55,ry=1.85,rz=17.3,tx=-zx(c.u),ty=zy(c.v),bx=p.bx*.17*(c.lh?-1:1),by=-p.by*.24,k=e*e*e;
-  return out.set(rx+(tx-bx-rx)*e+bx*k,ry+(ty-by-ry)*e+by*k-.25*(e-e*e),rz*(1-e))}
+function p3PitchPos(c,t,out){
+  const e=clamp(t,0,1.15),p=PTY[c.type]||PTY['직구'],hs=c.lh?-1:1,rx=c.lh?-.55:.55,ry=1.85,rz=17.3,tx=-zx(c.u),ty=zy(c.v);
+  const bx=-p.mx*hs,by=-p.my;let x=rx+(tx-rx-bx)*e+bx*e*e,y=ry+(ty-ry-by)*e+by*e*e;
+  if(p.kn){const w=c.kw||(c.kw=1+R()*5),f=Math.min(e,1)*(1-Math.min(e,1))*4;x+=Math.sin(e*11+w)*.07*f;y+=Math.sin(e*8.5+w*1.7)*.06*f}
+  return out.set(x,y,rz*(1-e))}
 /* ---- 타구 연출 ---- */
 function p3MakeBB(G,res,ob){
   const bb=G.lastBB;if(!bb)return null;
@@ -2800,7 +2820,7 @@ function p3Frame(G,now,dt){
   // 공
   A.land.visible=false;
   if(an&&an.k==='fly'&&G.cur){
-    const t0=(now-an.t0)/an.dur,hb=bodyHit(G.cur,p3BatLH(G)),t=hb?Math.min(t0,1):t0;p3PitchPos(G.cur,t,V.a);A.ball.position.copy(V.a);A.ball.visible=t<1.12;A.ball.rotation.x+=dt*40;A.ball.scale.setScalar(clamp(P3.cam.position.distanceTo(V.a)/11,1,2.2));
+    const t0=(now-an.t0)/an.dur,hb=bodyHit(G.cur,p3BatLH(G)),t=hb?Math.min(t0,1):t0;p3PitchPos(G.cur,t,V.a);A.ball.position.copy(V.a);A.ball.visible=t<1.12;{const sp=(PTY[G.cur.type]||PTY['직구']).spin;A.ball.rotation.x+=dt*sp[0];A.ball.rotation.y+=dt*sp[1];A.ball.rotation.z+=dt*sp[2]}A.ball.scale.setScalar(clamp(P3.cam.position.distanceTo(V.a)/11,1,2.2));
     if(G.mode==='bat'){const rf=clamp(.82-(S.stats.eye-40)*.007,.45,.82);if(t>=rf){A.land.visible=true;A.land.position.set(-zx(G.cur.u),zy(G.cur.v),-.03);A.land.material.color.set(G.cur.inZ?0xffc845:0xdddddd)}}
     p3Trail(V.a);
   }else if(an&&an.k==='post'&&PG.last&&!P3.bb&&!bodyHit(PG.last,p3BatLH(G))){A.ball.visible=true;A.ball.scale.setScalar(1);A.ball.position.set(A.mitt.position.x,A.mitt.position.y,-.7)}
@@ -2897,18 +2917,28 @@ function pgMapSet(e){
 /* ---- 진행 ---- */
 function p3Post(G,res,now,ob){
   PG.last=G.cur;G.cur=null;
-  const B=p3MakeBB(G,res,ob);
+  const bbd=G.lastBB, B=p3MakeBB(G,res,ob), sub=res.sub||(PG.last&&PG.last.type?`${PG.last.type} ${PG.last.vk}km`:'');
   if(res.k==='HBP'){P3.hbp=now;SND.pop()}
-  if(B){P3.bb=B;PG.an={k:'bb',t0:now,dur:B.dur*1000/1.15};SND.crack();if(['1B','2B','3B'].includes(res.k))setTimeout(()=>SND.cheer(false),500)}
-  else{PG.an={k:'post',t0:now,dur:850};if(res.k!=='F')SND.pop();else SND.crack()}
-  pgFlash(res.txt,res.cls,res.sub);
+  if(B){P3.bb=B;PG.an={k:'bb',t0:now,dur:B.dur*1000/1.15};SND.crack();
+    PG.rv={at:now+p3RevealT(B,bbd)*1000/1.15,txt:res.txt,cls:res.cls,sub,hit:['1B','2B','3B'].includes(res.k)}}
+  else{PG.an={k:'post',t0:now,dur:850};if(res.k!=='F')SND.pop();else SND.crack();pgFlash(res.txt,res.cls,sub)}
   if(G.mode==='bat')pgAfterBat(G,res);else pgAfterPit(G,res);
   save();pgHud();
 }
+/* 타구 결과가 3D 화면에서 확정되는 순간(포구·1루 송구 도착·낙구·펜스 통과)까지 자막을 숨겨요 */
+function p3RevealT(B,bb){
+  if(B.hr)return B.crossT||1;
+  if(B.thr)return B.thr.t0+B.thr.dur;
+  if(B.k==='FO'||B.k==='LO'||B.k==='GO')return B.fT||1;
+  if(bb&&bb.fly&&!bb.ground)return clamp(bb.fly.t,.3,B.dur-.3);
+  const q=B.pts.find(p=>Math.hypot(p[1],p[3])>36);return clamp(q?q[0]:(B.fT||1),.3,B.dur-.3);
+}
+function pgReveal(){const r=PG.rv;if(!r)return;PG.rv=null;pgFlash(r.txt,r.cls,r.sub);if(r.hit)SND.cheer(false);P3.board='';pgHud()}
 function pgStep(G,now){
+  if(PG.rv&&now>=PG.rv.at)pgReveal();
   const an=PG.an;
   if(an&&(an.k==='post'||an.k==='bb')){
-    if(now-an.t0>=an.dur){PG.an=null;P3.bb=null;PG.swAt=0;p3ResetField(G);pgHud();if(G.mode==='bat'&&G.st==='pitching')PG.next=now+650}
+    if(now-an.t0>=an.dur){pgReveal();PG.an=null;P3.bb=null;PG.swAt=0;p3ResetField(G);pgHud();if(G.mode==='bat'&&G.st==='pitching')PG.next=now+650}
     return;
   }
   if(G.mode==='bat'){
@@ -2930,7 +2960,7 @@ function p3Loop(ts){
   const dt=Math.min(.05,(ts-(P3.last||ts))/1000);P3.last=ts;
   const w=host.clientWidth,h=host.clientHeight;
   if(w&&h&&(w!==P3.w||h!==P3.h)){P3.w=w;P3.h=h;P3.r.setPixelRatio(Math.min(window.devicePixelRatio||1,w<700?1.75:2));P3.r.setSize(w,h,false);P3.cam.aspect=w/h;P3.cam.updateProjectionMatrix()}
-  pgStep(G,ts);p3Frame(G,ts,dt);if(!PG.pre)p3Board(G);
+  pgStep(G,ts);p3Frame(G,ts,dt);if(!PG.pre&&!PG.rv)p3Board(G);
   if(PG.charge&&G.mode==='pit'){const pw=pgPow(ts),el=document.getElementById('pg-pwr'),lb=document.getElementById('pg-pwrv');if(el)el.style.width=(pw*100)+'%';if(lb)lb.textContent=`${Math.round(pgVk(G,G.sel.type,pw))}km${pw>.95?' · 전력투구':pw<.35?' · 살살':''}`}
   P3.r.render(P3.sc,P3.cam);
   PG.raf=requestAnimationFrame(p3Loop);
@@ -2945,7 +2975,7 @@ function pgInit(){
       r.domElement.addEventListener('pointerdown',p3Down);r.domElement.addEventListener('pointermove',p3Move);r.domElement.addEventListener('contextmenu',e=>e.preventDefault())}catch(e){P3.r=null;ok=false}}
     if(!ok||!P3.r){h.innerHTML='<div class="p3load">이 기기에서는 3D 화면을 불러오지 못했어요.<br>위의 <b>자동 진행</b>으로 경기를 마칠 수 있어요.</div>';P3.fail=true;pgHud();return}
     h.innerHTML='';h.appendChild(P3.r.domElement);P3.w=0;P3.last=0;P3.dressed=null;P3.board='';P3.bb=null;P3.view='';
-    const G=S.play;PG.an=null;PG.sw=null;PG.swAt=0;PG.hover=null;p3ResetField(G);
+    const G=S.play;PG.an=null;PG.rv=null;PG.sw=null;PG.swAt=0;PG.hover=null;p3ResetField(G);
     if(G.mode==='bat'&&G.st==='pitching')PG.next=performance.now()+900;
     if(G.mode==='pit'&&G.st==='anim'){if(G.cur)PG.an={k:'wind',t0:performance.now(),dur:760};else G.st='aim'}
     if(G.mode==='pit'&&G.st==='meter')G.st='aim';PG.charge=0;
@@ -2995,7 +3025,8 @@ const powLab=p=>p<.34?'맞히기':p<.67?'보통':'풀스윙';
 function pgHud(){
   const G=S&&S.play;if(!G||!HAS_DOM)return;
   const b=document.getElementById('p3bug'),c=document.getElementById('pg-ctl'),t=document.getElementById('p3btns');
-  if(b)b.innerHTML=pgBugHTML(G);if(c)c.innerHTML=pgCtlHTML(G);
+  if(PG.rv){if(c)c.innerHTML='<p class="p3hint" style="text-align:center;font-size:14px">타구를 끝까지 지켜보세요…</p>'}
+  else{if(b)b.innerHTML=pgBugHTML(G);if(c)c.innerHTML=pgCtlHTML(G)}
   if(t)t.innerHTML=`<button class="${P3.snd?'on':''}" data-a="pg-snd" aria-pressed="${P3.snd}">소리</button>${G.mode==='bat'?`<button class="${P3.assist?'on':''}" data-a="pg-assist" aria-pressed="${P3.assist}">조준 보조</button>`:''}${G.done?'':'<button data-a="pg-auto">자동 진행</button>'}`;
 }
 function pgFlash(t,cls,sub){const el=document.getElementById('pg-fl');if(!el)return;el.className='p3fl';void el.offsetWidth;el.querySelector('b').textContent=t;el.querySelector('small').textContent=sub||'';el.className='p3fl on '+(cls||'')}
@@ -3060,7 +3091,7 @@ function act(a,v){
   else if(a==='pg-assist'){P3.assist=!P3.assist;try{localStorage.setItem('b2mvp_assist',P3.assist?'1':'0')}catch(e){}}
   else if(a==='pg-type'){const G=S.play;if(G&&G.sel&&PTY[v])G.sel.type=v}
   else if(a==='pg-next'){const G=S.play;if(G&&G.st==='between')pgCont(G)}
-  else if(a==='pg-auto'){const G=S.play;if(G&&!G.done)pgAuto(G)}
+  else if(a==='pg-auto'){const G=S.play;if(G&&!G.done){PG.rv=null;pgAuto(G)}}
   else if(a==='pg-done'){pgFinish();top=true}
   else if(a==='sum-ok'){S.phase=nextAfter('summary');ui.tab='home';top=true}
   else if(a==='award-ok'){S.last.awSeen=true;S.phase=nextAfter('award');ui.tab='home';top=true}
