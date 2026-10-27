@@ -2471,18 +2471,19 @@ function bbResolve(ev,la,sp,spd){
   const out={ev,la,sp};
   if(Math.abs(sp)>45){if(la>25&&ev>70&&R()<.22){out.k='FO';out.foulOut=1;out.fielder=sp>0?'1B':'3B';out.fly=bbFly(ev,la,sp)}else out.k='F';return out}
   if(la<8){
-    const v0=ev/3.6*Math.cos(la*Math.PI/180)*(la<-10?.75:.9), dec=5.2, dir=[Math.sin(sp*Math.PI/180),Math.cos(sp*Math.PI/180)];
-    const runT=4.3-((spd||50)-50)*.016;let best=null;
-    for(const f of IFK){const [fx,fz]=FPOS[f], s=fx*dir[0]+fz*dir[1];if(s<=1)continue;
-      const perp=Math.abs(fx*dir[1]-fz*dir[0]), reach=f==='P'?.6:1.2, tf=.32+Math.max(0,perp-reach)/5.6;
-      const disc=v0*v0-2*dec*s, tb=disc>0?(v0-Math.sqrt(disc))/dec:(v0/dec+(s-v0*v0/2/dec)/1.5);
-      const hard=v0>30&&perp>reach?.15+(v0-30)*.01:0;
-      if(tf+hard<=tb){const px=dir[0]*s,pz=dir[1]*s, thr=.55+Math.hypot(px-19.4,pz-19.4)/32, tot=Math.max(tb,tf)+thr;
-        if(!best||tot<best.tot)best={f,tot,px,pz,tb}}}
-    out.ground={v0,dec,dir};
-    if(best){out.fielder=best.f;out.at=[best.px,best.pz];out.tf=best.tb;out.k=best.tot<runT?'GO':'1B';out.infHit=out.k==='1B';return out}
-    out.k=Math.abs(sp)>36&&v0>33?'2B':'1B';
-    let bo=null;for(const f of OFK){const d=Math.abs(FPOS[f][0]*dir[1]-FPOS[f][1]*dir[0]);if(!bo||d<bo.d)bo={f,d}}out.fielder=bo.f;return out;
+    const path=bbGround(ev,la,sp);let pick=null;
+    for(const point of path){const [t,x,y,z,bounced]=point;if(t<.18||y>1.6)continue;
+      for(const f of [...IFK,...OFK]){const [fx,fz]=FPOS[f],reach=.25+Math.max(0,Math.hypot(fx-x,fz-z)-.65)/(OFK.includes(f)?6.8:6);
+        if(reach<=t){pick={f,t,x,z,bounced};break}}
+      if(pick)break;
+    }
+    if(!pick){const last=path[path.length-1];let best=null;for(const f of FKEYS.slice(2)){const [fx,fz]=FPOS[f],t=.25+Math.hypot(fx-last[1],fz-last[3])/6.5;if(!best||t<best.t)best={f,t}}
+      pick={...best,x:last[1],z:last[3],bounced:true};pick.t=Math.max(pick.t,last[0]);
+    }
+    out.ground={path};out.fielder=pick.f;out.at=[pick.x,pick.z];out.tf=pick.t;
+    out.k=pick.bounced?'1B':'LO';
+    if(!pick.bounced){out.fly={...bbFly(ev,la,sp),dist:Math.hypot(pick.x,pick.z),t:pick.t};delete out.ground}
+    return out;
   }
   const f=bbFly(ev,la,sp);out.fly=f;
   if(f.hr){out.k='HR';return out}
@@ -2622,8 +2623,122 @@ function pgAdvance(pa,k){
   else{r=h('3')?1:0;if(h('2')){if(R()<.6)r++;else n+='3'}if(h('1'))n+=(n.includes('3')||R()<.7)?'2':'3';n+='1'}
   pa.on=[...new Set(n.split(''))].sort().join('');return r;
 }
+/* 공·주자·수비가 공유하는 초/미터 단위 타임라인 */
+function bbGround(ev,la,sp){
+  const speed=ev/3.6,a=la*Math.PI/180,s=sp*Math.PI/180,dt=.02,pts=[[0,0,.95,.6]];
+  let x=0,y=.95,z=.6,vx=speed*Math.cos(a)*Math.sin(s),vy=speed*Math.sin(a),vz=speed*Math.cos(a)*Math.cos(s),bounced=false;
+  for(let i=1;i<=500;i++){
+    const v=Math.hypot(vx,vz),rolling=y<=.039&&Math.abs(vy)<.25;
+    const loss=rolling?5.2:.0056*Math.hypot(v,vy)*v,scale=Math.max(0,1-loss*dt/Math.max(.001,v));
+    vx*=scale;vz*=scale;if(!rolling)vy-=9.81*dt;
+    x+=vx*dt;z+=vz*dt;y+=vy*dt;
+    if(y<.037){y=.037;vy=Math.abs(vy)>.65?-vy*.32:0;vx*=.88;vz*=.88;bounced=true}
+    pts.push([i*dt,x,y,z,bounced]);if(bounced&&v<.05&&i>40)break;
+  }
+  return pts;
+}
+function bbRunnerProgress(r,t){
+  const elapsed=Math.max(0,t-r.start),ramp=.38,speed=r.speed;
+  const distance=elapsed<ramp?.5*speed/ramp*elapsed*elapsed:speed*(elapsed-ramp/2);
+  return Math.min(r.to,r.from+distance/27.4);
+}
+function bbRunArrival(r){return r.start+(r.to-r.from)*27.4/r.speed+.19}
+function bbPlaySnapshot(G){return{pa:{...G.pa},my:G.my,op:G.op,ms:{...G.ms},msT:{...G.msT}}}
+function bbPlayRestore(G,s){Object.assign(G.pa,s.pa);G.my=s.my;G.op=s.op;Object.assign(G.ms,s.ms);Object.assign(G.msT,s.msT)}
+function bbPlan(G,bb){
+  if(!bb||bb.foulOut||bb.k==='F'||bb.k==='HR')return null;
+  const before=G.pa.out,on=G.pa.on,baseLen=27.4,batSpeed=baseLen/clamp(4.3-(((G.mode==='bat'?S.stats.spd:50)||50)-50)*.016,3.5,5.1);
+  const play={events:[],throws:[],runners:[],fielder:bb.fielder,catchAt:bb.tf,at:bb.at,pts:null,k:bb.k,outs:0,runs:0,on:'',text:'',end:0};
+  if(bb.ground){play.pts=bb.ground.path;play.catchAt=bb.tf;play.at=bb.at}
+  else if(bb.fly){const f=bbFly(bb.ev,bb.la,bb.sp,true);play.pts=f.path;
+    if(!['FO','LO'].includes(bb.k)){const last=play.pts[play.pts.length-1],pos=FPOS[bb.fielder];play.at=[last[1],last[3]];
+      play.catchAt=Math.max(last[0]+.22,.3+Math.hypot(pos[0]-last[1],pos[1]-last[3])/6.6);
+    }
+  }
+  if(!play.at||!Number.isFinite(play.catchAt))return null;
+  const caught=['FO','LO'].includes(bb.k),runners=play.runners;
+  for(const b of on.split('').map(Number))runners.push({from:b,to:b,start:.18,speed:6.6,bat:false});
+  const batter={from:0,to:1,start:.24,speed:batSpeed,bat:true};runners.push(batter);
+  const pos3=([x,z],y=1.15)=>[x,y,z];
+  const throwTo=(from,to,t0,by,receiver,base)=>{
+    const distance=Math.hypot(to[0]-from[0],to[2]-from[2]),dur=Math.max(.12,distance/30);
+    const prev=play.throws.filter(tr=>tr.receiver===receiver).at(-1),origin=prev?[prev.to[0],prev.to[2]]:FPOS[receiver],since=prev?prev.t0+prev.dur:0;
+    const receiverReady=since+.2+Math.hypot(origin[0]-to[0],origin[1]-to[2])/6.5;
+    t0=Math.max(t0,receiverReady-dur);
+    const tr={from,to,t0,dur,by,receiver,base};play.throws.push(tr);return t0+dur;
+  };
+  const eventOut=(r,time,base,force)=>{if(play.outs>=3-before)return;r.out=true;r.retireAt=time;r.force=force;play.outs++;
+    play.events.push({t:time,kind:'out',base,from:r.from,bat:r.bat,force});};
+  const pickup=pos3(play.at),first=pos3(BASEP[1]),second=pos3(BASEP[2]),home=pos3(BASEP[0]);
+  if(caught){
+    eventOut(batter,play.catchAt,0,false);
+    const third=runners.find(r=>r.from===3);
+    if(third&&before<2&&bb.fly.dist>45){
+      third.to=4;third.start=play.catchAt+.28;const arrival=bbRunArrival(third);
+      let returned;
+      if(Math.hypot(...play.at)>58){const cutoff=pos3([play.at[0]*.25,36]);const cut=throwTo(pickup,cutoff,play.catchAt+.3,bb.fielder,'SS',null);returned=throwTo(cutoff,home,cut+.28,'SS','C',4)}
+      else returned=throwTo(pickup,home,play.catchAt+.32,bb.fielder,'C',4);
+      if(returned+.08<arrival)eventOut(third,arrival,4,false);
+    }
+  }else if(bb.ground){
+    for(const r of runners)if(!r.bat)r.to=r.from===1||(r.from===2&&on.includes('1'))||(r.from===3&&on.includes('1')&&on.includes('2'))?r.from+1:r.from;
+    const lead=runners.find(r=>r.from===1),receiver=bb.fielder==='2B'?'SS':'2B';
+    let threwSecond=false;
+    if(lead&&before<2&&bb.fielder!=='1B'){
+      const reaches=play.catchAt+.26+Math.hypot(pickup[0]-second[0],pickup[2]-second[2])/30;
+      if(reaches+.04<bbRunArrival(lead)){
+        const pivot=throwTo(pickup,second,play.catchAt+.26,bb.fielder,receiver,2);if(pivot+.04<bbRunArrival(lead))eventOut(lead,pivot,2,true);threwSecond=true;
+        if(lead.out&&play.outs<3-before){const arrives=throwTo(second,first,pivot+.28,receiver,'1B',1);if(arrives+.04<bbRunArrival(batter))eventOut(batter,arrives,1,true)}
+      }
+    }
+    if(!threwSecond){
+      const by=bb.fielder==='1B'?'P':'1B';
+      const arrives=throwTo(pickup,first,play.catchAt+.28,bb.fielder,by,1);
+      if(arrives+.04<bbRunArrival(batter))eventOut(batter,arrives,1,true);
+    }
+    play.k=batter.out||lead?.out?'GO':'1B';
+  }else{
+    const bases={'1B':1,'2B':2,'3B':3}[bb.k]||1;
+    for(const r of runners){r.to=Math.min(4,r.from+bases);
+      // 2루 주자는 외야 단타에서 홈 쇄도: 송구가 먼저 오면 실제 태그아웃.
+      if(r.from===2&&bases===1&&Math.hypot(...play.at)>48)r.to=4;
+    }
+    let threat=runners.filter(r=>r.to>r.from).sort((a,b)=>b.to-a.to||b.from-a.from)[0];
+    if(threat){const dest=pos3(BASEP[threat.to%4]),receiver=threat.to===4?'C':threat.to===3?'3B':threat.to===2?'2B':'1B';
+      let returned;const distance=Math.hypot(pickup[0]-dest[0],pickup[2]-dest[2]);
+      if(distance>58){const cutoff=pos3([play.at[0]*.3,38.8]);const cut=throwTo(pickup,cutoff,play.catchAt+.32,bb.fielder,'SS',null);returned=throwTo(cutoff,dest,cut+.28,'SS',receiver,threat.to)}
+      else returned=throwTo(pickup,dest,play.catchAt+.32,bb.fielder,receiver,threat.to);
+      if(returned+.08<bbRunArrival(threat))eventOut(threat,bbRunArrival(threat),threat.to,false);
+    }
+  }
+  const outEvents=play.events.filter(e=>e.kind==='out').sort((a,b)=>a.t-b.t),third=before+play.outs>=3?outEvents[outEvents.length-1]:null;
+  for(const r of runners){
+    if(r.out)continue;
+    if(r.to===r.from){if(!r.bat)play.on+=r.from;continue}
+    const time=bbRunArrival(r);
+    if(third&&time>=third.t)continue;
+    if(r.to===4){if(third&&third.force)continue;play.runs++;play.events.push({t:time,kind:'run',from:r.from,bat:r.bat,base:4})}
+    else {play.on+=r.to;play.events.push({t:time,kind:'safe',from:r.from,bat:r.bat,base:r.to})}
+  }
+  play.on=[...new Set(play.on)].sort().join('');
+  play.events.sort((a,b)=>a.t-b.t);play.thirdAt=third?.t;
+  play.end=Math.max(play.catchAt,...play.events.map(e=>e.t),...play.throws.map(tr=>tr.t0+tr.dur))+.65;
+  const tag=outEvents.some(e=>!e.bat&&!e.force);
+  play.text=play.outs>=2?(tag?'태그아웃 · 더블 플레이':'병살타!'):tag?'안타 뒤 주루사!':play.k==='GO'?(batter.out?'땅볼 아웃':'선행 주자 아웃 · 야수 선택'):caught?(play.runs?'희생플라이':bb.k==='LO'?'직선타 아웃':'뜬공 아웃'):{'1B':'안타!','2B':'2루타!','3B':'3루타!'}[play.k];
+  return play;
+}
+function pgApplyPlanned(G,bb,play){
+  bb.before=bbPlaySnapshot(G);bb.play=play;bb.k=play.k;
+  const pa=G.pa,bat=G.mode==='bat',ms=G.mode===G.role?G.ms:G.msT,hit=['1B','2B','3B'].includes(play.k),sac=play.text==='희생플라이';
+  pa.out=Math.min(3,pa.out+play.outs);pa.on=play.on;pa.runs+=play.runs;pa.b=pa.s=0;
+  if(bat){G.my+=play.runs;ms.PA++;if(!sac)ms.AB++;if(hit)ms.H++;ms.RBI+=play.runs}
+  else{G.op+=play.runs;ms.outs+=play.outs;if(hit)ms.Ha++;ms.ER+=play.runs}
+  return{k:play.k,end:true,runs:play.runs,txt:play.text+(play.runs?' · '+play.runs+'점':''),cls:bat?(hit?'good':'bad'):(hit?'bad':'good'),sub:'타구 속도 '+Math.round(bb.ev)+'km'};
+}
+
 function pgApply(G,k,dt,npc){
   const pa=G.pa, bat=G.mode==='bat', ms=npc?null:(G.mode===G.role?G.ms:G.msT), bb=npc?null:G.lastBB;let txt='',cls='',end=false,runs=0;
+  if(bb&&!npc){const plan=bbPlan(G,bb);if(plan)return pgApplyPlanned(G,bb,plan)}
   const tim=dt==null||!bat?'':dt<-5000?' · 너무 빨랐어요':Math.abs(dt)<60?'':dt<0?' · 조금 빨랐어요':' · 조금 늦었어요';
   if(k==='B'){pa.b++;txt='볼';cls=bat?'':'bad';if(pa.b>=4)k='BB'}
   if(k==='CS'||k==='SW'){if(pa.s>=2)k='K';else{pa.s++;txt=(k==='CS'?'스트라이크':'헛스윙')+tim;cls=bat?'bad':'good'}}
@@ -2782,7 +2897,15 @@ function pgQuickPit(G){
     pgThrow(G,rnd(.6,1));res=pgResolvePit(G);PG.last=G.cur;G.cur=null;if(res.end)break}
   return res;
 }
+// 새로고침 또는 자동 진행으로 전환해도 진행 중 타구 결과를 중복 적용하지 않는다.
+function pgFinishPending(G){
+  const pending=G.livePending;if(!pending)return;
+  delete G.livePending;bbPlayRestore(G,pending.final);
+  if(G.mode==='bat')pgAfterBat(G,pending.res);else pgAfterPit(G,pending.res);
+  if(P3.bb)P3.bb.pending=null;P3.bb=null;PG.rv=null;
+}
 function pgAuto(G){
+  pgFinishPending(G);
   PG.an=null;PG.next=0;
   for(let g=0;g<300&&!G.done;g++){
     if(G.st==='between'){pgCont(G);continue}
@@ -3231,7 +3354,7 @@ function p3BuildPitch(c){
   const p=PTY[c.type]||PTY['직구'],hs=c.lh?-1:1;
   const r=c.release||[c.lh?-.38:.38,1.88,17.1],speed=Math.max(65,c.vk)/3.6;
   // q에 비례하는 항력과 구종별 회전 가속도. my는 중력 포함 낙차다.
-  const breaking=c.type!=='직구',sideBoost=breaking?(c.type==='스위퍼'?1.9:1.65):1,dropBoost=breaking?1.5:1;
+  const breaking=c.type!=='직구',sideBoost=breaking?(c.type==='스위퍼'?1.4:1.25):1,dropBoost=breaking?1.2:1;
   const nominal=r[2]/(speed*.94),ax=-2*p.mx*hs*sideBoost/(nominal*nominal),ay=-2*p.my*dropBoost/(nominal*nominal);
   const seed=c.kw??(c.kw=R()*Math.PI*2),step=1/300;
   function integrate(vx,vy){
@@ -3239,7 +3362,7 @@ function p3BuildPitch(c){
     for(let i=0;i<900&&z>-.95;i++){
       const q=Math.hypot(vx,vy,vz),f=clamp(1-z/r[2],0,1.1),lift=(q/speed)**2;
       // 포크/스플리터는 비행 후반 양력이 점진적으로 줄어든다.
-      const drop=['포크','스플리터'].includes(c.type)?-8*f*f:0;
+      const drop=['포크','스플리터'].includes(c.type)?-6.5*f*f:0;
       const nx=p.kn?2.8*Math.sin(f*15+seed):0,ny=p.kn?2.2*Math.sin(f*19+seed*1.7):0;
       const dx=-.006*q*vx+ax*lift+nx,dy=-.006*q*vy-9.81+(ay+9.81)*lift+drop+ny,dz=-.006*q*vz;
       // 반-암시적 오일러 적분, 홈플레이트 교차는 아래에서 보간.
@@ -3266,6 +3389,7 @@ function p3PitchPos(c,t,out){
 /* ---- 타구 연출 ---- */
 function p3MakeBB(G,res,ob){
   const bb=G.lastBB;if(!bb)return null;
+  if(bb.play){const p=bb.play;return{t:0,k:res.k,play:p,pts:p.pts,fielder:p.fielder,fAt:p.at,fT:p.catchAt,throws:p.throws,runners:p.runners,hr:false,foul:false,dur:p.end,eventIndex:0}}
   const A={t:0,k:res.k,pts:[],hr:res.k==='HR',fielder:bb.fielder,fT:null,fAt:null,thr:null,runners:[],dur:2.2,foul:res.k==='F'};
   if(bb.ground){
     const {v0,dec,dir}=bb.ground, tStop=v0/dec, tEnd=bb.at?bb.tf:Math.min(tStop,3.4), sAt=t=>t<tStop?v0*t-.5*dec*t*t:v0*tStop/2;
@@ -3298,6 +3422,58 @@ function p3MakeBB(G,res,ob){
   }
   return A;
 }
+function p3LiveBall(B,t,out){
+  const p=B.play;
+  if(t<p.catchAt)return p3PathAt(p.pts,t,out);
+  p3PathAt(p.pts,p.catchAt,out);
+  const lift=clamp((t-p.catchAt)/.22,0,1);out.y+=(1.15-out.y)*lift;
+  for(const tr of p.throws){
+    if(t<tr.t0)break;
+    const k=clamp((t-tr.t0)/tr.dur,0,1);
+    out.set(tr.from[0]+(tr.to[0]-tr.from[0])*k,tr.from[1]+(tr.to[1]-tr.from[1])*k+4.905*tr.dur*tr.dur*k*(1-k),tr.from[2]+(tr.to[2]-tr.from[2])*k);
+  }
+  const tag=p.events.find(e=>e.kind==='out'&&!e.force&&e.base>0&&t>e.t-.18);
+  if(tag)out.y=1.15-.6*clamp((t-(tag.t-.18))/.18,0,1)*(1-clamp((t-tag.t-.3)/.25,0,1));
+  return out;
+}
+function p3LiveDefense(B,t,dt){
+  const p=B.play,A=P3.A,way={};
+  for(const key of FKEYS)way[key]=[{t:0,x:FPOS[key][0],z:FPOS[key][1]}];
+  way[p.fielder].push({t:p.catchAt,x:p.at[0],z:p.at[1]});
+  for(const tr of p.throws)way[tr.receiver].push({t:tr.t0+tr.dur,x:tr.to[0],z:tr.to[2]});
+  for(const key of FKEYS){const fig=key==='P'?A.pitcher:key==='C'?A.catcher:A.f[key];if(!fig)continue;
+    const points=way[key].sort((a,b)=>a.t-b.t);let from=points[0],to=null;
+    for(let i=1;i<points.length;i++){if(t<points[i].t){to=points[i];break}from=points[i]}
+    const k=to?clamp((t-from.t)/Math.max(.001,to.t-from.t),0,1):1,x=to?from.x+(to.x-from.x)*k:from.x,z=to?from.z+(to.z-from.z)*k:from.z;
+    fig.visible=true;fig.position.set(-x,key==='P'&&t<.25?.25*(1-t/.25):0,z);
+    const throwing=p.throws.find(tr=>tr.by===key&&t>=tr.t0-.22&&t<=tr.t0+.22);
+    const receiving=p.throws.find(tr=>tr.receiver===key&&t>=tr.t0&&t<=tr.t0+tr.dur+.25);
+    const tagging=p.events.find(e=>e.kind==='out'&&!e.force&&e.base>0&&Math.abs(e.t-t)<.3&&p.throws.some(tr=>tr.receiver===key&&tr.base===e.base));
+    if(throwing){fig.rotation.y=Math.atan2(-(throwing.to[0]-x),throwing.to[2]-z);p3Pose(fig,kfPose(THRK,clamp((t-throwing.t0+.22)/.44,0,1)),1)}
+    else if(to&&Math.hypot(to.x-x,to.z-z)>.2){fig.rotation.y=Math.atan2(-(to.x-x),to.z-z);p3Run(fig,t*11,.85)}
+    else if(tagging)p3Pose(fig,P_SCOOP,1-Math.exp(-dt*15));
+    else if(receiving)p3CatchPose(fig,A.ball.position,1-Math.exp(-dt*12));
+    else if(key===p.fielder&&t<p.catchAt+.25)p3Pose(fig,P_SCOOP,1-Math.exp(-dt*12));
+    else p3Pose(fig,P_STAND,1-Math.exp(-dt*8));
+  }
+}
+function p3LiveAdvance(G,B,t){
+  const p=B.play;
+  while(B.eventIndex<p.events.length&&p.events[B.eventIndex].t<=t){
+    const e=p.events[B.eventIndex++];
+    if(e.from)G.pa.on=G.pa.on.replace(String(e.from),'');
+    if(e.kind==='out'){G.pa.out=Math.min(3,G.pa.out+1);pgFlash((e.base===0?'포구 아웃':e.force?'포스 아웃':'태그 아웃')+' · '+G.pa.out+'아웃',G.mode==='bat'?'bad':'good',e.base===4?'홈':e.base?e.base+'루':'포구')}
+    if(e.kind==='safe'){G.pa.on=[...new Set((G.pa.on+e.base).split(''))].sort().join('')}
+    if(e.kind==='run'){G.pa.runs++;if(G.mode==='bat')G.my++;else G.op++;pgFlash('홈인!','good','주자 득점')}
+    P3.board='';pgHud();
+  }
+  if(B.pending&&t>=B.dur-.35){
+    const pending=B.pending;B.pending=null;delete G.livePending;bbPlayRestore(G,pending.final);
+    if(G.mode==='bat')pgAfterBat(G,pending.res);else pgAfterPit(G,pending.res);
+    save();P3.board='';pgHud();
+  }
+}
+
 function p3BasePt(f){const i=Math.floor(f),k=f-i,a=BASEP[i%4],b=BASEP[(i+1)%4];return[a[0]+(b[0]-a[0])*k,a[1]+(b[1]-a[1])*k]}
 function p3PathAt(pts,t,out){if(!pts.length)return out.set(0,1,0);if(t<=pts[0][0])return out.set(pts[0][1],pts[0][2],pts[0][3]);
   for(let i=1;i<pts.length;i++)if(pts[i][0]>=t){const a=pts[i-1],b=pts[i],k=(t-a[0])/((b[0]-a[0])||1);return out.set(a[1]+(b[1]-a[1])*k,a[2]+(b[2]-a[2])*k,a[3]+(b[3]-a[3])*k)}
@@ -3348,9 +3524,10 @@ function p3Frame(G,now,dt){
   // 타구
   const B=P3.bb;
   if(B){
-    B.t+=dt*1.15;const t=B.t;
+    B.t=PG.an?(now-PG.an.t0)/1000:B.t+dt;const t=B.t;
     let held=false;
-    if(B.thr&&t>=B.thr.t0){const k=clamp((t-B.thr.t0)/B.thr.dur,0,1),f=B.fAt;V.a.set(f[0]+(B.thr.to[0]-f[0])*k,1.3+Math.sin(k*Math.PI)*1.2,f[1]+(B.thr.to[2]-f[1])*k);held=true}
+    if(B.play){p3LiveBall(B,t,V.a)}
+    else if(B.thr&&t>=B.thr.t0){const k=clamp((t-B.thr.t0)/B.thr.dur,0,1),f=B.fAt;V.a.set(f[0]+(B.thr.to[0]-f[0])*k,1.3+Math.sin(k*Math.PI)*1.2,f[1]+(B.thr.to[2]-f[1])*k);held=true}
     else if(B.fT!=null&&t>=B.fT&&(B.k==='FO'||B.k==='LO'||B.k==='GO')){V.a.set(B.fAt[0],1.1,B.fAt[1]);held=true}
     else p3PathAt(B.pts,t,V.a);
     V.a.x=-V.a.x;A.ball.visible=!(B.hr&&t>B.crossT+1.2);A.ball.position.copy(V.a);A.ball.rotation.x+=dt*25;
@@ -3359,29 +3536,32 @@ function p3Frame(G,now,dt){
     p3Trail(V.a);
     if(B.hr&&!B.fw&&t>=B.crossT){B.fw=1;p3Fireworks(V.a.x*1.15,V.a.z*1.15);SND.cheer(true)}
     // 수비수 이동
-    if(B.fielder&&B.fAt){const fp=B.fielder==='P'?A.pitcher:B.fielder==='C'?null:A.f[B.fielder];
+    if(!B.play&&B.fielder&&B.fAt){const fp=B.fielder==='P'?A.pitcher:B.fielder==='C'?null:A.f[B.fielder];
       if(fp){const st=FPOS[B.fielder],k=clamp((t-.25)/Math.max(.3,(B.fT||2)-.25),0,1),tx=st[0]+(B.fAt[0]-st[0])*k,tz=st[1]+(B.fAt[1]-st[1])*k;
         fp.position.set(-tx,B.fielder==='P'?.25*(1-k):0,tz);const kk=1-Math.exp(-dt*14);
         if(k<1){fp.rotation.y=Math.atan2(-(B.fAt[0]-st[0]),B.fAt[1]-st[1]);p3Pose(fp,runPose(t*12.5,1),k>.85?kk:1)}
         else if(B.thr&&t>=B.thr.t0-.3){fp.rotation.y=Math.atan2(-19.4-fp.position.x,19.4-fp.position.z);p3Pose(fp,kfPose(THRK,clamp((t-B.thr.t0+.3)/.45,0,1)),1)}
         else if(B.k==='FO'||B.k==='LO'){fp.rotation.y=Math.atan2(tx,-tz);p3CatchPose(fp,A.ball.position,kk)}
         else{fp.rotation.y=Math.atan2(tx,-tz);p3Pose(fp,P_SCOOP,kk)}}}
-    if(B.thr&&A.f['1B']&&B.fielder!=='1B'){const f1=A.f['1B'],k=clamp(t/.9,0,1),s1=FPOS['1B'];f1.position.set(-(s1[0]+(18.6-s1[0])*k),0,s1[1]+(19.6-s1[1])*k);
+    if(!B.play&&B.thr&&A.f['1B']&&B.fielder!=='1B'){const f1=A.f['1B'],k=clamp(t/.9,0,1),s1=FPOS['1B'];f1.position.set(-(s1[0]+(18.6-s1[0])*k),0,s1[1]+(19.6-s1[1])*k);
       if(k<1){f1.rotation.y=Math.atan2(-(18.6-s1[0]),19.6-s1[1]);p3Pose(f1,runPose(t*12,.85),1)}
       else{f1.rotation.y=Math.atan2(-B.fAt[0]-f1.position.x,B.fAt[1]-f1.position.z);p3Pose(f1,{...P_STAND,spine:[.35,0,0],head:[-.1,0,0],thL:[-.8,0,.1],knL:[.4,0,0],ftL:[.35,0,0],thR:[.25,0,-.12],knR:[.1,0,0],hL:[.15,1.25,.75],hR:[-.1,1.05,.4]},1-Math.exp(-dt*10))}}
+    if(B.play){p3LiveDefense(B,t,dt);A.mitt.visible=false;}
     // 주자
     if(!B.foul){let ri=0;
       if(A.batter.visible&&t>.35){A.batter.userData.batPivot.visible=false}
       B.runners.forEach(r=>{const fig=r.bat?A.batter:A.runners[ri++];if(!fig)return;
-        const sp=r.speed||6.4, f=Math.min(r.to,r.from+Math.max(0,t-(r.bat?.35:.1))*sp/27.4), lim=f, [x,z]=p3BasePt(lim);
-        fig.visible=!(r.to===4&&lim>=4)&&!(r.bat&&r.out&&t>(r.retireAt!=null?r.retireAt+.18:B.dur-.6));fig.position.set(-x,0,z);
-        if(lim<r.to){const [nx,nz]=p3BasePt(Math.min(r.to,lim+.05));fig.rotation.y=Math.atan2(-(nx-x),nz-z);p3Run(fig,t*11*(sp/6.4),1)}else p3Idle(fig)});
+        const sp=r.speed||6.4, f=Math.min(r.to,r.from+Math.max(0,t-(r.bat?.35:.1))*sp/27.4), lim=B.play?bbRunnerProgress(r,Math.min(t,r.retireAt??B.play.thirdAt??t)):f, [x,z]=p3BasePt(lim);
+        fig.visible=!(r.to===4&&lim>=4)&&!(r.out&&t>(r.retireAt!=null?r.retireAt+.18:B.dur-.6));fig.position.set(-x,0,z);
+        if(lim<r.to){const [nx,nz]=p3BasePt(Math.min(r.to,lim+.05));fig.rotation.y=Math.atan2(-(nx-x),nz-z);if(B.play&&!r.bat&&r.to>r.from&&bbRunArrival(r)-t<.48&&bbRunArrival(r)-t>-.1){
+          p3Pose(fig,{hy:.3,hips:[0,0,0],spine:[-.55,0,0],head:[.3,0,0],thL:[-1.3,0,.12],knL:[.2,0,0],thR:[-1.1,0,-.15],knR:[.5,0,0],hL:[.24,.38,-.1],hR:[-.24,.38,-.1]},1);
+        }else p3Run(fig,t*11*(sp/6.4),1)}else p3Idle(fig)});
     }
   }
   // 불꽃
   P3.fx=P3.fx.filter(f=>{f.t+=dt;const a=f.p.geometry.attributes.position;for(let i=0;i<f.vel.length;i++){f.vel[i][1]-=9*dt;a.array[i*3]+=f.vel[i][0]*dt;a.array[i*3+1]+=f.vel[i][1]*dt;a.array[i*3+2]+=f.vel[i][2]*dt}a.needsUpdate=true;f.p.material.opacity=Math.max(0,1-f.t/1.8);if(f.t>1.8){P3.sc.remove(f.p);f.p.geometry.dispose();return false}return true});
   // 수비수 숨쉬기
-  {const pit=an&&(an.k==='wind'||an.k==='fly');for(const k in A.f){const p=A.f[k];if(B&&(k===B.fielder||(k==='1B'&&B.thr)))continue;p3Pose(p,pit?(OFK.includes(k)?P_OFREADY:P_READY):P_STAND,1-Math.exp(-dt*(pit?7:2.5)));p.userData.body.rotation.z=pit?0:Math.sin(now/900+p.userData.ph)*.015}}
+  {const pit=an&&(an.k==='wind'||an.k==='fly');for(const k in A.f){const p=A.f[k];if(B&&(B.play||k===B.fielder||(k==='1B'&&B.thr)))continue;p3Pose(p,pit?(OFK.includes(k)?P_OFREADY:P_READY):P_STAND,1-Math.exp(-dt*(pit?7:2.5)));p.userData.body.rotation.z=pit?0:Math.sin(now/900+p.userData.ph)*.015}}
   // 카메라
   let vw;
   if(B){vw='hit';const bx=A.ball.position;const far=Math.hypot(bx.x,bx.z);V.tp.set(bx.x*.32,7+Math.min(far,130)*.1,-13+bx.z*.28);V.tl.copy(bx)}
@@ -3467,14 +3647,16 @@ function p3Post(G,res,now,ob){
   const bbd=G.lastBB, B=p3MakeBB(G,res,ob), sub=res.sub||(PG.last&&PG.last.type?`${PG.last.type} ${PG.last.vk}km`:'');
   if(res.k==='HBP'){P3.hbp=now;SND.pop()}
   if(res.k==='CS'||(res.k==='K'&&!PG.swAt))P3.umpT=now;
-  if(B){P3.bb=B;P3.trailN=0;PG.an={k:'bb',t0:now,dur:B.dur*1000/1.15};SND.crack();
-    PG.rv={at:now+p3RevealT(B,bbd)*1000/1.15,txt:res.txt,cls:res.cls,sub,hit:['1B','2B','3B'].includes(res.k)}}
+  if(B){P3.bb=B;P3.trailN=0;PG.an={k:'bb',t0:now,dur:B.dur*1000};SND.crack();
+    PG.rv={at:now+p3RevealT(B,bbd)*1000,txt:res.txt,cls:res.cls,sub,hit:['1B','2B','3B'].includes(res.k)}}
   else{PG.an={k:'post',t0:now,dur:850};if(res.k!=='F')SND.pop();else SND.crack();pgFlash(res.txt,res.cls,sub)}
-  if(G.mode==='bat')pgAfterBat(G,res);else pgAfterPit(G,res);
+  if(B?.play){B.pending={final:bbPlaySnapshot(G),res};G.livePending=B.pending;bbPlayRestore(G,bbd.before)}
+  else if(G.mode==='bat')pgAfterBat(G,res);else pgAfterPit(G,res);
   save();pgHud();
 }
 /* 타구 결과가 3D 화면에서 확정되는 순간(포구·1루 송구 도착·낙구·펜스 통과)까지 자막을 숨겨요 */
 function p3RevealT(B,bb){
+  if(B.play)return B.dur-.35;
   if(B.hr)return B.crossT||1;
   if(B.thr)return B.thr.t0+B.thr.dur;
   if(B.k==='FO'||B.k==='LO'||B.k==='GO')return B.fT||1;
@@ -3483,6 +3665,7 @@ function p3RevealT(B,bb){
 }
 function pgReveal(){const r=PG.rv;if(!r)return;PG.rv=null;pgFlash(r.txt,r.cls,r.sub);if(r.hit)SND.cheer(false);P3.board='';pgHud()}
 function pgStep(G,now){
+  if(P3.bb?.play)p3LiveAdvance(G,P3.bb,(now-PG.an.t0)/1000);
   if(PG.rv&&now>=PG.rv.at)pgReveal();
   const an=PG.an;
   if(an&&(an.k==='post'||an.k==='bb')){
@@ -3512,7 +3695,7 @@ function p3Loop(ts){
   const dt=Math.min(.05,(ts-(P3.last||ts))/1000);P3.last=ts;
   const w=host.clientWidth,h=host.clientHeight;
   if(w&&h&&(w!==P3.w||h!==P3.h)){P3.w=w;P3.h=h;P3.r.setPixelRatio(Math.min(window.devicePixelRatio||1,w<700?1.75:2));P3.r.setSize(w,h,false);P3.cam.aspect=w/h;P3.cam.updateProjectionMatrix()}
-  pgStep(G,ts);p3Frame(G,ts,dt);if(!PG.pre&&!PG.rv)p3Board(G);
+  pgStep(G,ts);p3Frame(G,ts,dt);if(!PG.pre&&(!PG.rv||P3.bb?.play))p3Board(G);
   if(PG.charge&&G.mode==='pit'){const pw=pgPow(ts),el=document.getElementById('pg-pwr'),lb=document.getElementById('pg-pwrv');if(el)el.style.width=(pw*100)+'%';if(lb)lb.textContent=`${Math.round(pgVk(G,G.sel.type,pw))}km${pw>.95?' · 전력투구':pw<.35?' · 살살':''}`}
   P3.r.render(P3.sc,P3.cam);
   PG.raf=requestAnimationFrame(p3Loop);
@@ -3527,7 +3710,7 @@ function pgInit(){
       r.domElement.addEventListener('pointerdown',p3Down);r.domElement.addEventListener('contextmenu',e=>e.preventDefault())}catch(e){P3.r=null;ok=false}}
     if(!ok||!P3.r){h.innerHTML='<div class="p3load">이 기기에서는 3D 화면을 불러오지 못했어요.<br>위의 <b>자동 진행</b>으로 경기를 마칠 수 있어요.</div>';P3.fail=true;pgHud();return}
     h.innerHTML='';h.appendChild(P3.r.domElement);P3.w=0;P3.last=0;P3.dressed=null;P3.board='';P3.bb=null;P3.view='';
-    const G=S.play;PG.an=null;PG.rv=null;PG.sw=null;PG.swAt=0;PG.hover=null;p3ResetField(G);
+    const G=S.play;pgFinishPending(G);PG.an=null;PG.rv=null;PG.sw=null;PG.swAt=0;PG.hover=null;p3ResetField(G);
     if(G.mode==='bat'&&G.st==='pitching')PG.next=performance.now()+900;
     if(G.mode==='pit'&&G.st==='anim'){if(G.cur)PG.an={k:'wind',t0:performance.now(),dur:760};else G.st='aim'}
     if(G.mode==='pit'&&G.st==='meter')G.st='aim';PG.charge=0;
@@ -3577,6 +3760,7 @@ const powLab=p=>p<.34?'맞히기':p<.67?'보통':'풀스윙';
 function pgHud(){
   const G=S&&S.play;if(!G||!HAS_DOM)return;
   const b=document.getElementById('p3bug'),c=document.getElementById('pg-ctl'),t=document.getElementById('p3btns');
+  if(b)b.innerHTML=pgBugHTML(G);
   if(PG.rv){if(c)c.innerHTML='<p class="p3hint" style="text-align:center;font-size:14px">타구를 끝까지 지켜보세요…</p>'}
   else{if(b)b.innerHTML=pgBugHTML(G);if(c)c.innerHTML=pgCtlHTML(G)}
   if(t)t.innerHTML=`<button class="${P3.snd?'on':''}" data-a="pg-snd" aria-pressed="${P3.snd}">소리</button>${G.done?'':'<button data-a="pg-auto">자동 진행</button>'}`;
