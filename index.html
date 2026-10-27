@@ -314,6 +314,13 @@ body,.ttl,h1,h2,.desc,.situ,.choice,.item,.fi,.art h3{word-break:keep-all;overfl
 .shelf .tr small{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
 .shelf .tr.now svg{width:28px;height:28px;filter:drop-shadow(0 0 6px #f5c54299)}
 .mvpb{display:inline-block;font-size:11px;font-weight:800;color:#7a5200;background:var(--gold-s);border:1px solid #f0d58a;padding:1px 7px;border-radius:6px;vertical-align:middle;margin-left:4px}
+.vote{display:grid;gap:6px;width:100%;text-align:left}
+.vrow{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;padding:9px 12px;border-radius:10px;background:var(--fill);font-size:14px}
+.vrow .vr{font-family:var(--f-num);font-weight:700;font-size:18px;color:var(--muted);text-align:center}
+.vrow .vl{min-width:0;overflow-wrap:anywhere}
+.vrow .vp{font-family:var(--f-num);font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink2)}
+.vrow.me{background:var(--gold-s);box-shadow:inset 0 0 0 2px #f0d58a;font-weight:700}
+.vrow.me .vr{color:var(--gold)}
 .momres{border-radius:18px;padding:22px 18px;display:grid;gap:8px;text-align:center;justify-items:center}
 .momres.ok{background:#e9f8ef;border:2px solid var(--green)}
 .momres.no{background:#fdf0f0;border:2px solid var(--red)}
@@ -409,6 +416,9 @@ const CHAMP={HS:'황금사자기 우승',UNIV:'대학야구 U-리그 우승',ARM
 const HSCUP=['황금사자기','청룡기','봉황대기','대통령배'];
 const POSAW={KR:'골든글러브',JP:'NPB 베스트 나인',US:'MLB 올스타'};
 const ACEAW={JP:'사와무라상',US:'사이영상'};
+const WBSC_EV=['U-18 야구 월드컵','프리미어12','WBC'], WBSC_AW='WBSC 올해의 선수';
+const W_NAT=['일본','미국','도미니카공화국','베네수엘라','대만','쿠바','멕시코','네덜란드','푸에르토리코','캐나다','파나마','호주'];
+const W_POS=['투수','포수','1루수','2루수','3루수','유격수','외야수'];
 const LGS={KR:'KBO',JP:'NPB',US:'MLB'};
 const SRC=['야구일보','더그아웃뉴스','베이스볼투데이','스포츠라인','다이아몬드저널'];
 const USERS=['야구는인생','직관러_88','외야석지킴이','9회말2아웃','불펜걱정러','치킨과맥주','홈런볼수집가','덕아웃캠','응원단장','기록실','파울볼장인','새벽야구'];
@@ -1097,6 +1107,20 @@ function finishSeason(){
   S.last={y,team:S.team,org,lg:LG[pl].n,role,roleN:roleName(role),line:tot,war:tot.war,rank:fin.rank,n:fin.n,aw,trs,ob,oa,diff,stage:stageTxt(),callup,momRes:P.mom&&P.mom.res?{ok:P.mom.res.ok,title:P.mom.res.title}:null,mvpAw:aw.find(a=>/^(KBO|NPB|MLB) MVP$/.test(a))||null,mvpN:S.mvp,awSeen:false};
   S.prevStats=before;S.prevOvr=ob;
   S.natRes=natRes;
+  if(natRes&&WBSC_EV.includes(natRes.ev)){
+    const nl=natRes.line, u18=natRes.ev.startsWith('U-18');
+    const medal={'우승':4,'금메달':4,'준우승':2.5,'은메달':2.5,'4강':1.5,'동메달':1.5,'8강':.5,'4위':.5}[natRes.res]||0;
+    const perf=!nl.G?0:nl.t==='B'?clamp((nl.avg-.25)*18+nl.HR*.7+(nl.RBI||0)*.1,-2,4.5):clamp((3.6-nl.era)*1.1+nl.K*.06,-2,4.5);
+    const me=r1(medal+perf+(u18?0:Math.max(0,tot.war)*.45)+(S.last.mvpAw?1.5:0)+rnd(-.8,.8));
+    const list=[{label:`대한민국${u18?' U-18':''} 대표 · ${SUBPOS[S.pos].n}`,s:me,me:true}];
+    let top=rnd(10.2,13.6);const nats=shuffle(W_NAT.slice());
+    for(let i=0;i<9;i++){list.push({label:`${nats[i]}${u18?' U-18':''} 대표 · ${pick(W_POS)}`,s:r1(top)});top-=rnd(.3,1.1)}
+    list.sort((a,b)=>b.s-a.s);
+    const rank=list.findIndex(x=>x.me)+1, won=rank===1;
+    if(won){S.wbsc=(S.wbsc||0)+1;S.tro.push({n:WBSC_AW,cat:'nat',y,k:'a'});S.last.aw.push(WBSC_AW);S.hist[S.hist.length-1].aw.push(WBSC_AW);
+      addNews(`${S.name}, ${y} ${WBSC_AW} 선정… ${natRes.ev} 활약으로 전 세계 최고 선수에`,'award',3)}
+    S.last.world={ev:natRes.ev,rank,won,n:S.wbsc||0,list:list.map(x=>({label:x.label,pts:Math.round(x.s*31),me:!!x.me})),seen:false};
+  }
   S.flags={abroad:S.flags.abroad,callup:S.flags.callup,forceMinor:0};
   S.age++;S.year++;S.role=null;S.comp=null;S.prog=null;S.nat=null;
   S.off=buildOff();S.tp=pickTP();
@@ -1114,8 +1138,8 @@ const trophyCount=()=>S.tro.filter(t=>t.k==='t').length;
 function loadHof(){try{return JSON.parse(localStorage.getItem(HOF)||'[]')}catch(e){return[]}}
 function retire(){
   const t=totals();
-  const list=loadHof();list.push({name:S.name,pos:SUBPOS[S.pos].n,mvp:S.mvp,maxOvr:S.maxOvr,aw:awardCount(),war:t.war,y:S.year});
-  list.sort((a,b)=>(b.mvp-a.mvp)||(b.maxOvr-a.maxOvr)||(b.aw-a.aw)||(b.war-a.war));
+  const list=loadHof();list.push({name:S.name,pos:SUBPOS[S.pos].n,mvp:S.mvp,wb:S.wbsc||0,maxOvr:S.maxOvr,aw:awardCount(),war:t.war,y:S.year});
+  list.sort((a,b)=>(b.mvp-a.mvp)||((b.wb||0)-(a.wb||0))||(b.maxOvr-a.maxOvr)||(b.aw-a.aw)||(b.war-a.war));
   try{localStorage.setItem(HOF,JSON.stringify(list.slice(0,30)))}catch(e){}
   addNews(`${S.name}, ${S.hist.length}시즌 선수 생활 마치고 은퇴`,'retire',3);
   S.phase='retired';ui.sheet=null;
@@ -1212,12 +1236,12 @@ function renderCreate(){
   return`<div class="page">${nav}<div class="stack">${body}</div><div></div>${btn}</div>${ov}${hofMini()}`;
 }
 function hofMini(){const l=loadHof().slice(0,5);if(!l.length||C.step)return'';return`<section class="sec"><h2>명예의 전당 <span>이 기기</span></h2>${hofTable(l)}</section>`}
-function hofTable(l){return l.length?`<div class="tablewrap"><table><thead><tr><th>#</th><th>선수</th><th class="r">MVP</th><th class="r">최고</th><th class="r">개인상</th><th class="r">WAR</th></tr></thead><tbody>${l.map((h,i)=>`<tr><td>${i+1}</td><td>${esc(h.name)} <span class="muted">${esc(h.pos)}</span></td><td class="r">${h.mvp}</td><td class="r">${h.maxOvr}</td><td class="r">${h.aw}</td><td class="r">${h.war}</td></tr>`).join('')}</tbody></table></div>`:'<p class="desc">아직 은퇴한 선수가 없어요.</p>'}
+function hofTable(l){return l.length?`<div class="tablewrap"><table><thead><tr><th>#</th><th>선수</th><th class="r">MVP</th><th class="r">WBSC</th><th class="r">최고</th><th class="r">개인상</th><th class="r">WAR</th></tr></thead><tbody>${l.map((h,i)=>`<tr><td>${i+1}</td><td>${esc(h.name)} <span class="muted">${esc(h.pos)}</span></td><td class="r">${h.mvp}</td><td class="r">${h.wb||0}</td><td class="r">${h.maxOvr}</td><td class="r">${h.aw}</td><td class="r">${h.war}</td></tr>`).join('')}</tbody></table></div>`:'<p class="desc">아직 은퇴한 선수가 없어요.</p>'}
 
 /* ================= render: app tabs ================= */
 function pHead(){
   const d=ovr()-S.prevOvr;
-  return`<div class="pcard" style="grid-template-columns:auto 1fr auto"><div class="ava">${avaImg()}</div><div style="min-width:0"><div class="who">${emblem(S.team,16)} ${esc(teamLabel())}</div><div style="font-size:20px;font-weight:800;overflow-wrap:anywhere">${esc(S.name)} <span class="badge">${SUBPOS[S.pos].n}</span>${S.mvp?`<span class="mvpb">MVP ×${S.mvp}</span>`:''}</div><div class="muted" style="font-size:13px">No.${S.num} · ${S.age}세 · ${esc(S.style)}</div></div><div class="ovrbox"><b>${ovr()}</b><small>OVR</small>${S.hist.length&&d?`<em class="${d>0?'up':'dn'}">${sgn(d)}</em>`:''}</div></div>`;
+  return`<div class="pcard" style="grid-template-columns:auto 1fr auto"><div class="ava">${avaImg()}</div><div style="min-width:0"><div class="who">${emblem(S.team,16)} ${esc(teamLabel())}</div><div style="font-size:20px;font-weight:800;overflow-wrap:anywhere">${esc(S.name)} <span class="badge">${SUBPOS[S.pos].n}</span>${S.mvp?`<span class="mvpb">MVP ×${S.mvp}</span>`:''}${S.wbsc?`<span class="mvpb">WBSC ×${S.wbsc}</span>`:''}</div><div class="muted" style="font-size:13px">No.${S.num} · ${S.age}세 · ${esc(S.style)}</div></div><div class="ovrbox"><b>${ovr()}</b><small>OVR</small>${S.hist.length&&d?`<em class="${d>0?'up':'dn'}">${sgn(d)}</em>`:''}</div></div>`;
 }
 function seasonInfoRows(){
   return`<div class="row"><span>소속</span><span>${emblem(S.team,20)} ${esc(teamLabel())}</span></div>
@@ -1279,7 +1303,7 @@ function tabPlayer(){
 }
 function tabRecord(){
   const t=S.tro.filter(x=>x.k==='t'||x.k==='m'), a=S.tro.filter(x=>x.k==='a');
-  let h=`${head('기록실')}<section class="sec"><div class="ttl" style="margin:0">우승 ${trophyCount()}회 · 개인상 ${awardCount()}회</div>${S.mvp?`<p class="desc"><b class="blue">MVP ${S.mvp}회</b></p>`:''}</section>
+  let h=`${head('기록실')}<section class="sec"><div class="ttl" style="margin:0">우승 ${trophyCount()}회 · 개인상 ${awardCount()}회</div>${S.mvp||S.wbsc?`<p class="desc"><b class="blue">${[S.mvp?`MVP ${S.mvp}회`:'',S.wbsc?`${WBSC_AW} ${S.wbsc}회`:''].filter(Boolean).join(' · ')}</b></p>`:''}</section>
   <section class="sec"><div class="seg" style="display:grid;grid-template-columns:repeat(3,1fr)">${[['tro','우승 '+t.length],['aw','개인상 '+a.length],['season','시즌별']].map(([k,l])=>`<button class="${ui.recTab===k?'on':''}" data-a="rec-tab" data-v="${k}">${l}</button>`).join('')}</div>`;
   if(ui.recTab==='season'){
     const rows=S.hist.slice().reverse();
@@ -1430,6 +1454,38 @@ function renderSummary(){
     </div>
     <button class="btn" data-a="sum-ok">라커룸으로</button></div>`;
 }
+function nextAfter(stage){
+  const L=S.last||{}, order=['award','nat','world'];
+  const ok={award:()=>L.mvpAw&&!L.awSeen,nat:()=>!!S.natRes,world:()=>L.world&&!L.world.seen};
+  for(let i=stage==='summary'?0:order.indexOf(stage)+1;i<order.length;i++)if(ok[order[i]]())return order[i];
+  return'app';
+}
+function renderWorld(){
+  const L=S.last, W=L.world, top5=W.list.slice(0,5), meRow=W.list.find(x=>x.me);
+  const rows=top5.map((x,i)=>`<div class="vrow ${x.me?'me':''}"><span class="vr">${i+1}</span><span class="vl">${esc(x.me?S.name+' · '+x.label:x.label)}</span><span class="vp">${x.pts}점</span></div>`).join('')
+    +(W.rank>5?`<div class="vrow me"><span class="vr">${W.rank}</span><span class="vl">${esc(S.name+' · '+meRow.label)}</span><span class="vp">${meRow.pts}점</span></div>`:'');
+  const vote=`<div class="vote" aria-label="투표 결과">${rows}</div>`;
+  if(W.won){
+    const cf=['#f87171','#60a5fa','#fbbf24','#34d399','#f472b6','#ffffff'];
+    const confetti=[...Array(28)].map((_,i)=>`<i style="left:${(i*37+7)%100}%;background:${cf[i%6]};animation-delay:${(i%9)*.35}s;animation-duration:${3.2+(i%5)*.5}s"></i>`).join('');
+    const years=S.tro.filter(t=>t.n===WBSC_AW).map(t=>t.y);
+    return`<div class="tpv award" role="dialog" aria-label="${WBSC_AW}"><div class="confetti" aria-hidden="true">${confetti}</div><div class="in">
+      <div class="top"><span class="when">${L.y} WBSC 시상식</span></div>
+      <div class="tvf"><img src="${sceneURL('award')}" alt="시상대에서 트로피를 든 내 선수"><div class="l3"><span class="k">세계 최고</span><b>${WBSC_AW}</b></div></div>
+      <div class="tpres"><div class="stamp gold">세계 1위</div>
+        <div class="ttl" style="margin:0;font-size:26px">${W.n<=1?'첫':'통산 '+W.n+'번째'} <b style="white-space:nowrap">${WBSC_AW}</b>에 뽑혔어요</div>
+        <p class="desc">${L.y} ${esc(W.ev)} 활약으로 전 세계 야구선수 가운데 단 한 명에게 주는 상을 받았어요.</p>
+        ${W.n>=2?`<div class="shelf" aria-label="수상 연도">${years.map(y=>`<span class="tr ${y===L.y?'now':''}">${ICON.trophy}<small>${y}</small></span>`).join('')}</div>`:''}
+        ${vote}
+        <button class="btn play" data-a="world-ok">트로피 들어 올리기</button></div>
+    </div></div>`;
+  }
+  return`<div class="page">
+    <div><p class="eyebrow">${L.y} WBSC 시상식</p><h1 class="ttl">${WBSC_AW} 투표에서<br><b>${W.rank}위</b>에 올랐어요</h1></div>
+    <p class="desc">${esc(W.ev)} 활약을 바탕으로 전 세계 선수 가운데 한 명을 뽑았어요. 대회 우승과 대회 성적이 좋을수록 순위가 크게 올라가요.</p>
+    <div class="stack">${vote}</div>
+    <button class="btn" data-a="world-ok">라커룸으로</button></div>`;
+}
 function renderAward(){
   const L=S.last, aw=L.mvpAw, n=L.mvpN||1, extra=L.aw.filter(a=>a!==aw).slice(0,3);
   const years=S.tro.filter(t=>t.k==='a'&&/^(KBO|NPB|MLB) MVP$/.test(t.n)).map(t=>t.y);
@@ -1459,7 +1515,7 @@ function renderRetired(){
   const t=totals();
   const tl=!t.G?'1군 기록 없음':isP()?`${t.G}경기 ${t.W}승 ${t.L}패${t.SV?` ${t.SV}세이브`:''} 평균자책점 ${t.era.toFixed(2)} · ${t.K}탈삼진`:`${t.G}경기 타율 ${avg3(t.avg)} ${t.HR}홈런 ${t.RBI}타점 ${t.SB}도루`;
   const TR={late:'대기만성',glass:'잦은 부상',iron:'강철 체력',clutch:'강심장','':'평범한 성장'};
-  return`<section class="sec center" style="padding-block:28px"><div class="ava" style="width:88px;height:88px">${avaImg()}</div><p class="eyebrow">${S.year-1} 은퇴 · ${S.hist.length}시즌</p><div class="ttl">${esc(S.name)}의 야구 인생</div>${S.mvp?`<p class="desc"><b class="blue">MVP ${S.mvp}회</b></p>`:''}</section>
+  return`<section class="sec center" style="padding-block:28px"><div class="ava" style="width:88px;height:88px">${avaImg()}</div><p class="eyebrow">${S.year-1} 은퇴 · ${S.hist.length}시즌</p><div class="ttl">${esc(S.name)}의 야구 인생</div>${S.mvp||S.wbsc?`<p class="desc"><b class="blue">${[S.mvp?`MVP ${S.mvp}회`:'',S.wbsc?`${WBSC_AW} ${S.wbsc}회`:''].filter(Boolean).join(' · ')}</b></p>`:''}</section>
   <section class="sec"><h2>1군 통산</h2><p style="margin:0;font-weight:700">${tl}</p><div class="rows"><div class="row"><span>통산 WAR</span><span>${t.war}</span></div><div class="row"><span>최고 OVR</span><span>${S.maxOvr}</span></div><div class="row"><span>우승 · 개인상</span><span>${trophyCount()}회 · ${awardCount()}회</span></div><div class="row"><span>누적 수입</span><span>${money(r1(S.earn))}</span></div></div></section>
   <section class="sec"><h2>숨겨져 있던 재능</h2><div class="rows"><div class="row"><span>잠재력</span><span>${S.pot}</span></div><div class="row"><span>성장 특성</span><span>${TR[S.trait]}</span></div></div></section>
   <section class="sec"><h2>명예의 전당 <span>이 기기</span></h2>${hofTable(loadHof().slice(0,10))}</section>
@@ -1473,7 +1529,7 @@ function render(){
   const app=document.getElementById('app');
   app.className='app'+(S&&S.phase==='app'?' tabs':'');
   if(!S)app.innerHTML=renderCreate();
-  else app.innerHTML=({app:renderApp,progress:renderProgress,summary:renderSummary,award:renderAward,nat:renderNatRes,retired:renderRetired}[S.phase]||renderApp)();
+  else app.innerHTML=({app:renderApp,progress:renderProgress,summary:renderSummary,award:renderAward,world:renderWorld,nat:renderNatRes,retired:renderRetired}[S.phase]||renderApp)();
   if(ui.toast)app.insertAdjacentHTML('beforeend',`<div class="toast" role="status">${esc(ui.toast)}</div>`);
   if(S&&S.phase==='progress'&&!timer)timer=setInterval(tick,90);
   if((!S||S.phase!=='progress')&&timer){clearInterval(timer);timer=null}
@@ -1537,9 +1593,10 @@ function act(a,v){
     if(P.mom&&!P.mom.done&&P.p<.5){P.p=.5;save();render();return}
     if(P.mom){P.mom.done=true;P.mom.ack=true}rollSecond(0);P.p=1;finishSeason();top=true}
   else if(a==='skip'){const P=S.prog;if(P.mom){P.mom.done=true;P.mom.ack=true}rollSecond(0);P.p=1;finishSeason();top=true}
-  else if(a==='sum-ok'){S.phase=S.last&&S.last.mvpAw&&!S.last.awSeen?'award':S.natRes?'nat':'app';ui.tab='home';top=true}
-  else if(a==='award-ok'){S.last.awSeen=true;S.phase=S.natRes?'nat':'app';ui.tab='home';top=true}
-  else if(a==='nat-ok'){S.natRes=null;S.phase='app';ui.tab='home';top=true}
+  else if(a==='sum-ok'){S.phase=nextAfter('summary');ui.tab='home';top=true}
+  else if(a==='award-ok'){S.last.awSeen=true;S.phase=nextAfter('award');ui.tab='home';top=true}
+  else if(a==='world-ok'){S.last.world.seen=true;S.phase=nextAfter('world');ui.tab='home';top=true}
+  else if(a==='nat-ok'){S.natRes=null;S.phase=nextAfter('nat');ui.tab='home';top=true}
   else if(a==='donate')ui.sheet={type:'donate'};
   else if(a==='copy-acct'){const txt=DONATE?(DONATE.copy||DONATE.acct):'', el=document.getElementById('acctno');
     const fb=()=>{if(el){const r=document.createRange();r.selectNodeContents(el);const sel=getSelection();sel.removeAllRanges();sel.addRange(r)}toast('계좌번호를 선택했어요. 길게 눌러 복사해 주세요');render()};
