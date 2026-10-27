@@ -36,7 +36,7 @@ create policy "누구나 기록 추가" on public.careers for insert with check 
 ```
 
 ## 2. 게임에 연결하기
-1. Supabase **Project Settings → API**에서 **Project URL**과 **anon public** 키를 복사해요.
+1. Supabase **Project Settings → API Keys**에서 **Publishable key**(`sb_publishable_…`)를, **Data API**(또는 Connect 버튼)에서 **Project URL**을 복사해요. 예전 프로젝트라면 **anon public** 키를 써도 돼요.
 2. `index.html`에서 `const RANK_CFG={url:'',key:''};` 를 찾아 두 값을 넣어요.
 
 ```js
@@ -45,5 +45,5 @@ const RANK_CFG={url:'https://xxxx.supabase.co',key:'eyJhbGciOi...'};
 
 3. 저장하고 GitHub에 올리면 끝이에요. 랭킹 화면 오른쪽 위에 **● 실시간**이 보이면 연결된 거예요.
 
-anon 키는 공개돼도 되는 키예요. 위 정책 때문에 다른 사람은 기록을 **읽기와 추가만** 할 수 있고 고치거나 지울 수 없어요.
+Publishable(anon) 키는 공개돼도 되는 키예요. **secret / service_role 키는 절대 넣으면 안 돼요.** 위 정책 때문에 다른 사람은 기록을 **읽기와 추가만** 할 수 있고 고치거나 지울 수 없어요.
 기록은 게임 화면에서 보내는 값이라 마음먹고 조작하면 막기 어려워요. 이상한 기록은 Supabase **Table Editor**에서 지우면 돼요.

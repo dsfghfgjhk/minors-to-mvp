@@ -1804,7 +1804,7 @@ function rkRecord(){
     ovr:Math.min(OVR_MAX,S.maxOvr|0),mvp:S.mvp|0,aw:awardCount(),tro:trophyCount(),war:Math.round((+t.war||0)*10)/10,wbsc:S.wbsc||0,seasons:S.hist.length,
     team,one:Object.keys(cnt).length===1&&pro.length>=3,abroad:S.hist.some(h=>h.org==='US'||h.org==='JP'),ava:{skin:S.avatar.skin,hair:S.avatar.hair},col:TC[team]||'#1f4fa3',num:+S.num||0,mine:1};
 }
-function rkHead(){return{apikey:RANK_CFG.key,Authorization:'Bearer '+RANK_CFG.key,'Content-Type':'application/json'}}
+function rkHead(){const h={apikey:RANK_CFG.key,'Content-Type':'application/json'};if(!/^sb_/.test(RANK_CFG.key))h.Authorization='Bearer '+RANK_CFG.key;return h}   // 새 publishable 키(sb_…)는 apikey 헤더에만
 async function rkSubmit(rec){
   if(!RK_ON()||!HAS_DOM)return;
   try{const {mine,sent,...row}=rec;const r=await fetch(RANK_CFG.url+'/rest/v1/careers',{method:'POST',headers:{...rkHead(),Prefer:'return=minimal'},body:JSON.stringify(row)});
