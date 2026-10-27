@@ -251,6 +251,12 @@ body,.ttl,h1,h2,.desc,.situ,.choice,.item,.fi,.art h3{word-break:keep-all;overfl
 .ovrbox b{font-family:var(--f-num);font-weight:700;font-size:34px;line-height:1}
 .ovrbox small{font-size:10px;color:var(--muted);letter-spacing:.1em}
 .ovrbox em{font-style:normal;font-size:12px;font-weight:700}
+.ovrbox.max small{color:#d97706;font-weight:800}
+.perf{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-radius:14px;background:var(--fill)}
+.perf .pg{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;font-family:var(--f-num);font-weight:700;font-size:24px;color:#fff;background:#94a3b8}
+.perf b{display:block;font-size:15px}.perf small{color:var(--muted);font-size:12.5px}
+.perf .pv{font-family:var(--f-num);font-weight:700;font-size:20px;color:var(--green)}
+.perf.gS .pg{background:linear-gradient(135deg,#f59e0b,#ef4444)}.perf.gA .pg{background:#2563eb}.perf.gB .pg{background:#16a34a}.perf.gC .pg{background:#64748b}
 .ovrbig{background:var(--board);border-radius:14px;padding:8px 16px;display:grid;justify-items:center;flex:none}
 .ovrbig b{font-family:var(--f-num);font-weight:700;font-size:46px;line-height:1;color:var(--lamp)}
 .ovrbig small{font-size:11px;color:var(--boardtxt);letter-spacing:.1em}
@@ -1625,13 +1631,34 @@ function grow(pt,lgL,bonus){
   const a=S.age, keys=Object.keys(S.stats), ob=ovr(), late=S.trait==='late';
   const ra=late?(a<=20?.12:a<=24?.21:a<=28?.16:a<=31?.05:0):(a<=19?.2:a<=22?.22:a<=25?.16:a<=28?.08:a<=30?.03:0);
   const lf=.85+(lgL-50)/80, pf=.35+.65*clamp(pt,0,1);
-  let g=Math.max(0,S.pot-ob)*ra*lf*pf+bonus*.35+(S.flags.reset?1:0);
+  let g=Math.max(0,S.pot-ob)*ra*lf*pf*NAT_G+bonus*.35+(S.flags.reset?1:0);
   if(ob+g>S.pot+2)g=Math.max(0,S.pot+2-ob);
   keys.forEach(k=>{S.stats[k]+=g*(S.focus.includes(k)?1.45:.82)*rnd(.7,1.3)});
   const da=late?a-32:a-30;
   if(da>0){const dec=da*.55*(S.trait==='iron'?.7:1);keys.forEach(k=>{const m=['spd','vel','sta'].includes(k)?1.5:['eye','ctl','men'].includes(k)?.6:1;S.stats[k]-=dec*m*rnd(.6,1.4)})}
   keys.forEach(k=>S.stats[k]=clamp(S.stats[k],15,99));
   S.maxOvr=Math.max(S.maxOvr,ovr());
+}
+/* 시즌 성적 → OVR 보너스: 잘할수록 더 오르고, 99에 가까울수록 오르기 어려워요 (최대 99) */
+const OVR_MAX=99, NAT_G=.6, PERF_G=[['S',3.6,3],['A',2.6,2],['B',1.6,1.2],['C',.7,.5],['D',-99,0]];
+function perfGrade(l,pt,awN,champ){
+  if(!l||!l.G)return{gr:'-',sc:0,base:0,why:'출전 기록 없음'};
+  l=derive(l);let sc,why;
+  if(l.t==='B'){sc=(l.ops-.7)/.08;why=`OPS ${l.ops.toFixed(3).replace(/^0/,'')} · ${l.HR}홈런`}
+  else{sc=(4.3-l.era)/.65;why=`평균자책점 ${l.era.toFixed(2)}${l.SV>=10?` · ${l.SV}세이브`:l.W>=8?` · ${l.W}승`:''}`}
+  sc=clamp(sc,-2,4.5);if(sc>0)sc*=clamp(pt*1.15,.3,1);
+  sc+=Math.min(1.2,awN*.4)+(champ?.3:0);
+  const g=PERF_G.find(x=>sc>=x[1]);return{gr:g[0],sc:r1(sc),base:g[2],why};
+}
+function addOvr(g){
+  if(g<=0)return;const w=SUBPOS[S.pos].w, target=Math.min(OVR_MAX,ovrOf(S.pos,S.stats)+g);
+  for(let it=0;it<40;it++){
+    const need=target-ovrOf(S.pos,S.stats);if(need<1e-6)break;
+    const ks=Object.keys(w).filter(k=>S.stats[k]<OVR_MAX);if(!ks.length)break;
+    const ws=ks.reduce((a,k)=>a+w[k],0);
+    ks.forEach(k=>S.stats[k]=Math.min(OVR_MAX,S.stats[k]+need/ws*(S.focus.includes(k)?1.2:.9)));
+  }
+  if(ovrOf(S.pos,S.stats)>target+1e-6){const ks=Object.keys(w);for(let it=0;it<40&&ovrOf(S.pos,S.stats)>target+1e-6;it++)ks.forEach(k=>S.stats[k]-=.02)}
 }
 function fullIP(type){if(type==='SPx')return S.org==='HS'?55:S.org==='UNIV'?70:128;if(type==='RPx')return S.org==='HS'?16:S.org==='UNIV'?20:52;return S.pos==='SP'?170:65}
 function finishSeason(){
@@ -1669,7 +1696,11 @@ function finishSeason(){
   // growth
   const ob=ovr(), before={...S.stats};
   const pt=isP()?clamp(tot.IP/fullIP(pitType(role)),0,1):clamp(tot.G/(fullG*.93),0,1);
-  grow(pt,L,momOk*.35+aw.length*.5);
+  grow(pt,L,momOk*.35);
+  const perf=perfGrade(tot,pt,aw.length,fin.champ&&role!=='minor'),o1=ovr(),o1r=ovrOf(S.pos,S.stats);
+  const lvf=role==='minor'?.7:{HS:.75,UNIV:.8,ARMY:.7}[org]||1;
+  const over=o1r>S.pot?clamp(1-(o1r-S.pot)/10,.2,1):1;
+  addOvr(perf.base*lvf*over*clamp((OVR_MAX-o1r)/16,.5,1));perf.d=ovr()-o1;S.maxOvr=Math.max(S.maxOvr,ovr());
   const oa=ovr(), diff={};Object.keys(S.stats).forEach(k=>diff[k]=Math.floor(S.stats[k])-Math.floor(before[k]));
   S.fame=clamp(Math.round(S.fame*.9+Math.max(0,tot.war)*2+aw.length*4+trs.length*2),0,100);
   S.morale=clamp(Math.round(S.morale+(60-S.morale)*.25+(tot.war>3?5:tot.war<0?-5:0)+trs.length*3),20,100);
@@ -1686,7 +1717,7 @@ function finishSeason(){
   if(top&&tot.G>30&&tot.war<0)addNews(`부진에 빠진 ${S.name}, 반등 가능할까`,'slump');
   if(callup)addNews(`${S.team} 2군의 ${S.name}, 내년 1군 경쟁 후보로 급부상`,'join',1);
   S.hist.push({y,age:S.age,team:S.team,org,lg:LG[pl].n,role:roleName(role),line:tot,war:tot.war,aw:[...trs,...aw],top:top&&tot.G>0});
-  S.last={y,team:S.team,org,lg:LG[pl].n,role,roleN:roleName(role),line:tot,war:tot.war,rank:fin.rank,n:fin.n,aw,trs,ob,oa,diff,stage:stageTxt(),callup,moms:momEv.map(e=>({ok:e.res.ok,title:e.res.title})),big:P.ev.filter(e=>e.t==='big'&&e.res).map(e=>({label:e.label,win:e.res.win,my:e.res.my,op:e.res.op,play:e.res.play,opp:e.opp})),mvpAw:aw.find(a=>/^(KBO|NPB|MLB) MVP$/.test(a))||null,mvpN:S.mvp,awSeen:false};
+  S.last={y,team:S.team,org,lg:LG[pl].n,role,roleN:roleName(role),line:tot,war:tot.war,rank:fin.rank,n:fin.n,aw,trs,ob,oa,diff,stage:stageTxt(),callup,moms:momEv.map(e=>({ok:e.res.ok,title:e.res.title})),big:P.ev.filter(e=>e.t==='big'&&e.res).map(e=>({label:e.label,win:e.res.win,my:e.res.my,op:e.res.op,play:e.res.play,opp:e.opp})),mvpAw:aw.find(a=>/^(KBO|NPB|MLB) MVP$/.test(a))||null,mvpN:S.mvp,awSeen:false,perf};
   S.prevStats=before;S.prevOvr=ob;
   S.natRes=natRes;
   if(natRes&&WBSC_EV.includes(natRes.ev)){
@@ -1831,7 +1862,7 @@ function hofTable(l){return l.length?`<div class="tablewrap"><table><thead><tr><
 /* ================= render: app tabs ================= */
 function pHead(){
   const d=ovr()-S.prevOvr;
-  return`<div class="pcard" style="grid-template-columns:auto 1fr auto"><div class="ava">${avaImg()}</div><div style="min-width:0"><div class="who">${emblem(S.team,16)} ${esc(teamLabel())}</div><div style="font-size:20px;font-weight:800;overflow-wrap:anywhere">${esc(S.name)} <span class="badge">${SUBPOS[S.pos].n}</span>${S.mvp?`<span class="mvpb">MVP ×${S.mvp}</span>`:''}${S.wbsc?`<span class="mvpb">WBSC ×${S.wbsc}</span>`:''}</div><div class="muted" style="font-size:13px">No.${S.num} · ${S.age}세 · ${esc(S.style)}</div></div><div class="ovrbox"><b>${ovr()}</b><small>OVR</small>${S.hist.length&&d?`<em class="${d>0?'up':'dn'}">${sgn(d)}</em>`:''}</div></div>`;
+  return`<div class="pcard" style="grid-template-columns:auto 1fr auto"><div class="ava">${avaImg()}</div><div style="min-width:0"><div class="who">${emblem(S.team,16)} ${esc(teamLabel())}</div><div style="font-size:20px;font-weight:800;overflow-wrap:anywhere">${esc(S.name)} <span class="badge">${SUBPOS[S.pos].n}</span>${S.mvp?`<span class="mvpb">MVP ×${S.mvp}</span>`:''}${S.wbsc?`<span class="mvpb">WBSC ×${S.wbsc}</span>`:''}</div><div class="muted" style="font-size:13px">No.${S.num} · ${S.age}세 · ${esc(S.style)}</div></div><div class="ovrbox${ovr()>=OVR_MAX?' max':''}"><b>${ovr()}</b><small>${ovr()>=OVR_MAX?'OVR MAX':'OVR'}</small>${S.hist.length&&d?`<em class="${d>0?'up':'dn'}">${sgn(d)}</em>`:''}</div></div>`;
 }
 function seasonInfoRows(){
   return`<div class="row"><span>소속</span><span>${emblem(S.team,20)} ${esc(teamLabel())}</span></div>
@@ -2076,6 +2107,7 @@ function renderSummary(){
   const top=Object.entries(L.diff).filter(([,v])=>v).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,3);
   return`<div class="page">
     <div><p class="eyebrow">${L.stage?L.stage+' · ':''}${L.y} 시즌 리포트</p><div style="display:flex;align-items:center;gap:14px;margin-top:8px"><div class="ovrbig"><small>OVR</small><b>${L.oa}</b></div><div style="min-width:0"><div class="ttl" style="margin:0;font-size:22px">${d>0?`종합 능력치가 <b>${d}</b> 올랐어요`:d<0?`종합 능력치가 ${-d} 떨어졌어요`:'종합 능력치는 그대로예요'}</div><div class="muted" style="font-size:13px">${L.ob} → ${L.oa}</div></div></div></div>
+    ${L.perf&&L.perf.gr!=='-'?`<div class="perf g${L.perf.gr}"><span class="pg">${L.perf.gr}</span><span><b>시즌 성적 ${L.perf.gr}등급</b><small>${esc(L.perf.why)}${L.aw.length?` · 수상 ${L.aw.length}개`:''}</small></span><span class="pv">${L.perf.d>0?`OVR +${L.perf.d}`:L.oa>=OVR_MAX?'MAX':'+0'}</span></div>`:''}
     <div class="rows">${statRows(l).map(([a,b])=>`<div class="row"><span>${a}</span><span>${b}</span></div>`).join('')}
       ${top.map(([k,v])=>`<div class="row"><span>${SN[k]}</span><span>${Math.floor(S.stats[k])} <span class="${v>0?'up':'dn'}">${sgn(v)}</span></span></div>`).join('')}
     </div>
