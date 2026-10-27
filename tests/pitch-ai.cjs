@@ -34,17 +34,26 @@ console.log('Live-pitch lifecycle passed');
 `,ctx);
 
 vm.runInContext(`
-S.stats.con=50;
-const guideGame={mode:'bat',cur:{u:1,v:-1,inZ:true}};
-const wind={k:'wind',t0:1000,dur:900},fly={k:'fly',t0:1900,dur:500};
-for(const eye of [30,90]){S.stats.eye=eye;
- for(const now of [1000,1200,1800])if(!pgLandingGuide(guideGame,wind,now))throw Error('missing windup marker');
- const a=pgLandingGuide(guideGame,fly,1900),b=pgLandingGuide(guideGame,fly,2150),c=pgLandingGuide(guideGame,fly,2400);
- if(!(a.radius>b.radius&&b.radius>c.radius)||Math.abs(c.radius-.08)>1e-8)throw Error('arrival circle does not converge');
- if(a.x!==c.x||a.y!==c.y||!c.ready||c.color!==0x76f0b1)throw Error('wrong target or contact cue');
+S.stats.con=60;S.stats.pow=60;S.stats.spd=50;game.L=50;game.mode='bat';
+pgApply=(g,k)=>({k});
+function playerTrial(inZ,dt,aim){game.cur={type:'직구',u:0,v:inZ?0:2.8,inZ,lh:false};return pgResolveBat(game,dt,aim,.5).k}
+const stats={zone:{miss:0,out:0,hit:0},ball:{miss:0,out:0,hit:0}};
+for(let i=0;i<1500;i++)for(const zone of [true,false]){const result=playerTrial(zone,0,{u:999,v:999}),r=stats[zone?'zone':'ball'];
+ if(result==='SW')r.miss++;else if(['GO','FO','LO'].includes(result))r.out++;else if(['1B','2B','3B','HR'].includes(result))r.hit++;
 }
-guideGame.cur.inZ=false;if(pgLandingGuide(guideGame,fly,2400).color!==0xcbd5e1)throw Error('ball cue');
-guideGame.mode='pit';if(pgLandingGuide(guideGame,fly,2400)!==null)throw Error('guide leaked to pitching');
-guideGame.mode='bat';for(const k of ['post','bb'])if(pgLandingGuide(guideGame,{k},2500)!==null)throw Error('stale marker');
-console.log('Continuous landing marker and timing cues passed');
+if(stats.zone.miss!==0)throw Error('click location still changes contact');
+if(stats.ball.miss<stats.zone.miss+500)throw Error('missing ball chase penalty');
+const ballOutRate=stats.ball.out/(stats.ball.out+stats.ball.hit),zoneOutRate=stats.zone.out/(stats.zone.out+stats.zone.hit);
+if(ballOutRate<=zoneOutRate)throw Error('weak contact does not increase fair outs');
+if(playerTrial(true,500,null)!=='SW'||playerTrial(false,null,null)!=='B'||playerTrial(true,null,null)!=='CS')throw Error('timing/take regression');
+console.log('Timing-only contact and chase penalties passed',stats);
+`,ctx);
+vm.runInContext(`
+performance={now:()=>2000,timeOrigin:0};document={getElementById:()=>null};P3.snd=false;
+S.play=game;game.st='pitching';P3.bb=null;p3Pick=()=>{throw Error('batting still raycasts pointer position')};
+for(const [x,y] of [[0,0],[900,600]]){PG.sw=null;PG.swAt=0;PG.an={k:'fly',t0:1500,dur:500};
+ p3Down({preventDefault(){},isPrimary:true,button:0,clientX:x,clientY:y,timeStamp:2000});
+ if(PG.sw!==2000||PG.aim!==null)throw Error('screen position changes timing-only input');
+}
+console.log('Anywhere-on-screen input and exact timing passed');
 `,ctx);
