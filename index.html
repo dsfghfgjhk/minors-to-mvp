@@ -441,13 +441,23 @@ body,.ttl,h1,h2,.desc,.situ,.choice,.item,.fi,.art h3{word-break:keep-all;overfl
 .p3card .btn,.p3card .lsc-w{width:100%}
 .pg-big{height:62px;font-size:22px;font-family:var(--f-display);font-weight:400;letter-spacing:.06em;touch-action:manipulation;box-shadow:0 6px 18px #0008}
 .pitw{display:grid;gap:8px;background:rgba(8,16,30,.84);border-radius:16px;padding:10px}
-.pitr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+.pitr{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:center}
 .pitc{display:grid;gap:8px}.pitc .p3hint{text-align:left}
 .pad{display:grid;grid-template-columns:repeat(5,26px);grid-template-rows:repeat(5,26px);gap:2px}
 .pad button{appearance:none;border:0;border-radius:4px;background:rgba(255,255,255,.12);cursor:pointer;padding:0}
 .pad button.z{background:rgba(255,255,255,.32)}
 .pad button.on{background:#4ade80;box-shadow:0 0 0 2px #ffffff}
 .pad button:disabled{opacity:.6}
+.amap{width:176px;height:150px;border-radius:10px;touch-action:none;cursor:crosshair;flex:none}
+.amap svg{display:block}
+.pwr{position:relative;height:30px;border-radius:8px;background:#1e293b;overflow:hidden;box-shadow:inset 0 0 0 1px #ffffff26}
+.pwr i{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,#22c55e,#facc15 60%,#ef4444)}
+.pwr b{position:relative;display:grid;place-items:center;height:100%;font-size:12px;font-weight:800;color:#ffffff;text-shadow:0 1px 3px #000}
+.pg-big.hold{transform:scale(.97);filter:brightness(1.15)}
+.pitc .pg-big{font-size:18px;white-space:nowrap;height:64px}
+.spow{display:grid;grid-template-columns:auto 1fr auto auto;gap:8px;align-items:center;background:rgba(8,16,30,.78);border-radius:12px;padding:8px 12px;font-size:12px;color:#cbd5e1}
+.spow input{width:100%;accent-color:#ffd35a}
+.spow b{font-size:13px;color:#ffd35a;min-width:44px;text-align:right}
 .meter{position:relative;height:14px;border-radius:7px;background:#334155;overflow:hidden}
 .meter .ok{position:absolute;left:42%;width:16%;top:0;bottom:0;background:#22c55e}
 .meter .nd{position:absolute;top:0;bottom:0;width:4px;margin-left:-2px;background:#ffd35a;box-shadow:0 0 6px #ffd35a}
@@ -2191,9 +2201,11 @@ function gauss(){let u=0,v=0;while(!u)u=R();while(!v)v=R();return Math.sqrt(-2*M
 function myPitches(){const st=S.style||'';return /변화구/.test(st)?['직구','커브','포크']:/컨트롤/.test(st)?['직구','투심','체인지업']:['직구','슬라이더','포크']}
 function halfRuns(k=1){const p0=clamp(.7-(k-1)*.18,.45,.85);if(R()<p0)return 0;const x=R();return x<.55?1:x<.82?2:x<.94?3:x<.985?4:5}
 const onTxt=on=>!on?'주자 없음':on==='123'?'만루':on.split('').join(', ')+'루';
-function msLine(ms){if(!ms)return'';if(ms.outs!=null)return`${ipStr(ms.outs/3)}이닝 ${ms.K}탈삼진 ${ms.ER}실점`;if(!ms.PA)return'';return`${ms.AB}타수 ${ms.H}안타${ms.HR?` ${ms.HR}홈런`:''}${ms.RBI?` ${ms.RBI}타점`:''}${ms.BB?` ${ms.BB}볼넷`:''}`}
+function msLine(ms){if(!ms)return'';if(ms.outs!=null)return`${ipStr(ms.outs/3)}이닝 ${ms.K}탈삼진 ${ms.ER}실점${ms.HBP?` ${ms.HBP}사구`:''}`;if(!ms.PA)return'';return`${ms.AB}타수 ${ms.H}안타${ms.HR?` ${ms.HR}홈런`:''}${ms.RBI?` ${ms.RBI}타점`:''}${ms.BB?` ${ms.BB}볼넷`:''}${ms.HBP?` ${ms.HBP}사구`:''}`}
 const msZero=()=>({PA:0,AB:0,H:0,HR:0,RBI:0,BB:0,K:0,outs:0,ER:0,Ha:0,BBa:0,Ka:0});
-function pgMs(G){const m=G.ms;return G.role==='pit'?{outs:m.outs,K:m.Ka,ER:m.ER,H:m.Ha,BB:m.BBa}:{PA:m.PA,AB:m.AB,H:m.H,HR:m.HR,RBI:m.RBI,BB:m.BB,K:m.K}}
+function pgMs(G){const m=G.ms;return G.role==='pit'?{outs:m.outs,K:m.Ka,ER:m.ER,H:m.Ha,BB:m.BBa,HBP:m.HBPa||0}:{PA:m.PA,AB:m.AB,H:m.H,HR:m.HR,RBI:m.RBI,BB:m.BB,K:m.K,HBP:m.HBP||0}}
+/* 타자 몸 위치(m): 우타자는 3루 쪽(-x), 좌타자는 1루 쪽(+x) */
+function bodyHit(c,lb){const x=zx(c.u),y=zy(c.v),bx=lb?.95:-.95;return Math.abs(x-bx)<.34&&y>.05&&y<1.85}
 const pst=(G,k)=>G.role==='pit'?S.stats[k]:G.cl[k];
 /* ---- 타구 비행: 공기 저항과 백스핀 양력 ---- */
 function bbFly(ev,la,sp,keep){
@@ -2316,7 +2328,7 @@ function pgSetPit(G,i){
   G.mode='pit';
   const ps=G.preset&&G.preset.i===i?G.preset:null;
   if(G.role==='bat')G.bi=pick([2,3,4]);
-  G.pa={i,on:ps?ps.on:'',out:ps?ps.out:0,b:0,s:0,runs:0};G.cur=null;G.sel={type:G.ars[0],u:null,v:null};
+  G.pa={i,on:ps?ps.on:'',out:ps?ps.out:0,b:0,s:0,runs:0};G.cur=null;G.sel={type:G.ars[0],u:0,v:0};
   const lead=G.my-G.op, sc=`${G.me} ${G.my} : ${G.op} ${G.opp}`, need=3-G.pa.out;
   if(G.role==='bat')G.intro=`${i}회초 수비예요. 이번엔 우리 팀 마무리 투수가 돼서 직접 던져요. 지금 ${sc}. ${lead>0?`아웃카운트 세 개를 잡으면 ${G.goal}이에요.`:lead===0?'여기서 막아야 끝내기 기회가 와요.':'더 벌어지지 않게 막아야 해요.'}`;
   else if(S.pos==='RP')G.intro=G.pa.on?`${i}회초 ${G.pa.out?'1사':'무사'} ${onTxt(G.pa.on)}, ${lead}점 앞선 위기에 마운드에 올랐어요. 아웃카운트 ${need}개를 잡으면 ${G.goal}이에요.`:`${i}회초, ${lead}점 앞선 채 마운드에 올랐어요. 아웃카운트 세 개를 잡으면 ${G.goal}이에요.`;
@@ -2325,6 +2337,7 @@ function pgSetPit(G,i){
 }
 function pgAiPitch(G){
   const pa=G.pa,b=pa.b,s=pa.s;
+  if(R()<.012){const u=(isLeftBat()?1:-1)*rnd(5.9,7),v=rnd(-3,1),vk=G.pit.v+ri(-3,0);return{type:'직구',u,v,vk,inZ:false,ms:clamp(1180-(vk-125)*13,640,1320),lh:G.pit.lh}}
   const pz=clamp(.48+(b===3?.3:b===2?.1:0)-(s===2&&b<2?.23:0),.25,.85), wantZ=R()<pz;
   const type=R()<(s===2?.6:.42)?pick(G.pit.ars.slice(1)):'직구';
   let u,v;
@@ -2336,11 +2349,12 @@ function pgAiPitch(G){
 }
 function pgWindows(){const con=S.stats.con,pf=22+Math.max(0,con-40)*.5,gd=pf+40+Math.max(0,con-40)*.4;return{pf,gd,fl:gd+60}}
 const reticleR=()=>.1+Math.max(0,S.stats.con-40)*.0013;
-function pgResolveBat(G,dt,aim){
-  const c=G.cur, st=S.stats, W=pgWindows();let k;G.lastBB=null;
+function pgResolveBat(G,dt,aim,pw){
+  const c=G.cur, st=S.stats, P=clamp(pw==null?.5:pw,0,1), W0=pgWindows(), wf=1.15-.3*P, W={pf:W0.pf*wf,gd:W0.gd*wf,fl:W0.fl*wf};let k;G.lastBB=null;
+  if(bodyHit(c,isLeftBat()))return pgApply(G,'HBP',dt);
   if(dt==null)k=c.inZ?'CS':'B';
   else{
-    const a=Math.abs(dt), rr=reticleR(), d=aim?Math.hypot((c.u-aim.u)*ZW,(c.v-aim.v)*ZH):rnd(0,.06);
+    const a=Math.abs(dt), rr=reticleR()*(1.25-.5*P), d=aim?Math.hypot((c.u-aim.u)*ZW,(c.v-aim.v)*ZH):rnd(0,.06);
     if(a>W.fl||d>rr)k='SW';
     else{
       const qt=a<=W.pf?1:a<=W.gd?1-.5*(a-W.pf)/(W.gd-W.pf):.5*(1-(a-W.gd)/(W.fl-W.gd));
@@ -2348,9 +2362,9 @@ function pgResolveBat(G,dt,aim){
       if(Q<.2)k='F';
       else{
         const evMax=156+Math.max(0,st.pow-40)*.5+(st.pow-G.L)*.2;
-        const ev=clamp(evMax*(.62+.38*Math.pow(Q,.8))*rnd(.95,1.04),40,190);
+        const ev=clamp(evMax*(.9+.2*P)*(.62+.38*Math.pow(Q,.8))*rnd(.95,1.04),40,192);
         const dy=aim?(zy(c.v)-zy(aim.v))/rr:rnd(-.35,.55);
-        const la=clamp(11+dy*42+rnd(-7,7),-35,75);
+        const la=clamp(11+(P-.5)*6+dy*42+rnd(-7,7),-35,75);
         const pull=clamp(-dt/W.gd,-1.3,1.3), sp=(isLeftBat()?1:-1)*pull*26+c.u*6+rnd(-9,9);
         G.lastBB=bbResolve(ev,la,sp,st.spd);k=G.lastBB.k;
       }
@@ -2375,6 +2389,7 @@ function pgApply(G,k,dt,npc){
   if(k==='F'){if(pa.s<2)pa.s++;txt='파울'+tim}
   if(k==='K'){pa.out++;end=true;txt='삼진!';cls=bat?'bad':'good big';if(ms){if(bat){ms.PA++;ms.AB++;ms.K++}else{ms.Ka++;ms.outs++}}}
   if(k==='BB'){runs=pgWalk(pa);end=true;txt=runs?'밀어내기 볼넷':'볼넷';cls=bat?'good':'bad';if(ms){if(bat){ms.PA++;ms.BB++;ms.RBI+=runs}else ms.BBa++}}
+  if(k==='HBP'){runs=pgWalk(pa);end=true;txt='몸에 맞는 공!'+(runs?' 밀어내기':'');cls=bat?'good':'bad';if(ms){if(bat){ms.PA++;ms.HBP=(ms.HBP||0)+1;ms.RBI+=runs}else ms.HBPa=(ms.HBPa||0)+1}}
   if(k==='GO'||k==='FO'||k==='LO'){
     end=true;const before=pa.out;pa.out++;
     if(k==='GO'&&pa.on.includes('1')&&before<2&&R()<.4){pa.out++;pa.on=pa.on.replace('1','');txt='병살타'}
@@ -2392,7 +2407,7 @@ function pgApply(G,k,dt,npc){
   pa.runs+=runs;if(bat)G.my+=runs;else{G.op+=runs;if(ms)ms.ER+=runs}
   if(end){pa.b=0;pa.s=0}
   const dist=bb&&bb.fly&&['HR','2B','3B','FO'].includes(k)?Math.round(bb.fly.dist):0;
-  let sub='';if(bb&&bb.ev&&end&&k!=='K'&&k!=='BB')sub=k==='HR'?`비거리 ${dist}m · 타구 속도 ${Math.round(bb.ev)}km`:`타구 속도 ${Math.round(bb.ev)}km${dist?` · ${dist}m`:''}`;
+  let sub=k==='HBP'?'데드볼로 1루에 걸어 나가요':'';if(bb&&bb.ev&&end&&k!=='K'&&k!=='BB')sub=k==='HR'?`비거리 ${dist}m · 타구 속도 ${Math.round(bb.ev)}km`:`타구 속도 ${Math.round(bb.ev)}km${dist?` · ${dist}m`:''}`;
   return{txt,cls,end,runs,k,sub};
 }
 function pgSimRest(G,pa){
@@ -2412,12 +2427,15 @@ function pgAfterBat(G,res){
   G.st='between';
   G.msg=`${res.txt} ${i}회말이 끝났어요. 지금 ${G.me} ${G.my} : ${G.op} ${G.opp}.`;
 }
-function pgThrow(G,acc){
-  const sel=G.sel, ctl=pst(G,'ctl');
-  const err=(1-acc)*1.15+(1-clamp((ctl-30)/60,0,1))*.45*R(), ang=R()*Math.PI*2;
-  const u=clamp(sel.u+Math.cos(ang)*err,-2.6,2.6), v=clamp(sel.v+Math.sin(ang)*err,-2.6,2.6);
-  const vk=Math.round(128+(pst(G,'vel')-30)*.55+PTY[sel.type].dv+rnd(-1.5,1.5));
-  G.cur={type:sel.type,u,v,vk,inZ:Math.abs(u)<=1.62&&Math.abs(v)<=1.62,ms:clamp(1180-(vk-125)*13,640,1320),acc,lh:G.role==='pit'&&/^좌투/.test(S.hand)};
+/* 힘(0~1): 세게 던질수록 빠르지만 제구가 흔들려요 */
+const pgVmax=(G,t)=>128+(pst(G,'vel')-30)*.55+PTY[t].dv;
+const pgVk=(G,t,pw)=>pgVmax(G,t)-(1-pw)*24+(pw>.95?1.5:0);
+function pgThrow(G,pw){
+  pw=clamp(pw,0,1);const sel=G.sel, ctl=pst(G,'ctl');
+  const base=.22+(1-clamp((ctl-30)/60,0,1))*.8, err=base*(.35+1.05*pw*pw)*Math.abs(gauss())*.9, ang=R()*Math.PI*2;
+  const u=clamp(sel.u+Math.cos(ang)*err,-9,9), v=clamp(sel.v+Math.sin(ang)*err*1.1,-6,4.5);
+  const vk=Math.round(pgVk(G,sel.type,pw)+rnd(-1,1));
+  G.cur={type:sel.type,u,v,vk,pw,inZ:Math.abs(u)<=1.62&&Math.abs(v)<=1.62,ms:clamp(1180-(vk-125)*13,640,1320),lh:G.role==='pit'&&/^좌투/.test(S.hand)};
 }
 function pgAIBall(G,c,bt,q,mid,corner){
   const Q=clamp(Math.pow(R(),1.25-bt.c*.55)+(mid?.14:0)-(corner?.1:0)-q*.18,0,1);
@@ -2427,9 +2445,11 @@ function pgAIBall(G,c,bt,q,mid,corner){
 }
 function pgResolvePit(G){
   const c=G.cur, pa=G.pa, bt=G.lu[G.bi], L=G.L;G.lastBB=null;
-  const q=(pst(G,PTY[c.type].s)-L)/40+(pst(G,'ctl')-L)/120;
+  if(bodyHit(c,!!bt.lh)){G.aiSwing=false;G.lastVk=c.vk;return pgApply(G,R()<.88?'HBP':'B',null)}
+  const vTyp=128+(L+8-30)*.55+PTY[c.type].dv;
+  const q=(pst(G,PTY[c.type].s)-L)/40+(pst(G,'ctl')-L)/120+(c.vk-vTyp)/45;
   const edge=Math.max(Math.abs(c.u),Math.abs(c.v)), mid=edge<.6, corner=c.inZ&&edge>1;
-  const seq=G.lastType&&G.lastType!==c.type?.06:0;G.lastType=c.type;
+  const seq=(G.lastType&&G.lastType!==c.type?.06:0)+(G.lastVk&&Math.abs(G.lastVk-c.vk)>=12?.06:0);G.lastType=c.type;G.lastVk=c.vk;
   const sw=c.inZ?.66+(pa.s===2?.2:0)-(pa.b===3&&pa.s<2?.1:0)-bt.e*.1:clamp(.3+(pa.s===2?.14:0)+(c.type!=='직구'?.08:0)-bt.e*.25-(edge-1.6)*.4,.03,.6);
   let k;G.aiSwing=R()<sw;
   if(!G.aiSwing)k=c.inZ?'CS':'B';
@@ -2446,7 +2466,7 @@ function pgAfterPit(G,res){
   if(res.end){pgLog(G,`${G.inn}회초 ${G.lu[G.bi].lab}: ${res.txt}`);G.bi=(G.bi+1)%9}
   if(pa.out<3&&pa.runs>=4){pa.out=3;pgLog(G,G.role==='pit'?'투구 수가 많아 마운드를 내려왔어요':'마무리 투수가 강판됐어요')}
   if(pa.out>=3){G.pitDone[G.inn]=true;G.st='between';G.msg=`${G.inn}회초가 끝났어요. ${pa.runs?`${pa.runs}점을 내줬어요.`:'무실점으로 막았어요!'} 지금 ${G.me} ${G.my} : ${G.op} ${G.opp}.`;return}
-  G.st='aim';G.sel.u=null;G.sel.v=null;
+  G.st='aim';if(G.sel.u==null){G.sel.u=0;G.sel.v=0}
 }
 function pgCont(G){
   if(G.top){if(G.pitDone[G.inn])pgAfterTop(G)}else pgAfterBot(G);
@@ -2464,7 +2484,7 @@ function pgQuickPit(G){
   let res=null;
   for(let g=0;g<14;g++){G.sel.type=pick(G.ars);const z=R()<.62;
     G.sel.u=z?pick([-1,0,1])*rnd(.6,1.1):pick([-1,1])*rnd(1.7,2.2);G.sel.v=z?pick([-1,0,1])*rnd(.6,1.1):rnd(-2,2);
-    pgThrow(G,clamp(.55+(pst(G,'ctl')-G.L)*.01+rnd(-.35,.35),0,1));res=pgResolvePit(G);PG.last=G.cur;G.cur=null;if(res.end)break}
+    pgThrow(G,rnd(.6,1));res=pgResolvePit(G);PG.last=G.cur;G.cur=null;if(res.end)break}
   return res;
 }
 function pgAuto(G){
@@ -2486,7 +2506,8 @@ function pgFinish(){
 const THREE_URL='https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js';
 const P3={st:'none',cbs:[],r:null,sc:null,cam:null,A:{},bb:null,fx:[],view:'intro',dressed:null,last:0,w:0,h:0,board:'',
   snd:(()=>{try{return localStorage.getItem('b2mvp_snd')!=='0'}catch(e){return true}})(),
-  assist:(()=>{try{return localStorage.getItem('b2mvp_assist')==='1'}catch(e){return false}})()};
+  assist:(()=>{try{return localStorage.getItem('b2mvp_assist')==='1'}catch(e){return false}})(),
+  bpow:(()=>{try{const v=parseFloat(localStorage.getItem('b2mvp_bpow'));return isFinite(v)?clamp(v,0,1):.5}catch(e){return .5}})()};
 function load3D(cb){
   if(window.THREE){cb(true);return}
   if(P3.st==='fail'){cb(false);return}
@@ -2732,24 +2753,25 @@ function p3Frame(G,now,dt){
   else if(an&&an.k==='fly')p3PitchPose(A.pitcher,.72+(now-an.t0)/1000*1.1);
   // 타자 스윙
   if(PG.aiSw&&now>=PG.aiSw&&!PG.swAt){PG.swAt=PG.aiSw;PG.aiSw=0}
+  A.batter.rotation.z=P3.hbp&&now-P3.hbp<650?Math.sin((now-P3.hbp)/40)*.18*(1-(now-P3.hbp)/650):0;
   if(PG.swAt&&A.batter.visible&&(!P3.bb||P3.bb.t<.4))p3SwingPose(A.batter,(now-PG.swAt)/260);
   else if(!P3.bb&&A.batter.visible){A.batter.userData.body.position.y=Math.sin(now/400)*.01}
   // 포수 미트
   let mt=null;if(G.mode==='pit'&&G.sel&&G.sel.u!=null)mt=[-zx(G.sel.u),zy(G.sel.v)];else if(an&&(an.k==='wind'||an.k==='fly')&&(G.cur||PG.last)){const c=G.cur||PG.last;mt=[-zx(c.u)*.85,zy(c.v)*.9+.08]}
-  if(mt){A.mitt.position.x+=(mt[0]-A.mitt.position.x)*.15;A.mitt.position.y+=(mt[1]-A.mitt.position.y)*.15}
+  if(mt){mt[0]=clamp(mt[0],-.75,.75);mt[1]=clamp(mt[1],.15,1.7);A.mitt.position.x+=(mt[0]-A.mitt.position.x)*.15;A.mitt.position.y+=(mt[1]-A.mitt.position.y)*.15}
   const batCam=P3.view==='bat';A.catcher.visible=A.ump.visible=A.mitt.visible=!batCam;
-  A.zone.visible=!P3.bb;A.grid.visible=G.mode==='pit'&&(G.st==='aim'||G.st==='meter')&&!an;
+  A.zone.visible=!P3.bb;A.grid.visible=false;
   A.tgt.visible=G.mode==='pit'&&G.sel&&G.sel.u!=null&&!P3.bb;if(A.tgt.visible)A.tgt.position.set(-zx(G.sel.u),zy(G.sel.v),-.01);
   // 조준 원
   const showRet=G.mode==='bat'&&!P3.assist&&G.st==='pitching'&&!P3.bb;A.ret.visible=showRet;
-  if(showRet){const h=PG.hover||{u:0,v:0},rr=reticleR();A.ret.position.set(-zx(h.u),zy(h.v),-.02);A.ret.scale.setScalar(rr);A.ret.children[0].material.opacity=PG.sw?.35:.85}
+  if(showRet){const h=PG.hover||{u:0,v:0},rr=reticleR()*(1.25-.5*P3.bpow);A.ret.position.set(-zx(h.u),zy(h.v),-.02);A.ret.scale.setScalar(rr);A.ret.children[0].material.opacity=PG.sw?.35:.85}
   // 공
   A.land.visible=false;
   if(an&&an.k==='fly'&&G.cur){
-    const t=(now-an.t0)/an.dur;p3PitchPos(G.cur,t,V.a);A.ball.position.copy(V.a);A.ball.visible=t<1.12;A.ball.rotation.x+=dt*40;A.ball.scale.setScalar(clamp(P3.cam.position.distanceTo(V.a)/11,1,2.2));
+    const t0=(now-an.t0)/an.dur,hb=bodyHit(G.cur,p3BatLH(G)),t=hb?Math.min(t0,1):t0;p3PitchPos(G.cur,t,V.a);A.ball.position.copy(V.a);A.ball.visible=t<1.12;A.ball.rotation.x+=dt*40;A.ball.scale.setScalar(clamp(P3.cam.position.distanceTo(V.a)/11,1,2.2));
     if(G.mode==='bat'){const rf=clamp(.82-(S.stats.eye-40)*.007,.45,.82);if(t>=rf){A.land.visible=true;A.land.position.set(-zx(G.cur.u),zy(G.cur.v),-.03);A.land.material.color.set(G.cur.inZ?0xffc845:0xdddddd)}}
     p3Trail(V.a);
-  }else if(an&&an.k==='post'&&PG.last&&!P3.bb){A.ball.visible=true;A.ball.scale.setScalar(1);A.ball.position.set(A.mitt.position.x,A.mitt.position.y,-.7)}
+  }else if(an&&an.k==='post'&&PG.last&&!P3.bb&&!bodyHit(PG.last,p3BatLH(G))){A.ball.visible=true;A.ball.scale.setScalar(1);A.ball.position.set(A.mitt.position.x,A.mitt.position.y,-.7)}
   // 타구
   const B=P3.bb;
   if(B){
@@ -2801,24 +2823,50 @@ function p3Pick(e){
 }
 function p3Down(e){
   e.preventDefault();SND.init();const G=S&&S.play;if(!G||P3.bb)return;const p=p3Pick(e);
-  if(G.mode==='bat'){if(p&&!P3.assist)PG.hover={u:clamp(p.u,-3,3),v:clamp(p.v,-3,3)};pgSwing();return}
-  if((G.st==='aim'||G.st==='meter')&&p&&Math.abs(p.u)<=2.8&&Math.abs(p.v)<=2.8){G.sel.u=clamp(p.u,-2.5,2.5);G.sel.v=clamp(p.v,-2.5,2.5);if(G.st==='aim'){G.st='meter';PG.m0=performance.now()}pgHud()}
+  if(G.mode==='bat'){if(p&&!P3.assist)PG.hover={u:clamp(p.u,-6,6),v:clamp(p.v,-4,5)};pgSwing();return}
+  if(G.st==='aim'&&p&&Math.abs(p.u)<=10&&p.v>-7&&p.v<5){G.sel.u=clamp(p.u,-9,9);G.sel.v=clamp(p.v,-6,4.1);pgHud()}
 }
-function p3Move(e){const G=S&&S.play;if(!G||G.mode!=='bat'||P3.assist||e.pointerType==='touch'&&!e.buttons)return;const p=p3Pick(e);if(p)PG.hover={u:clamp(p.u,-3,3),v:clamp(p.v,-3,3)}}
+function p3Move(e){const G=S&&S.play;if(!G||G.mode!=='bat'||P3.assist||e.pointerType==='touch'&&!e.buttons)return;const p=p3Pick(e);if(p)PG.hover={u:clamp(p.u,-6,6),v:clamp(p.v,-4,5)}}
+const p3BatLH=G=>G.mode==='bat'?isLeftBat():!!G.lu[G.bi].lh;
 function pgSwing(){
   const G=S&&S.play;if(!G||G.mode!=='bat'||G.st!=='pitching')return;
   const an=PG.an;if(!an||(an.k!=='wind'&&an.k!=='fly')||PG.sw!=null)return;
-  PG.sw=PG.swAt=performance.now();PG.aim=P3.assist?null:{...(PG.hover||{u:0,v:0})};SND.whoosh();
+  PG.sw=PG.swAt=performance.now();PG.pw=P3.bpow;PG.aim=P3.assist?null:{...(PG.hover||{u:0,v:0})};SND.whoosh();
 }
 function pgMeterPos(now){const mp=900+Math.max(0,pst(S.play,'ctl')-40)*8;return(1-Math.cos(2*Math.PI*((now-PG.m0)%mp)/mp))/2}
-function pgThrowNow(){
-  const G=S&&S.play;if(!G||G.mode!=='pit'||G.st!=='meter'||G.sel.u==null)return;SND.init();
-  const now=performance.now(),pos=pgMeterPos(now);pgThrow(G,1-Math.abs(pos-.5)*2);G.st='anim';PG.an={k:'wind',t0:now,dur:760};pgHud();
+/* 꾹 누르는 동안 힘이 차올랐다 빠졌다 해요. 원하는 만큼 찼을 때 손을 떼면 던져요 */
+function pgPow(now){const p=((now-PG.charge)%1300)/1300;return p<.5?p*2:2-p*2}
+function pgCharge(){const G=S&&S.play;if(!G||G.mode!=='pit'||G.st!=='aim'||PG.an||PG.charge)return;SND.init();PG.charge=performance.now();const b=document.querySelector('[data-pg=throw]');if(b)b.classList.add('hold')}
+function pgRelease(){if(!PG.charge)return;const pw=pgPow(performance.now());PG.charge=0;pgThrowNow(pw)}
+function pgThrowNow(pw){
+  const G=S&&S.play;if(!G||G.mode!=='pit'||G.st!=='aim'||G.sel.u==null)return;SND.init();
+  const now=performance.now();pgThrow(G,pw==null?.8:pw);G.st='anim';PG.an={k:'wind',t0:now,dur:760};pgHud();
+}
+/* 투수 조준판: 투수 시점(오른쪽이 3루 쪽 = 우타자 자리) */
+const MW=176,MH=150,MS=80, mpx=u=>MW/2-zx(u)*MS, mpy=v=>MH-zy(v)*MS;
+function pgMapSVG(G){
+  const lb=!!G.lu[G.bi].lh, bx=MW/2-(lb?.95:-.95)*MS, col=G.oc[1], x0=MW/2-.2175*MS, y0=mpy(-1.5), y1=mpy(1.5), u=G.sel.u??0, v=G.sel.v??0, dz=bodyHit({u,v},lb);
+  return`<svg viewBox="0 0 ${MW} ${MH}" width="${MW}" height="${MH}" aria-hidden="true"><rect width="${MW}" height="${MH}" rx="10" fill="#0b1626"/><rect y="${MH-8}" width="${MW}" height="8" fill="#7a5233"/>
+   <path d="M${MW/2-17} ${MH-7}h34v3l-17 4-17-4z" fill="#e5e7eb"/>
+   <g opacity=".5"><rect x="${bx-23}" y="${MH-1.45*MS}" width="46" height="${1.4*MS}" rx="16" fill="${col}"/><circle cx="${bx}" cy="${MH-1.66*MS}" r="11" fill="${col}"/></g>
+   <rect x="${x0}" y="${y0}" width="${.435*MS}" height="${y1-y0}" fill="rgba(255,255,255,.08)" stroke="#ffffff" stroke-width="1.5"/>
+   <path d="M${x0+.145*MS} ${y0}V${y1}M${x0+.29*MS} ${y0}V${y1}M${x0} ${mpy(-.5)}H${x0+.435*MS}M${x0} ${mpy(.5)}H${x0+.435*MS}" stroke="#ffffff" stroke-opacity=".3"/>
+   <g id="p3tgt" transform="translate(${mpx(u).toFixed(1)} ${mpy(v).toFixed(1)})"><circle r="7" fill="none" stroke="${dz?'#f87171':'#4ade80'}" stroke-width="2.5"/><circle r="2" fill="${dz?'#f87171':'#4ade80'}"/></g>
+   <text id="p3warn" x="${MW/2}" y="15" text-anchor="middle" font-size="11" font-weight="700" fill="#fca5a5">${dz?'몸쪽! 맞으면 데드볼':''}</text></svg>`;
+}
+function pgMapSet(e){
+  const G=S&&S.play,el=document.getElementById('p3map');if(!G||!el||G.mode!=='pit'||G.st!=='aim')return;
+  const r=el.getBoundingClientRect(),px=(e.clientX-r.left)/r.width*MW,py=(e.clientY-r.top)/r.height*MH;
+  G.sel.u=clamp(-(px-MW/2)/MS/ZW,-9,9);G.sel.v=clamp((ZC-(MH-py)/MS)/ZH,-6,4.1);
+  const t=document.getElementById('p3tgt'),w=document.getElementById('p3warn'),dz=bodyHit(G.sel,!!G.lu[G.bi].lh),c=dz?'#f87171':'#4ade80';
+  if(t){t.setAttribute('transform',`translate(${mpx(G.sel.u).toFixed(1)} ${mpy(G.sel.v).toFixed(1)})`);t.querySelectorAll('circle').forEach((n,i)=>n.setAttribute(i?'fill':'stroke',c))}
+  if(w)w.textContent=dz?'몸쪽! 맞으면 데드볼':'';
 }
 /* ---- 진행 ---- */
 function p3Post(G,res,now,ob){
   PG.last=G.cur;G.cur=null;
   const B=p3MakeBB(G,res,ob);
+  if(res.k==='HBP'){P3.hbp=now;SND.pop()}
   if(B){P3.bb=B;PG.an={k:'bb',t0:now,dur:B.dur*1000/1.15};SND.crack();if(['1B','2B','3B'].includes(res.k))setTimeout(()=>SND.cheer(false),500)}
   else{PG.an={k:'post',t0:now,dur:850};if(res.k!=='F')SND.pop();else SND.crack()}
   pgFlash(res.txt,res.cls,res.sub);
@@ -2836,7 +2884,7 @@ function pgStep(G,now){
     if(!an){if(PG.next&&now>=PG.next){if(!G.cur)G.cur=pgAiPitch(G);PG.an={k:'wind',t0:now,dur:950};PG.sw=null;PG.swAt=0;PG.aim=null;P3.trailN=0}else if(!PG.next)PG.next=now+700}
     else if(an.k==='wind'&&now-an.t0>=an.dur){PG.an={k:'fly',t0:now,dur:G.cur.ms};SND.whoosh()}
     else if(an.k==='fly'){const end=an.t0+an.dur,at=PG.sw!=null?Math.max(PG.sw,end)+40:end+180;
-      if(now>=at){const ob=G.pa.on,dt=PG.sw==null?null:(PG.sw<an.t0?-9999:PG.sw-end);p3Post(G,pgResolveBat(G,dt,PG.aim),now,ob)}}
+      if(now>=at){const ob=G.pa.on,dt=PG.sw==null?null:(PG.sw<an.t0?-9999:PG.sw-end);p3Post(G,pgResolveBat(G,dt,PG.aim,PG.pw),now,ob)}}
   }else if(G.st==='anim'&&an){
     if(an.k==='wind'&&now-an.t0>=an.dur){PG.an={k:'fly',t0:now,dur:G.cur.ms};P3.trailN=0;SND.whoosh();
       const ob=G.pa.on, res=pgResolvePit(G);PG.pre={res,ob};PG.swAt=0;PG.aiSw=G.aiSwing?now+G.cur.ms-150:0}
@@ -2851,7 +2899,7 @@ function p3Loop(ts){
   const w=host.clientWidth,h=host.clientHeight;
   if(w&&h&&(w!==P3.w||h!==P3.h)){P3.w=w;P3.h=h;P3.r.setPixelRatio(Math.min(window.devicePixelRatio||1,w<700?1.75:2));P3.r.setSize(w,h,false);P3.cam.aspect=w/h;P3.cam.updateProjectionMatrix()}
   pgStep(G,ts);p3Frame(G,ts,dt);if(!PG.pre)p3Board(G);
-  if(G.mode==='pit'&&G.st==='meter'){const nd=document.getElementById('pg-needle');if(nd)nd.style.left=(pgMeterPos(ts)*100)+'%'}
+  if(PG.charge&&G.mode==='pit'){const pw=pgPow(ts),el=document.getElementById('pg-pwr'),lb=document.getElementById('pg-pwrv');if(el)el.style.width=(pw*100)+'%';if(lb)lb.textContent=`${Math.round(pgVk(G,G.sel.type,pw))}km${pw>.95?' · 전력투구':pw<.35?' · 살살':''}`}
   P3.r.render(P3.sc,P3.cam);
   PG.raf=requestAnimationFrame(p3Loop);
 }
@@ -2868,7 +2916,7 @@ function pgInit(){
     const G=S.play;PG.an=null;PG.sw=null;PG.swAt=0;PG.hover=null;p3ResetField(G);
     if(G.mode==='bat'&&G.st==='pitching')PG.next=performance.now()+900;
     if(G.mode==='pit'&&G.st==='anim'){if(G.cur)PG.an={k:'wind',t0:performance.now(),dur:760};else G.st='aim'}
-    if(G.mode==='pit'&&G.st==='meter')PG.m0=performance.now();
+    if(G.mode==='pit'&&G.st==='meter')G.st='aim';PG.charge=0;
     pgHud();if(!PG.raf)PG.raf=requestAnimationFrame(p3Loop);
   });
 }
@@ -2901,13 +2949,17 @@ function pgCtlHTML(G){
   if(busy&&G.st!=='pitching'&&G.st!=='aim')return'';
   if(G.st==='intro')return`<div class="p3card"><span class="k">${G.mode==='bat'?'타석':'마운드'} · ${G.inn}회${G.top?'초':'말'}</span><p>${esc(G.intro||'')}</p><button class="btn play" data-a="pg-start">${G.mode==='bat'?'타석에 들어서기':'마운드에 오르기'}</button></div>`;
   if(G.st==='between')return`<div class="p3card"><p>${esc(G.msg)}</p>${pgLineHTML(G)}<button class="btn" data-a="pg-next">다음</button></div>`;
-  if(G.mode==='bat')return`<p class="p3hint">${P3.assist?'공이 홈플레이트에 닿는 순간 화면을 누르세요.':'공이 지나갈 자리를, 공이 도착하는 순간 누르세요. 노란 원 안에 공이 들어오면 맞아요.'} 볼은 그냥 보내요.</p><button class="btn play pg-big" data-pg="swing">스윙</button>`;
-  const types=`<div class="pg-types" role="group" aria-label="구종">${G.ars.map(t=>`<button class="${G.sel.type===t?'on':''}" data-a="pg-type" data-v="${t}" ${G.st==='anim'?'disabled':''}>${t}<small>${SN[PTY[t].s]} ${Math.floor(pst(G,PTY[t].s))}</small></button>`).join('')}</div>`;
-  const pad=`<div class="pad" role="group" aria-label="던질 곳">${[-2,-1,0,1,2].map(v=>[-2,-1,0,1,2].map(u=>`<button class="${Math.abs(u)<2&&Math.abs(v)<2?'z':''} ${G.sel.u!=null&&Math.round(G.sel.u)===u&&Math.round(G.sel.v)===v?'on':''}" data-a="pg-tgt" data-v="${u},${v}" aria-label="${Math.abs(u)<2&&Math.abs(v)<2?'스트라이크존':'볼 존'} ${v<0?'높은':v>0?'낮은':'가운데'} ${u<0?'왼쪽':u>0?'오른쪽':'가운데'}" ${G.st==='anim'?'disabled':''}></button>`).join('')).join('')}</div>`;
-  const right=G.st==='meter'?`<div class="meter" aria-hidden="true"><i class="ok"></i><i id="pg-needle" class="nd"></i></div><button class="btn play pg-big" data-pg="throw">던지기</button>`
-    :G.st==='anim'?`<button class="btn play pg-big" disabled>투구 중</button>`:`<p class="p3hint">던질 곳을 오른쪽 칸이나 화면에서 고르세요. 가운데 3×3이 스트라이크존이에요.</p>`;
-  return`<div class="pitw">${types}<div class="pitr"><div class="pitc">${right}</div>${pad}</div></div>${G.st==='meter'?'<p class="p3hint">바늘이 초록 칸에 올 때 던질수록 고른 곳에 정확히 들어가요.</p>':''}`;
+  if(G.mode==='bat'){const pw=Math.round(P3.bpow*100);
+    return`<p class="p3hint">${P3.assist?'공이 홈플레이트에 닿는 순간 화면을 누르세요.':'공이 지나갈 자리를, 공이 도착하는 순간 누르세요. 화면 어디든 노릴 수 있어요.'} 볼은 그냥 보내요.</p>
+    <div class="spow"><span>짧게</span><input type="range" id="p3pow" min="0" max="100" value="${pw}" aria-label="스윙 세기"><span>세게</span><b id="p3powv">${powLab(P3.bpow)}</b></div>
+    <button class="btn play pg-big" data-pg="swing">스윙</button>`}
+  const types=`<div class="pg-types" role="group" aria-label="구종">${G.ars.map(t=>`<button class="${G.sel.type===t?'on':''}" data-a="pg-type" data-v="${t}" ${G.st==='anim'?'disabled':''}>${t}<small>최고 ${Math.round(pgVk(G,t,1))}km</small></button>`).join('')}</div>`;
+  const map=`<div class="amap" id="p3map" role="img" aria-label="던질 곳 조준판. 누르거나 끌어서 위치를 정해요">${pgMapSVG(G)}</div>`;
+  const right=G.st==='anim'?`<button class="btn play pg-big" disabled>투구 중</button>`
+    :`<div class="pwr" aria-hidden="true"><i id="pg-pwr"></i><b id="pg-pwrv">꾹 누르면 힘이 차요</b></div><button class="btn play pg-big" data-pg="throw">꾹 눌러 던지기</button>`;
+  return`<div class="pitw">${types}<div class="pitr">${map}<div class="pitc">${right}</div></div><p class="p3hint">조준판 어디든 눌러 고르고, 버튼을 꾹 눌렀다 떼서 던져요. 세게 던질수록 빠르지만 제구가 흔들리고, 타자 몸에 맞으면 데드볼이에요.</p></div>`;
 }
+const powLab=p=>p<.34?'맞히기':p<.67?'보통':'풀스윙';
 function pgHud(){
   const G=S&&S.play;if(!G||!HAS_DOM)return;
   const b=document.getElementById('p3bug'),c=document.getElementById('pg-ctl'),t=document.getElementById('p3btns');
@@ -3009,11 +3061,18 @@ if(HAS_DOM){
     if(e.target.id==='c-pos'){C.pos=e.target.value;C.cands=null;C.pick=0;C.focus=[];render()}
     if(e.target.id==='c-school'){C.school=+e.target.value;render()}
   });
-  document.addEventListener('input',e=>{if(e.target.id==='c-name')C.name=e.target.value;if(e.target.id==='c-num')C.num=e.target.value});
+  document.addEventListener('input',e=>{if(e.target.id==='c-name')C.name=e.target.value;if(e.target.id==='c-num')C.num=e.target.value;
+    if(e.target.id==='p3pow'){P3.bpow=clamp(+e.target.value/100,0,1);try{localStorage.setItem('b2mvp_bpow',String(P3.bpow))}catch(er){}const l=document.getElementById('p3powv');if(l)l.textContent=powLab(P3.bpow)}});
   document.addEventListener('keydown',e=>{
-    if(S&&S.phase==='play'&&S.play&&(e.code==='Space'||e.key===' ')&&!e.repeat){const t=e.target;if(t&&t.tagName==='BUTTON'&&t.dataset.a)return;e.preventDefault();if(S.play.mode==='bat')pgSwing();else pgThrowNow();return}
+    if(S&&S.phase==='play'&&S.play&&(e.code==='Space'||e.key===' ')){const t=e.target;if(t&&(t.tagName==='BUTTON'&&t.dataset.a||t.tagName==='INPUT'))return;e.preventDefault();if(e.repeat)return;if(S.play.mode==='bat')pgSwing();else pgCharge();return}
     if(e.key==='Escape'&&ui.sheet){ui.sheet=null;render()}});
-  document.addEventListener('pointerdown',e=>{const b=e.target.closest('[data-pg]');if(!b||b.disabled)return;e.preventDefault();if(b.dataset.pg==='swing')pgSwing();else if(b.dataset.pg==='throw')pgThrowNow()});
+  document.addEventListener('pointerdown',e=>{
+    if(e.target.closest('#p3map')){e.preventDefault();PG.mapDrag=true;pgMapSet(e);return}
+    const b=e.target.closest('[data-pg]');if(!b||b.disabled)return;e.preventDefault();if(b.dataset.pg==='swing')pgSwing();else if(b.dataset.pg==='throw')pgCharge()});
+  document.addEventListener('pointermove',e=>{if(PG.mapDrag)pgMapSet(e)});
+  const up=()=>{if(PG.mapDrag){PG.mapDrag=false}if(PG.charge)pgRelease()};
+  document.addEventListener('pointerup',up);document.addEventListener('pointercancel',up);
+  document.addEventListener('keyup',e=>{if((e.code==='Space'||e.key===' ')&&PG.charge)pgRelease()});
   const start=data=>{if(data&&data.S){S=migrate(data.S);fixState();if(data.C)Object.assign(C,data.C)}else load();render()};
   window.claude?.hot?.snapshot?.(()=>({S,C:{...C}}));
   window.claude?.hot?.ready?window.claude.hot.ready(start):start(window.claude?.hot?.data??{});
