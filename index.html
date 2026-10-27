@@ -308,6 +308,12 @@ body,.ttl,h1,h2,.desc,.situ,.choice,.item,.fi,.art h3{word-break:keep-all;overfl
 .confetti i{position:absolute;top:-12px;width:8px;height:12px;border-radius:2px;opacity:.9;animation:fall linear infinite}
 @keyframes fall{from{transform:translateY(-20px) rotate(0)}to{transform:translateY(110vh) rotate(540deg)}}
 .tpv.award .in{position:relative;z-index:1}
+.shelf{display:flex;flex-wrap:wrap;gap:8px 10px;justify-content:center;max-width:520px}
+.shelf .tr{display:grid;justify-items:center;gap:2px;color:var(--gold)}
+.shelf .tr svg{width:22px;height:22px}
+.shelf .tr small{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.shelf .tr.now svg{width:28px;height:28px;filter:drop-shadow(0 0 6px #f5c54299)}
+.mvpb{display:inline-block;font-size:11px;font-weight:800;color:#7a5200;background:var(--gold-s);border:1px solid #f0d58a;padding:1px 7px;border-radius:6px;vertical-align:middle;margin-left:4px}
 .momres{border-radius:18px;padding:22px 18px;display:grid;gap:8px;text-align:center;justify-items:center}
 .momres.ok{background:#e9f8ef;border:2px solid var(--green)}
 .momres.no{background:#fdf0f0;border:2px solid var(--red)}
@@ -1043,7 +1049,7 @@ function finishSeason(){
   const fullG=LG[pl].G;
   if(top&&tot.G){
     const lg=LGS[org], war=tot.war;
-    if(war>(org==='US'?rnd(6.8,9.2):rnd(6.3,8.5))){addA(`${lg} MVP`,'pro');S.mvp++}
+    if(war>(org==='US'?rnd(6.2,8.4):org==='JP'?rnd(5.9,8):rnd(5.7,7.9))){addA(`${lg} MVP`,'pro');S.mvp++}
     if(!S.rookie[org]&&(tot.PA>150||tot.IP>40)){S.rookie[org]=1;if(war>rnd(1.2,3)&&S.age<=27)addA(`${lg} 신인왕`,'pro')}
     if(war>=rnd(3.4,5))addA(POSAW[org],'pro');
     if(ACEAW[org]&&S.pos==='SP'&&tot.GS>=15&&war>rnd(5,7))addA(ACEAW[org],'pro');
@@ -1211,7 +1217,7 @@ function hofTable(l){return l.length?`<div class="tablewrap"><table><thead><tr><
 /* ================= render: app tabs ================= */
 function pHead(){
   const d=ovr()-S.prevOvr;
-  return`<div class="pcard" style="grid-template-columns:auto 1fr auto"><div class="ava">${avaImg()}</div><div style="min-width:0"><div class="who">${emblem(S.team,16)} ${esc(teamLabel())}</div><div style="font-size:20px;font-weight:800;overflow-wrap:anywhere">${esc(S.name)} <span class="badge">${SUBPOS[S.pos].n}</span></div><div class="muted" style="font-size:13px">No.${S.num} · ${S.age}세 · ${esc(S.style)}</div></div><div class="ovrbox"><b>${ovr()}</b><small>OVR</small>${S.hist.length&&d?`<em class="${d>0?'up':'dn'}">${sgn(d)}</em>`:''}</div></div>`;
+  return`<div class="pcard" style="grid-template-columns:auto 1fr auto"><div class="ava">${avaImg()}</div><div style="min-width:0"><div class="who">${emblem(S.team,16)} ${esc(teamLabel())}</div><div style="font-size:20px;font-weight:800;overflow-wrap:anywhere">${esc(S.name)} <span class="badge">${SUBPOS[S.pos].n}</span>${S.mvp?`<span class="mvpb">MVP ×${S.mvp}</span>`:''}</div><div class="muted" style="font-size:13px">No.${S.num} · ${S.age}세 · ${esc(S.style)}</div></div><div class="ovrbox"><b>${ovr()}</b><small>OVR</small>${S.hist.length&&d?`<em class="${d>0?'up':'dn'}">${sgn(d)}</em>`:''}</div></div>`;
 }
 function seasonInfoRows(){
   return`<div class="row"><span>소속</span><span>${emblem(S.team,20)} ${esc(teamLabel())}</span></div>
@@ -1426,14 +1432,17 @@ function renderSummary(){
 }
 function renderAward(){
   const L=S.last, aw=L.mvpAw, n=L.mvpN||1, extra=L.aw.filter(a=>a!==aw).slice(0,3);
+  const years=S.tro.filter(t=>t.k==='a'&&/^(KBO|NPB|MLB) MVP$/.test(t.n)).map(t=>t.y);
+  let streak=0;for(let y=L.y;years.includes(y);y--)streak++;
   const cf=['#f87171','#60a5fa','#fbbf24','#34d399','#f472b6','#ffffff'];
   const confetti=[...Array(28)].map((_,i)=>`<i style="left:${(i*37+7)%100}%;background:${cf[i%6]};animation-delay:${(i%9)*.35}s;animation-duration:${3.2+(i%5)*.5}s"></i>`).join('');
   return`<div class="tpv award" role="dialog" aria-label="MVP 시상식"><div class="confetti" aria-hidden="true">${confetti}</div><div class="in">
     <div class="top"><span class="when">${L.y} ${esc(L.lg)} 시상식</span></div>
     <div class="tvf"><img src="${sceneURL('award')}" alt="시상대에서 트로피를 든 내 선수"><div class="l3"><span class="k">시상식</span><b>${esc(aw)}</b></div></div>
-    <div class="tpres"><div class="stamp gold">MVP</div>
-      <div class="ttl" style="margin:0;font-size:26px">${n===1?'첫':n+'번째'} <b>${esc(aw)}</b>를 받았어요</div>
-      <p class="desc">${esc(S.name)} 선수가 ${L.y} ${esc(L.lg)} 최우수 선수로 뽑혔어요.</p>
+    <div class="tpres"><div class="stamp gold">${streak>=2?streak+'년 연속 MVP':'MVP'}</div>
+      <div class="ttl" style="margin:0;font-size:26px">${n===1?'첫':'통산 '+n+'번째'} <b style="white-space:nowrap">${esc(aw)}를</b> 받았어요</div>
+      <p class="desc">${esc(S.name)} 선수가 ${L.y} ${esc(L.lg)} 최우수 선수로 뽑혔어요.${streak>=2?` ${streak}시즌 연속 수상이에요.`:''}</p>
+      ${n>=2?`<div class="shelf" aria-label="MVP 수상 연도">${years.map(y=>`<span class="tr ${y===L.y?'now':''}">${ICON.trophy}<small>${y}</small></span>`).join('')}</div>`:''}
       <div class="effs"><span class="eff g">${esc(lineTxt(L.line))}</span><span class="eff g">WAR ${(+L.war).toFixed(1)}</span>${extra.map(a=>`<span class="eff">${esc(a)}</span>`).join('')}</div>
       <button class="btn play" data-a="award-ok">트로피 들어 올리기</button></div>
   </div></div>`;
