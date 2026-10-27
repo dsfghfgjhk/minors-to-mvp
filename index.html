@@ -1567,9 +1567,18 @@ function startSeason(){
   if(c1.G)P.feed.push({p:.02,x:S.org==='HS'||S.org==='UNIV'?(S.role==='ace'?'개막전 선발 출전!':'개막전 엔트리에 이름을 올렸어요'):S.role==='minor'?(S.org==='US'?'마이너리그에서 시즌을 시작해요':'2군에서 시즌을 시작해요'):S.org==='ARMY'?'상무 유니폼을 입고 첫 경기에 나섰어요':S.pos==='SP'&&S.role==='ace'?'개막 시리즈 선발 등판!':S.role==='ace'?'개막전 선발 라인업에 이름을 올렸어요':'1군 엔트리에 합류했어요'});
   if(ageDrop>0)P.feed.push({p:.03,x:`${S.age}세, 몸이 예전 같지 않아요. 나이 탓에 폼이 떨어졌어요`,k:'bad'});
   if(inj&&inj.type==='major')P.feed.push({p:fl.surgery?.03:inj.p,x:fl.surgery?'수술 뒤 재활에 들어갔어요':'큰 부상으로 시즌 아웃됐어요',k:'bad'});
-  [1,2].forEach(i=>{if(!(inj&&inj.type==='major'&&inj.p<SEG[i]))P.ev.push({t:'mom',p:SEG[i],seg:i-1,n:i,done:false})});
+  if(!(inj&&inj.type==='major'&&inj.p<SEG[1]))P.ev.push({t:'mom',p:SEG[1],seg:0,n:1,done:false});
+  // 3D로 직접 뛰는 정규시즌 빅매치: 시즌마다 3경기(선택지 승부처보다 많게)
+  const rl=regLabels();[.15,.5,.84].forEach((p,k)=>{if(inj&&inj.type==='major'&&inj.p<p)return;const o=oppPick();P.ev.push({t:'big',kind:'reg',p,seg:k,n:k+1,label:rl[k],opp:o.short,oppFull:o.full,done:false})});
   if(S.nat&&S.nat.joined)prepNat(P);
   S.phase='progress';
+}
+function regLabels(){
+  const o=S.org;
+  if(o==='HS')return['주말리그 개막전','전국대회 16강','전국대회 8강'];
+  if(o==='UNIV')return['U-리그 개막전','대학 라이벌전','U-리그 순위 결정전'];
+  if(o==='ARMY'||S.role==='minor')return[(o==='US'?'트리플A':'퓨처스리그')+' 개막전','라이벌전','순위 싸움'];
+  return['개막 시리즈','라이벌 3연전','순위 싸움 빅매치'];
 }
 function rollSeg(i){
   const P=S.prog;if(!P||P.segs[i])return;
@@ -1588,7 +1597,7 @@ const SMVP={KR:'한국시리즈 MVP',JP:'일본시리즈 MVP',US:'월드시리�
 function regEnd(){
   const P=S.prog, org=S.org, tot=derive(sumSegs(P,3));
   const n=org==='HS'?16:org==='US'?15:10, ts=org==='ARMY'?.62:teamS(S.team);
-  const wins=P.ev.filter(e=>e.t==='mom'&&e.res&&e.res.ok).length;
+  const wins=P.ev.filter(e=>e.t==='mom'&&e.res&&e.res.ok).length+P.ev.filter(e=>e.kind==='reg'&&e.res&&e.res.win).length*.5;
   const my=ts*10+(tot.war-2)*.6+rnd(-2.5,2.5)+wins*.3;let rank=1;for(let i=0;i<n-1;i++)if(rnd(0,10)+rnd(-2.5,2.5)>my)rank++;
   const cup=pick(HSCUP), cname=org==='HS'?cup+' 우승':CHAMP[org];
   const reach=R()<([.72,.48,.3,.22,.15][rank-1]||0);
@@ -1632,6 +1641,7 @@ function momTier(d,i){const m=d.o.map(o=>momMerit(d,o)),hi=Math.max(...m),lo=Mat
 function momP(o){const L=LG[S.prog?S.prog.pl:playLg()].L;return clamp(.5+(S.stats[o.s]-(L+o.d))/40+(S.trait==='clutch'?.06:0),.1,.9)}
 function evPending(P){const a=P.ev.find(e=>e.done&&e.res&&!e.ack);if(a)return a;let b=null;P.ev.forEach(e=>{if(!e.done&&P.p>=e.p-1e-9&&(!b||e.p<b.p))b=e});return b}
 function momReady(P,e){
+  if(e.t==='big'&&e.kind==='reg'){const c=P.segs[e.seg];if(!c||!c.G){e.done=true;e.ack=true;return false}return true}
   if(e.t!=='mom')return true;
   const c=P.segs[e.seg];
   if(!c||!c.G){e.done=true;e.ack=true;return false}
@@ -1654,6 +1664,7 @@ function chooseMoment(i){
 function bigSimWin(e){
   const P=S.prog;
   if(e.kind==='nat')return R()<clamp(P.nat.wp+(S.trait==='clutch'?.05:0),.15,.85);
+  if(e.kind==='reg')return R()<clamp((P.wp||.5)+.04+((P.effs[e.seg]||P.base)-P.L)*.004+(S.trait==='clutch'?.04:0),.25,.8);
   return R()<clamp(.52+((P.effs[2]||P.base)-P.L)*.008+(P.fin.rank===1?.04:0)+(S.trait==='clutch'?.04:0),.3,.78);
 }
 function resolveBig(e,win,o={}){
@@ -1661,6 +1672,15 @@ function resolveBig(e,win,o={}){
   e.done=true;e.ack=false;
   let fm=o.my,fo=o.op;if(fm==null){fo=ri(1,5);fm=fo+(win?ri(1,3):-ri(1,3));if(fm<0){fo-=fm;fm=0}}
   const ms=o.ms||null;
+  if(e.kind==='reg'){
+    const good=ms?(isP()?(ms.ER===0&&ms.outs>=2):(ms.HR>=1||ms.H>=2||ms.RBI>=2)):R()<clamp(.25+((P.effs[e.seg]||P.base)-P.L)*.01,.08,.5);
+    const mor=win?(good?5:3):(good?1:-2), fmv=win?(good?2:1):(good?1:0);
+    S.morale=clamp(S.morale+mor,20,100);S.fame=clamp(S.fame+fmv,0,100);
+    P.bonus+=win?(good?.6:.35):(good?.1:-.45);
+    e.res={win,my:fm,op:fo,play:!!ms,ms,good,mor,fm:fmv,mul:win?(good?.35:.2):(good?.1:0)};
+    P.feed.push({p:e.p+.004,x:`${e.label}: ${e.opp} 상대 ${fm}:${fo} ${win?'승리':'패배'}${good?' · 맹활약':''}`,k:win?'hl':'bad'});
+    return;
+  }
   if(e.kind==='lg'){
     P.fin.champ=win;
     let mvp=false;
@@ -1678,6 +1698,7 @@ function resolveBig(e,win,o={}){
 function autoResolve(P){
   P.ev.forEach(e=>{if(e.done){e.ack=true;return}
     if(e.t==='mom'){e.done=true;e.ack=true}
+    else if(e.t==='big'&&e.kind==='reg'){e.done=true;e.ack=true}
     else if(e.t==='big'){resolveBig(e,bigSimWin(e));e.ack=true}});
 }
 function fastForward(){const P=S.prog;for(let k=0;k<3;k++){autoResolve(P);P.p=Math.max(P.p,SEG[k+1]);for(let i=0;i<3;i++)rollSeg(i)}autoResolve(P);P.p=1}
@@ -1752,7 +1773,7 @@ function finishSeason(){
   // growth
   const ob=ovr(), before={...S.stats};
   const pt=isP()?clamp(tot.IP/fullIP(pitType(role)),0,1):clamp(tot.G/(fullG*.93),0,1);
-  grow(pt,L,momEv.filter(e=>e.res.ok).reduce((a,e)=>a+(e.res.mul||1),0)*.35);
+  grow(pt,L,(momEv.filter(e=>e.res.ok).reduce((a,e)=>a+(e.res.mul||1),0)+P.ev.filter(e=>e.kind==='reg'&&e.res).reduce((a,e)=>a+(e.res.mul||0),0))*.35);
   const perf=perfGrade(tot,pt,aw.length,fin.champ&&role!=='minor'),o1=ovr(),o1r=ovrOf(S.pos,S.stats);
   const lvf=role==='minor'?.7:{HS:.75,UNIV:.8,ARMY:.7}[org]||1;
   const over=o1r>S.pot?clamp(1-(o1r-S.pot)/12,.25,1):1;
@@ -2203,6 +2224,11 @@ function momResCard(e){
 }
 function bigSides(e){const nat=e.kind==='nat';return{me:nat?'대한민국':shortT(S.team),mb:nat?natBadge('대한민국'):emblem(S.team,44),ob:nat?natBadge(e.opp):emblem(e.oppFull,44)}}
 function bigCard(e){
+  if(e.kind==='reg'){const s=bigSides(e),tot=S.prog.ev.filter(x=>x.kind==='reg').length;
+    return`<section class="bigc"><span class="k">빅매치 ${e.n}/${tot} · ${S.year}</span><div class="t">${esc(e.label)}</div>
+    <div class="vs"><div>${s.mb}<span>${esc(s.me)}</span></div><em>VS</em><div>${s.ob}<span>${esc(e.opp)}</span></div></div>
+    <p>${isP()?(S.pos==='RP'?'9회 마운드에 직접 올라 승리를 지켜요.':'7회 위기에 직접 공을 던져요.'):'두세 번의 타석에 직접 들어서요. 9회말까지 밀리면 끝내기 기회도 와요.'} 이기면 사기와 명성이 오르고 남은 시즌 활약에 보너스가 붙어요. 3D 경기장에서 진행돼요.</p>
+    <div class="btns"><button class="btn gray" data-a="big-sim">결과만 보기</button><button class="btn play" data-a="big-play">직접 플레이</button></div></section>`}
   const s=bigSides(e), nat=e.kind==='nat', goal=nat?`이기면 ${S.prog.nat.medals[0]}`:'이기면 우승';
   return`<section class="bigc"><span class="k">${nat?'태극마크':'포스트시즌'} · ${S.year}</span><div class="t">${esc(e.label)}</div>
     <div class="vs"><div>${s.mb}<span>${esc(s.me)}</span></div><em>VS</em><div>${s.ob}<span>${esc(e.opp)}</span></div></div>
@@ -2210,6 +2236,10 @@ function bigCard(e){
     <div class="btns"><button class="btn gray" data-a="big-sim">결과만 보기</button><button class="btn play" data-a="big-play">직접 플레이</button></div></section>`;
 }
 function bigResCard(e){
+  if(e.kind==='reg'){const r=e.res,s=bigSides(e);
+    return`<section class="bigc res ${r.win?'w':'l'}" role="status"><span class="k">${esc(e.label)}</span><div class="stampx">${r.win?'승리!':'패배'}</div>
+    <div class="vs"><div>${s.mb}<span>${esc(s.me)}</span></div><em>${r.my} : ${r.op}</em><div>${s.ob}<span>${esc(e.opp)}</span></div></div>
+    <div class="effs">${r.ms?`<span class="eff">${r.play?'직접 플레이':'결과 보기'} · ${esc(msLine(r.ms)||'출전 기록 없음')}</span>`:''}${r.good?'<span class="eff g">맹활약</span>':''}<span class="eff">사기 ${r.mor>0?'+':''}${r.mor}${r.fm?` · 명성 +${r.fm}`:''}${r.win?' · 남은 시즌 활약 보너스':''}</span></div></section>`}
   const r=e.res, s=bigSides(e), nat=e.kind==='nat', head=nat?r.medal:(r.win?'우승':'준우승');
   return`<section class="bigc res ${r.win?'w':'l'}" role="status"><span class="k">${esc(e.label)}</span><div class="stampx">${esc(head)}${r.win?'!':''}</div>
     <div class="vs"><div>${s.mb}<span>${esc(s.me)}</span></div><em>${r.my} : ${r.op}</em><div>${s.ob}<span>${esc(e.opp)}</span></div></div>
@@ -2217,15 +2247,15 @@ function bigResCard(e){
 }
 function renderProgress(){
   const P=S.prog, p=P.p, sl=statusLines(), st=sl[Math.min(sl.length-1,Math.floor(p*sl.length))];
-  let e=evPending(P);if(e&&!e.done&&e.t==='mom'&&!momReady(P,e))e=evPending(P);
+  let e=evPending(P);while(e&&!e.done&&!momReady(P,e))e=evPending(P);
   const items=P.feed.filter(f=>f.p<=p).sort((a,b)=>a.p-b.p).slice(-7);
   const l=liveLine(P), gp=Math.round(p*P.totalG), W=Math.round(gp*(P.wp||.5));
   let main='',ttl=st,btn='';
   if(e&&e.t==='mom'&&!e.done){main=momCard(e);ttl='승부처가 찾아왔어요';btn=`<button class="btn gray" data-a="mom-skip">이번 승부는 넘어가기</button>`}
   else if(e&&e.t==='mom'){main=momResCard(e);ttl=e.res.ok?'승부에서 이겼어요!':'이번 승부는 놓쳤어요';btn=`<button class="btn play" data-a="ev-ok">시즌 계속하기</button>`}
-  else if(e&&e.t==='big'&&!e.done){main=bigCard(e);ttl=e.kind==='nat'?'대표팀 결승이에요':'우승까지 한 경기 남았어요'}
-  else if(e&&e.t==='big'){main=bigResCard(e);ttl=e.res.win?(e.kind==='nat'?'대한민국이 정상에 올랐어요':'우승했어요!'):'아깝게 졌어요';btn=`<button class="btn play" data-a="ev-ok">시즌 계속하기</button>`}
-  else btn=`<button class="btn gray" data-a="skip-next">${P.ev.some(x=>!x.done)||!P.segs[2]?'다음 선택지로 건너뛰기':'시즌 결과 보기'}</button>`;
+  else if(e&&e.t==='big'&&!e.done){main=bigCard(e);ttl=e.kind==='reg'?'빅매치가 찾아왔어요':e.kind==='nat'?'대표팀 결승이에요':'우승까지 한 경기 남았어요'}
+  else if(e&&e.t==='big'){main=bigResCard(e);ttl=e.kind==='reg'?(e.res.win?'빅매치에서 이겼어요!':'빅매치를 놓쳤어요'):e.res.win?(e.kind==='nat'?'대한민국이 정상에 올랐어요':'우승했어요!'):'아깝게 졌어요';btn=`<button class="btn play" data-a="ev-ok">시즌 계속하기</button>`}
+  else btn=`<button class="btn gray" data-a="skip-next">${P.ev.some(x=>!x.done)||!P.segs[2]?'다음 승부로 건너뛰기':'시즌 결과 보기'}</button>`;
   return`<div class="page">
     <section class="scoreboard"><span class="lg">${S.year} · ${esc(teamLabel())} · ${LG[P.pl].n}</span>
       <div class="sbgrid"><div><small>경기</small><b>${gp}<span>/${P.totalG}</span></b></div><div><small>팀 성적</small><b>${W}-${gp-W}</b></div><div><small>WAR</small><b>${l.G>=.5?l.war.toFixed(1):'-'}</b></div></div>
@@ -2368,11 +2398,11 @@ function tick(){
   const P=S&&S.prog;if(!P||S.phase!=='progress'){clearInterval(timer);timer=null;return}
   ensureSegs(P);
   let e=evPending(P);
-  while(e&&!e.done&&e.t==='mom'&&!momReady(P,e))e=evPending(P);
+  while(e&&!e.done&&!momReady(P,e))e=evPending(P);
   if(e)return;
   const nx=P.ev.filter(x=>!x.done&&x.p>P.p+1e-9).map(x=>x.p).sort((a,b)=>a-b)[0];
   P.p=Math.min(1,P.p+.0105);
-  if(nx!=null&&P.p>=nx){P.p=nx;ensureSegs(P);const q=evPending(P);if(q&&q.t==='mom')momReady(P,q);save();render();return}
+  if(nx!=null&&P.p>=nx){P.p=nx;ensureSegs(P);const q=evPending(P);if(q)momReady(P,q);save();render();return}
   ensureSegs(P);
   if(P.p>=1&&!P.ev.some(x=>!x.done||(x.res&&!x.ack))){finishSeason();save();render();if(HAS_DOM)window.scrollTo(0,0);return}
   render();
@@ -2472,11 +2502,12 @@ function newPlay(e){
   const G={v:2,kind:e.kind,label:e.label,opp:e.opp,me:nat?'대한민국':shortT(S.team),oc,mc,role,mode:role,L,kO:strong,kM:1,
     a:[],h:[],inn:1,top:true,my:0,op:0,st:'intro',msg:'',intro:'',log:[],pa:null,cur:null,done:false,win:null,
     ms:msZero(),msT:msZero(),paDone:{},pitDone:{},bi:ri(0,8),
-    goal:nat?((S.prog&&S.prog.nat&&S.prog.nat.medals[0])||'우승'):'우승'};
+    goal:nat?((S.prog&&S.prog.nat&&S.prog.nat.medals[0])||'우승'):e.kind==='reg'?'승리 확정':'우승',evp:e.p};
   G.lu=LINEUP.map(([o,t,c,p,e2],i)=>({lab:`${o} 타자 · ${t}`,c:clamp(c*strong,.2,.95),p:clamp(p*strong,.1,.95),e:e2,lh:i%3===1}));
   G.pitBase=nat?150:({HS:134,UNIV:139,KR:145,JP:147,US:152}[S.org]||145);
   if(role==='bat'){
-    G.batInn=[ri(1,3),ri(4,6),9];G.pitInn=[9];
+    if(e.kind==='reg'){G.batInn=[ri(2,4),ri(6,7),9];G.pitInn=[]}
+    else{G.batInn=[ri(1,3),ri(4,6),9];G.pitInn=[9]}
     G.cl={vel:L+10,ctl:L+6,brk:L+9,sta:L,men:L+6,fld:L};G.ars=['직구','슬라이더','스플리터','커브'];
   }else{
     const close=S.pos==='RP', sit=close?9:7;
@@ -2704,7 +2735,7 @@ function pgAuto(G){
 }
 function pgFinish(){
   const G=S.play, P=S.prog;if(!G)return;
-  const e=P&&P.ev.find(x=>x.t==='big'&&!x.done&&x.kind===G.kind);
+  const e=P&&(P.ev.find(x=>x.t==='big'&&!x.done&&x.kind===G.kind&&(G.evp==null||x.p===G.evp))||P.ev.find(x=>x.t==='big'&&!x.done&&x.kind===G.kind));
   if(e)resolveBig(e,G.win,{my:G.my,op:G.op,ms:pgMs(G)});
   S.play=null;S.phase='progress';PG.an=null;
 }
@@ -3317,7 +3348,7 @@ function pgCtlHTML(G){
   if(P3.fail&&G.st!=='over')return`<div class="p3card"><p>${esc(G.intro||G.msg||'')}</p><button class="btn play" data-a="pg-auto">자동 진행으로 경기 마치기</button></div>`;
   if(G.st==='over'){
     if(busy)return'';
-    const N=S.prog&&S.prog.nat, med=G.kind==='nat'&&N?N.medals:null, head=G.win?(med?med[0]:'우승'):(med?med[1]:'준우승');
+    const N=S.prog&&S.prog.nat, med=G.kind==='nat'&&N?N.medals:null, head=G.kind==='reg'?(G.win?'승리':'패배'):G.win?(med?med[0]:'우승'):(med?med[1]:'준우승');
     return`<div class="p3card over ${G.win?'w':'l'}"><div class="stampx">${esc(head)}${G.win?'!':''}</div><div class="fs">${esc(G.me)} ${G.my} : ${G.op} ${esc(G.opp)}</div>${pgLineHTML(G)}<p>${esc(msLine(pgMs(G))||'출전 기록 없음')}</p><button class="btn play" data-a="pg-done">결과 확인</button></div>`;
   }
   if(busy&&G.st!=='pitching'&&G.st!=='aim')return'';
@@ -3400,7 +3431,7 @@ function act(a,v){
       const nx=P.ev.filter(x=>!x.done).sort((x,y)=>x.p-y.p)[0];
       if(!nx){fastForward();finishSeason();top=true;break}
       P.p=Math.max(P.p,nx.p);const e=evPending(P);if(!e)continue;
-      if(e.t==='mom'&&!e.done&&!momReady(P,e))continue;break}}
+      if(!e.done&&!momReady(P,e))continue;break}}
   else if(a==='skip'){fastForward();finishSeason();top=true}
   else if(a==='pg-start'){const G=S.play;if(G){SND.init();G.st=G.mode==='bat'?'pitching':'aim';PG.next=0;PG.an=null}}
   else if(a==='pg-tgt'){const G=S.play,[u,vv]=String(v).split(',').map(Number);if(G&&G.mode==='pit'&&(G.st==='aim'||G.st==='meter')){G.sel.u=u;G.sel.v=vv;if(G.st==='aim'){G.st='meter';PG.m0=performance.now()}}}
