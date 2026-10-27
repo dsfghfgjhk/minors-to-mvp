@@ -32,3 +32,18 @@ const duration=game.cur.ms;for(let t=1776;t<1760+duration+250;t+=16){if(PG.an)pg
 if(applied!==1||posted!==1)throw Error('live pitch must resolve exactly once');
 console.log('Live-pitch lifecycle passed');
 `,ctx);
+
+vm.runInContext(`
+const guideGame={mode:'bat',cur:{u:1,v:-1,inZ:true}};
+const wind={k:'wind',t0:1000,dur:900},fly={k:'fly',t0:1900,dur:500};
+for(const eye of [30,90]){S.stats.eye=eye;
+ for(const now of [1000,1200,1800])if(!pgLandingGuide(guideGame,wind,now))throw Error('missing windup marker');
+ const a=pgLandingGuide(guideGame,fly,1900),b=pgLandingGuide(guideGame,fly,2150),c=pgLandingGuide(guideGame,fly,2400);
+ if(!(a.radius>b.radius&&b.radius>c.radius)||Math.abs(c.radius-.08)>1e-8)throw Error('arrival circle does not converge');
+ if(a.x!==c.x||a.y!==c.y||!c.ready||c.color!==0x76f0b1)throw Error('wrong target or contact cue');
+}
+guideGame.cur.inZ=false;if(pgLandingGuide(guideGame,fly,2400).color!==0xcbd5e1)throw Error('ball cue');
+guideGame.mode='pit';if(pgLandingGuide(guideGame,fly,2400)!==null)throw Error('guide leaked to pitching');
+guideGame.mode='bat';for(const k of ['post','bb'])if(pgLandingGuide(guideGame,{k},2500)!==null)throw Error('stale marker');
+console.log('Continuous landing marker and timing cues passed');
+`,ctx);

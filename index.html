@@ -2589,7 +2589,7 @@ function pgAiPitch(G){
   const vk=G.pit.v+PTY[type].dv+ri(-2,1);
   return{type,u,v,vk,inZ:Math.abs(u)<=1.62&&Math.abs(v)<=1.62,ms:pgFlightMs(vk),lh:G.pit.lh};
 }
-function pgWindows(){const con=S.stats.con,pf=22+Math.max(0,con-40)*.5,gd=pf+40+Math.max(0,con-40)*.4;return{pf,gd,fl:gd+60}}
+function pgWindows(){const con=S.stats.con,pf=42+Math.max(0,con-40)*.5,gd=pf+40+Math.max(0,con-40)*.4;return{pf,gd,fl:gd+60}}
 const reticleR=()=>(.1+Math.max(0,S.stats.con-40)*.0013)*(P3.assist?1.45:1);
 function pgResolveBat(G,dt,aim,pw){
   const c=G.cur, st=S.stats, P=clamp(pw==null?.5:pw,0,1), W0=pgWindows(), wf=1.15-.3*P, W={pf:W0.pf*wf,gd:W0.gd*wf,fl:W0.fl*wf};let k;G.lastBB=null;
@@ -3174,7 +3174,9 @@ function p3BuildActors(){
   const rm=new THREE.MeshBasicMaterial({color:0xffc845,transparent:true,opacity:.85,side:THREE.DoubleSide,depthTest:false});
   A.ret=new THREE.Group();const rgm=new THREE.Mesh(new THREE.RingGeometry(.86,1,40),rm);rgm.renderOrder=5;A.ret.add(rgm);
   const dot=new THREE.Mesh(new THREE.CircleGeometry(.08,12),rm);dot.renderOrder=5;A.ret.add(dot);A.ret.visible=false;sc.add(A.ret);
-  A.land=new THREE.Mesh(new THREE.RingGeometry(.05,.065,28),new THREE.MeshBasicMaterial({color:0xffc845,transparent:true,opacity:.9,side:THREE.DoubleSide,depthTest:false}));A.land.renderOrder=6;A.land.visible=false;sc.add(A.land);
+  A.land=new THREE.Mesh(new THREE.RingGeometry(.065,.08,40),new THREE.MeshBasicMaterial({color:0xffc845,transparent:true,opacity:.9,side:THREE.DoubleSide,depthTest:false}));A.land.renderOrder=6;A.land.visible=false;sc.add(A.land);
+  A.arrival=new THREE.Mesh(new THREE.RingGeometry(.94,1,48),new THREE.MeshBasicMaterial({color:0xffc845,transparent:true,opacity:.7,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));
+  A.arrival.renderOrder=6;A.arrival.visible=false;sc.add(A.arrival);
   A.tgt=new THREE.Mesh(new THREE.RingGeometry(.06,.085,28),new THREE.MeshBasicMaterial({color:0x4ade80,transparent:true,opacity:.95,side:THREE.DoubleSide,depthTest:false}));A.tgt.renderOrder=6;A.tgt.visible=false;sc.add(A.tgt);
   A.ump.userData.mats.uni.color.set(0x1d2433);A.ump.userData.mats.pants.color.set(0x5b616b);A.ump.userData.mats.trim.color.set(0x1d2433);A.ump.userData.mats.cap.color.set(0x111318);A.ump.userData.num.visible=false;
 }
@@ -3209,7 +3211,7 @@ function p3ResetField(G){
   const lb=A.batter.userData.lh;A.batter.position.set(lb?-.95:.95,0,.15);A.batter.rotation.y=lb?Math.PI/2:-Math.PI/2;A.batter.visible=true;
   if(A.batter.userData.batPivot)A.batter.userData.batPivot.visible=true;p3Idle(A.batter);p3SwingPose(A.batter,0);
   const on=G.pa?G.pa.on:'';A.runners.forEach((r,i)=>{const b=i+1;if(on.includes(String(b))){const [x,z]=BASEP[b];r.position.set(-(x+(b===1?-1.2:b===3?1.2:-.8)),0,z-.6);r.rotation.y=Math.atan2(x,-z);r.visible=true;p3Pose(r,P_LEAD,1)}else r.visible=false});
-  A.ball.visible=false;A.shadow.visible=false;A.trail.visible=false;A.land.visible=false;A.mitt.position.set(0,.75,-.72);P3.trailN=0;P3.rh=[];A.glow.visible=false;
+  A.ball.visible=false;A.shadow.visible=false;A.trail.visible=false;A.land.visible=false;A.arrival.visible=false;A.mitt.position.set(0,.75,-.72);P3.trailN=0;P3.rh=[];A.glow.visible=false;
 }
 function p3Board(G){
   const key=[G.a.join(','),G.h.join(','),G.my,G.op,G.inn,G.top,G.pa&&G.pa.b,G.pa&&G.pa.s,G.pa&&G.pa.out].join('|');if(key===P3.board)return;P3.board=key;
@@ -3310,6 +3312,14 @@ function p3Fireworks(x,z){
 /* ---- 카메라 ---- */
 const VIEW3={bat:{pos:[0,1.5,-3.9],look:[0,-.1,16.1],h:31,v:27},pit:{pos:[-.6,3.25,28],look:[0,.43,0],h:6.8,v:10}};
 function p3Fov(h,v){const a=P3.cam.aspect;return Math.max(v,2*Math.atan(Math.tan(h*Math.PI/360)/a)*180/Math.PI)}
+// 플레이어용 도착점 안내는 시력 능력치와 무관하게 준비 동작부터 유지한다.
+function pgLandingGuide(G,an,now){
+  if(G.mode!=='bat'||!G.cur||!an||!['wind','fly'].includes(an.k))return null;
+  const progress=an.k==='fly'?clamp((now-an.t0)/an.dur,0,1):0;
+  const ready=an.k==='fly'&&Math.abs(now-an.t0-an.dur)<=pgWindows().gd*(1.15-.3*P3.bpow);
+  return{x:-zx(G.cur.u),y:zy(G.cur.v),radius:.08+.2*(1-progress),
+    color:G.cur.inZ?(ready?0x76f0b1:0xffc845):0xcbd5e1,ready};
+}
 /* ---- 프레임 ---- */
 function p3Frame(G,now,dt){
   const A=P3.A,an=PG.an,V=P3.V||(P3.V={a:new THREE.Vector3(),b:new THREE.Vector3(),pos:new THREE.Vector3(0,26,-30),look:new THREE.Vector3(0,2,30),tp:new THREE.Vector3(),tl:new THREE.Vector3()});
@@ -3334,7 +3344,7 @@ function p3Frame(G,now,dt){
   const showRet=G.mode==='bat'&&G.st==='pitching'&&!P3.bb;A.ret.visible=showRet;
   if(showRet){const h=PG.hover||{u:0,v:0},rr=reticleR()*(1.25-.5*P3.bpow);A.ret.position.set(-zx(h.u),zy(h.v),-.02);A.ret.scale.setScalar(rr);A.ret.children[0].material.opacity=PG.sw?.35:.85}
   // 공: 준비 동작부터 릴리스까지 투구 손에 붙인다.
-  A.ball.visible=false;A.land.visible=false;
+  A.ball.visible=false;A.land.visible=false;A.arrival.visible=false;
   if(an&&an.k==='wind'){
     A.pitcher.updateMatrixWorld(true);
     (A.pitcher.userData.lh?A.pitcher.userData.AL.hd:A.pitcher.userData.AR.hd).getWorldPosition(A.ball.position);
@@ -3342,9 +3352,16 @@ function p3Frame(G,now,dt){
   }
   if(an&&an.k==='fly'&&G.cur){
     const t0=(now-an.t0)/an.dur,hb=bodyHit(G.cur,p3BatLH(G)),t=hb?Math.min(t0,1):t0;p3PitchPos(G.cur,t,V.a);A.ball.position.copy(V.a);A.ball.visible=t<1.12;{const sp=(PTY[G.cur.type]||PTY['직구']).spin;A.ball.rotation.x+=dt*sp[0];A.ball.rotation.y+=dt*sp[1]*(G.cur.lh?-1:1);A.ball.rotation.z+=dt*sp[2]*(G.cur.lh?-1:1)}A.ball.scale.setScalar(clamp(P3.cam.position.distanceTo(V.a)/16,1,1.5));
-    if(G.mode==='bat'){const rf=clamp(.82-(S.stats.eye-40)*.007,.45,.82);if(t>=rf){A.land.visible=true;A.land.position.set(-zx(G.cur.u),zy(G.cur.v),-.03);A.land.material.color.set(G.cur.inZ?0xffc845:0xdddddd)}}
+
     p3Trail(V.a);
   }else if(an&&an.k==='post'&&PG.last&&!P3.bb&&!bodyHit(PG.last,p3BatLH(G))){A.ball.visible=true;A.ball.scale.setScalar(1);A.ball.position.set(A.mitt.position.x,A.mitt.position.y,-.7)}
+  const guide=pgLandingGuide(G,an,now);
+  if(guide&&!P3.bb){
+    A.land.visible=A.arrival.visible=true;
+    A.land.position.set(guide.x,guide.y,-.035);A.arrival.position.copy(A.land.position);
+    A.land.material.color.setHex(guide.color);A.arrival.material.color.setHex(guide.color);
+    A.arrival.scale.setScalar(guide.radius);A.arrival.material.opacity=guide.ready?.95:.65;
+  }
   // 타구
   const B=P3.bb;
   if(B){
@@ -3564,7 +3581,7 @@ function pgCtlHTML(G){
   if(G.st==='intro')return`<div class="p3card"><span class="k">${G.mode==='bat'?'타석':'마운드'} · ${G.inn}회${G.top?'초':'말'}</span><p>${esc(G.intro||'')}</p><button class="btn play" data-a="pg-start">${G.mode==='bat'?'타석에 들어서기':'마운드에 오르기'}</button></div>`;
   if(G.st==='between')return`<div class="p3card"><p>${esc(G.msg)}</p>${pgLineHTML(G)}<button class="btn" data-a="pg-next">다음</button></div>`;
   if(G.mode==='bat'){const pw=Math.round(P3.bpow*100);
-    return`<p class="p3hint">공이 홈플레이트에 도착할 때, 공이 오는 위치를 직접 누르세요. 누른 순간 타격해요. 볼은 그냥 보내세요.</p>
+    return`<p class="p3hint">작은 원이 공의 도착 위치예요. 바깥 원이 작은 원에 겹칠 때 그 위치를 누르세요. 초록색은 타격 타이밍, 회색은 볼이에요.</p>
     <div class="spow"><span>짧게</span><input type="range" id="p3pow" min="0" max="100" value="${pw}" aria-label="스윙 세기"><span>세게</span><b id="p3powv">${powLab(P3.bpow)}</b></div>
     <div class="p3tap-guide"><span class="p3tap-dot"></span>공 위치를 터치 / 클릭해서 타격</div>`}
   const types=`<div class="pg-types" role="group" aria-label="구종">${G.ars.map(t=>`<button class="${G.sel.type===t?'on':''}" data-a="pg-type" data-v="${t}" ${G.st==='anim'?'disabled':''}>${t}<small>최고 ${Math.round(pgVk(G,t,1))}km</small></button>`).join('')}</div>`;
