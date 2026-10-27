@@ -3100,7 +3100,7 @@ function p3BuildActors(){
   A.ball=new THREE.Mesh(new THREE.SphereGeometry(.037,20,14),new THREE.MeshLambertMaterial({map:ballTex(),emissive:0x2a2a2a}));A.ball.castShadow=true;A.ball.visible=false;sc.add(A.ball);
   A.shadow=new THREE.Mesh(new THREE.CircleGeometry(.07,16),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.32,depthWrite:false}));A.shadow.rotation.x=-Math.PI/2;A.shadow.visible=false;sc.add(A.shadow);
   // 공이 멀리 가도 보이게: 화면 크기가 일정한 빛 + 꼬리처럼 남는 리본 궤적
-  A.glow=new THREE.Sprite(new THREE.SpriteMaterial({map:cvTex(64,64,x=>{const g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.22,'rgba(255,248,222,.9)');g.addColorStop(.55,'rgba(255,214,140,.25)');g.addColorStop(1,'rgba(255,200,120,0)');x.fillStyle=g;x.fillRect(0,0,64,64)}),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
+  A.glow=new THREE.Sprite(new THREE.SpriteMaterial({map:cvTex(64,64,x=>{const g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,255,.45)');g.addColorStop(.22,'rgba(255,248,222,.18)');g.addColorStop(.55,'rgba(255,214,140,.02)');g.addColorStop(1,'rgba(255,200,120,0)');x.fillStyle=g;x.fillRect(0,0,64,64)}),transparent:true,opacity:.35,depthWrite:false,blending:THREE.AdditiveBlending}));
   A.glow.visible=false;A.glow.renderOrder=4;sc.add(A.glow);
   const rg=new THREE.BufferGeometry();rg.setAttribute('position',new THREE.BufferAttribute(new Float32Array(RIBN*6),3));rg.setAttribute('a',new THREE.BufferAttribute(new Float32Array(RIBN*2),1));
   const ix=[];for(let i=0;i<RIBN-1;i++){const a=i*2;ix.push(a,a+1,a+2,a+1,a+3,a+2)}rg.setIndex(ix);
@@ -3322,7 +3322,7 @@ function p3Frame(G,now,dt){
   P3.cam.position.copy(V.pos);P3.cam.lookAt(V.look);
   const fv=vw==='bat'||vw==='pit'?p3Fov(VIEW3[vw].h,VIEW3[vw].v):p3Fov(48,40);if(Math.abs(P3.cam.fov-fv)>.01){P3.cam.fov=fv;P3.cam.updateProjectionMatrix()}
   const gv=A.ball.visible&&an&&(an.k==='fly'||an.k==='bb');A.glow.visible=gv;
-  if(gv){A.glow.position.copy(A.ball.position);A.glow.scale.setScalar(clamp(P3.cam.position.distanceTo(A.ball.position)*.010,.03,1.8));p3Rib()}else A.trail.visible=false;
+  if(gv){A.glow.position.copy(A.ball.position);A.glow.scale.setScalar(clamp(P3.cam.position.distanceTo(A.ball.position)*.0035,.02,.6));p3Rib()}else A.trail.visible=false;
 }
 function p3Trail(p){if(!P3.trailN)P3.rh=[];const H=P3.rh;H.unshift(p.x,p.y,p.z);if(H.length>RIBN*3)H.length=RIBN*3;P3.trailN=H.length/3}
 function p3Rib(){
