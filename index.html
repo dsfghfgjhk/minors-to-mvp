@@ -55,7 +55,7 @@ html,body{min-height:100%}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 0}
 button{font:inherit;color:inherit}
-.app{max-width:480px;margin:0 auto;display:grid;gap:10px;padding-bottom:20px}
+.app{max-width:760px;margin:0 auto;display:grid;gap:10px;padding-bottom:20px}
 .app.tabs{padding-bottom:calc(160px + env(safe-area-inset-bottom,0px))}
 .num{font-variant-numeric:tabular-nums}
 .muted{color:var(--muted)}
@@ -108,7 +108,7 @@ b.blue{color:var(--blue)}
 .btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 :focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 .dock{position:fixed;left:0;right:0;bottom:0;z-index:20;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));pointer-events:none}
-.dock>div{max-width:480px;margin:0 auto;pointer-events:auto}
+.dock>div{max-width:760px;margin:0 auto;pointer-events:auto}
 .cta{padding:10px 0;background:linear-gradient(#f2f4f600,var(--bg) 35%)}
 .tabbar{background:var(--card);border-radius:20px 20px 0 0;display:grid;grid-template-columns:repeat(5,1fr);padding:8px 4px calc(8px + env(safe-area-inset-bottom,0px));box-shadow:0 -1px 0 var(--line)}
 .tab{appearance:none;border:0;background:transparent;display:grid;justify-items:center;gap:2px;font-size:11px;color:var(--muted);cursor:pointer;padding:4px 0;border-radius:10px}
@@ -156,7 +156,7 @@ select{font:inherit;font-weight:600;font-size:15px;border:0;background:var(--car
 .pickrow:last-child{border-bottom:0}
 .pickrow span.v{display:flex;gap:10px;align-items:center;color:var(--ink2);font-variant-numeric:tabular-nums}
 .ov{position:fixed;inset:0;background:var(--scrim);z-index:40;display:flex;align-items:flex-end;justify-content:center}
-.sheet{background:var(--card);width:100%;max-width:480px;border-radius:24px 24px 0 0;padding:20px max(20px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px));display:grid;gap:14px;max-height:92vh;overflow-y:auto;position:relative}
+.sheet{background:var(--card);width:100%;max-width:620px;border-radius:24px 24px 0 0;padding:20px max(20px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px));display:grid;gap:14px;max-height:92vh;overflow-y:auto;position:relative}
 @media (min-width:600px){.ov{align-items:center}.sheet{border-radius:24px}}
 .x{position:absolute;top:10px;right:10px}
 .scene{width:100%;border-radius:16px;image-rendering:pixelated;display:block;aspect-ratio:96/56;background:var(--fill)}
@@ -266,12 +266,21 @@ body,.ttl,h1,h2,.desc,.situ,.choice,.item,.fi,.art h3{word-break:keep-all;overfl
 .fi.gold{background:var(--gold-s);border-color:var(--gold)} .fi.hl{background:var(--blue-s);border-color:var(--blue)} .fi.bad{border-color:var(--red)}
 .move .arrow{font-size:22px;color:var(--blue);font-weight:800;text-align:center}
 .cmt .pf{background:var(--blue-s);color:var(--blue)}
-.site-foot{max-width:480px;margin:0 auto;padding:8px 4px 28px;display:grid;gap:6px;font-size:12px;color:var(--muted);text-align:center}
+.site-foot{max-width:760px;margin:0 auto;padding:8px 4px 28px;display:grid;gap:6px;font-size:12px;color:var(--muted);text-align:center}
 .site-foot strong{color:var(--ink2)}
 .site-foot nav{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
 .site-foot a{color:var(--ink2)}
 .app.tabs{padding-bottom:16px}
 .app.tabs~.site-foot{padding-bottom:calc(170px + env(safe-area-inset-bottom,0px))}
+@media (min-width:640px){
+  .avgrid{grid-template-columns:repeat(6,minmax(0,1fr))}
+  .sec{padding:24px 28px}
+  .page{padding:20px 32px 28px}
+  .scoreboard{padding:20px 24px}
+  .scoreboard h1{font-size:32px}
+  .sbgrid b{font-size:32px}
+  .ttl{font-size:28px}
+}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
