@@ -3222,7 +3222,14 @@ function p3MakeBB(G,res,ob){
     const before=ob.split('').map(Number).sort((a,b)=>b-a), after=G.pa.on.split('').map(Number).filter(b=>b!==bDest).sort((a,b)=>b-a);
     let sc=Math.max(0,runs);
     before.forEach(b=>{let to=b;if(sc>0){to=4;sc--}else if(after.length)to=Math.max(b,after.shift());if(out&&!res.runs)to=b;A.runners.push({from:b,to})});
-    A.runners.push({from:0,to:bDest,bat:true,out});
+    // 판정에 쓰는 홈→1루 소요 시간과 화면의 주루 속도를 맞춘다.
+    const speedStat=G.mode==='bat'?S.stats.spd:50;
+    const firstTime=clamp(4.3-((speedStat||50)-50)*.016,3.5,5.1);
+    const retireAt=out?(A.thr?A.thr.t0+A.thr.dur:A.fT):null;
+    const runTime=res.k==='GO'&&retireAt!=null?Math.max(firstTime,retireAt):firstTime;
+    A.runners.forEach(r=>r.speed=27.4/firstTime);
+    A.runners.push({from:0,to:bDest,bat:true,out,speed:27.4/runTime,retireAt});
+    if(retireAt!=null)A.dur=Math.max(A.dur,retireAt+.65);
   }
   return A;
 }
@@ -3302,9 +3309,9 @@ function p3Frame(G,now,dt){
     if(!B.foul){let ri=0;
       if(A.batter.visible&&t>.35){A.batter.userData.batPivot.visible=false}
       B.runners.forEach(r=>{const fig=r.bat?A.batter:A.runners[ri++];if(!fig)return;
-        const sp=12, f=Math.min(r.to,r.from+Math.max(0,t-(r.bat?.35:.1))*sp/27.4), lim=r.bat&&r.out?Math.min(f,.95):f, [x,z]=p3BasePt(lim);
-        fig.visible=!(r.to===4&&lim>=4)&&!(r.bat&&r.out&&t>B.dur-.6);fig.position.set(-x,0,z);
-        if(lim<r.to&&lim<(r.bat&&r.out?.95:9)){const [nx,nz]=p3BasePt(Math.min(r.to,lim+.05));fig.rotation.y=Math.atan2(-(nx-x),nz-z);p3Run(fig,t*14,1)}else p3Idle(fig)});
+        const sp=r.speed||6.4, f=Math.min(r.to,r.from+Math.max(0,t-(r.bat?.35:.1))*sp/27.4), lim=f, [x,z]=p3BasePt(lim);
+        fig.visible=!(r.to===4&&lim>=4)&&!(r.bat&&r.out&&t>(r.retireAt!=null?r.retireAt+.18:B.dur-.6));fig.position.set(-x,0,z);
+        if(lim<r.to){const [nx,nz]=p3BasePt(Math.min(r.to,lim+.05));fig.rotation.y=Math.atan2(-(nx-x),nz-z);p3Run(fig,t*11*(sp/6.4),1)}else p3Idle(fig)});
     }
   }
   // 불꽃
