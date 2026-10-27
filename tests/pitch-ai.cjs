@@ -34,6 +34,7 @@ console.log('Live-pitch lifecycle passed');
 `,ctx);
 
 vm.runInContext(`
+S.stats.con=50;
 const guideGame={mode:'bat',cur:{u:1,v:-1,inZ:true}};
 const wind={k:'wind',t0:1000,dur:900},fly={k:'fly',t0:1900,dur:500};
 for(const eye of [30,90]){S.stats.eye=eye;
