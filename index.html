@@ -3168,13 +3168,13 @@ function p3Fabric(){return P3FABRIC||(P3FABRIC=cvTex(64,64,(x,w,h)=>{x.fillStyle
 /* ---- 선수 3D 모델: 골반·허리·가슴·목·어깨·팔꿈치·손목·고관절·무릎·발목이 있는 리그 ---- */
 let GEO=null;
 const LT=.44,LS=.43,FH=.07,UA=.29,FA=.27;      // 허벅지·정강이·발 높이·위팔·아래팔(손 포함) 길이
-function p3Geo(){if(GEO)return GEO;const cp=(r,l,s=10)=>new THREE.CapsuleGeometry(r,l,4,s);
+function p3Geo(){if(GEO)return GEO;const cp=(r,l,s=16)=>new THREE.CapsuleGeometry(r,l,6,s);
   GEO={pelvis:(()=>{const g=cp(.15,.15,12);g.rotateZ(Math.PI/2);g.scale(1,1,.78);return g})(),
     torso:(()=>{const g=cp(.185,.25,14);g.scale(1.2,1,.74);return g})(),chestU:(()=>{const g=cp(.155,.1,14);g.rotateZ(Math.PI/2);g.scale(1,.95,.8);return g})(),
     neck:new THREE.CylinderGeometry(.052,.058,.1,10),head:(()=>{const g=new THREE.SphereGeometry(.112,18,14);g.scale(.94,1.1,1.02);return g})(),
     ear:new THREE.SphereGeometry(.025,8,6),
     thigh:cp(.088,LT-.13),shinP:cp(.07,.1),sock:cp(.062,.2),
-    shoe:(()=>{const g=new THREE.BoxGeometry(.105,.075,.27,1,1,1);g.translate(0,0,.055);return g})(),
+    shoe:(()=>{const g=new THREE.SphereGeometry(1,20,12);g.scale(.057,.042,.145);g.translate(0,0,.045);return g})(),
     sleeve:cp(.066,.05),ua:cp(.058,UA-.1),fa:cp(.047,FA-.13),hand:(()=>{const g=new THREE.SphereGeometry(.046,10,8);g.scale(.9,1.15,.7);return g})(),
     cap:new THREE.SphereGeometry(.122,18,10,0,Math.PI*2,0,Math.PI/2),
     brim:(()=>{const g=new THREE.CylinderGeometry(.1,.1,.012,18);g.scale(1,1,.9);g.translate(0,0,.04);return g})(),
@@ -3184,6 +3184,20 @@ function p3Geo(){if(GEO)return GEO;const cp=(r,l,s=10)=>new THREE.CapsuleGeometr
     pad:(()=>{const g=new THREE.BoxGeometry(.36,.42,.08);g.translate(0,0,.16);return g})(),guard:(()=>{const g=new THREE.BoxGeometry(.11,.36,.07);g.translate(0,-.2,.07);return g})(),
     mask:(()=>{const g=new THREE.BoxGeometry(.2,.21,.05);g.translate(0,0,.11);return g})(),num:new THREE.PlaneGeometry(.2,.18),
     bat:(()=>{const g=new THREE.CylinderGeometry(.032,.013,.86,14);g.translate(0,.43,0);return g})(),knob:new THREE.CylinderGeometry(.022,.022,.012,10)};return GEO}
+// 골반·척추·가슴의 회전을 부드럽게 섞는 한 장의 유니폼 메시.
+function p3TorsoGeometry(){
+  const outline=[[.165,1.035],[.174,1.075],[.167,1.13],[.174,1.21],[.196,1.30],[.223,1.38],[.247,1.445],[.226,1.49],[.15,1.53],[.065,1.555]];
+  const curve=new THREE.SplineCurve(outline.map(([r,y])=>new THREE.Vector2(r,y)));
+  const geo=new THREE.LatheGeometry(curve.getPoints(36),28);geo.scale(1,1,.69);
+  const positions=geo.attributes.position,indices=[],weights=[];
+  for(let i=0;i<positions.count;i++){
+    const y=positions.getY(i),upper=y>=1.25,start=upper?1.25:1.035,end=upper?1.49:1.25;
+    const t=clamp((y-start)/(end-start),0,1),w=t*t*(3-2*t);
+    indices.push(upper?1:0,upper?2:1,0,0);weights.push(1-w,w,0,0);
+  }
+  geo.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(indices,4));geo.setAttribute('skinWeight',new THREE.Float32BufferAttribute(weights,4));
+  geo.computeVertexNormals();return geo;
+}
 const NUMT={};
 function numTex(n,col){const k=n+'|'+col;if(NUMT[k])return NUMT[k];
   return NUMT[k]=cvTex(128,128,x=>{x.clearRect(0,0,128,128);x.font='700 96px "Barlow Condensed","Noto Sans KR",sans-serif';x.textAlign='center';x.textBaseline='middle';
@@ -3194,11 +3208,11 @@ function p3Player(o){
   const mats={uni:L(0xf6f6f2),pants:L(0xf0f1f3),trim:L(0x17305c),cap:L(0x17305c),skin:L(0xe8b98f),
     helm:new THREE.MeshStandardMaterial({color:0x17305c,roughness:.24,metalness:.22}),num:new THREE.MeshLambertMaterial({transparent:true,depthWrite:false,color:0xffffff})};
   mats.uni.bumpMap=mats.pants.bumpMap=p3Fabric();mats.uni.bumpScale=mats.pants.bumpScale=.0015;
-  const J=(par,x,y,z)=>{const j=new THREE.Group();j.position.set(x,y,z);par.add(j);return j};
+  const J=(par,x,y,z)=>{const j=new THREE.Bone();j.position.set(x,y,z);par.add(j);return j};
   const M=(geo,mat,par,x=0,y=0,z=0)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;par.add(m);return m};
   const hips=J(body,0,LT+LS+FH,0);M(G_.pelvis,mats.pants,hips,0,.02,0);M(G_.belt,o.ump?ML(0x111111):mats.trim,hips,0,.12,0).scale.set(1,1,.8);
-  const spine=J(hips,0,.12,0);M(G_.torso,mats.uni,spine,0,.2,0);
-  const chest=J(spine,0,.3,0);M(G_.chestU,mats.uni,chest,0,.06,0);M(G_.neck,mats.skin,chest,0,.2,0);
+  const spine=J(hips,0,.12,0);
+  const chest=J(spine,0,.3,0);M(G_.neck,mats.skin,chest,0,.2,0);
   if(!o.ump){M(G_.collar,mats.trim,chest,0,.17,.0).rotation.x=Math.PI/2}
   const nm=new THREE.Mesh(G_.num,mats.num);nm.position.set(0,.0,-.152);nm.rotation.y=Math.PI;chest.add(nm);
   if(o.gear){M(G_.pad,ML(0x23262d),spine,0,.24,-.02)}
@@ -3219,6 +3233,13 @@ function p3Player(o){
   const leg=sx=>{const th=J(hips,sx*.098,-.02,0);M(G_.thigh,mats.pants,th,0,-LT/2,0);const kn=J(th,0,-LT,0);M(G_.shinP,mats.pants,kn,0,-.1,0);
     M(G_.sock,o.ump?ML(0x111111):mats.trim,kn,0,-.27,0);if(o.gear)M(G_.guard,ML(0x23262d),kn,0,0,0);const ft=J(kn,0,-LS,0);M(G_.shoe,ML(0x15171c),ft,0,-.03,0);return{th,kn,ft}};
   const LL=leg(1),LR=leg(-1);
+  // 관절 틈을 작은 둥근 연결부로 덮는다.
+  if(!G_.joint)G_.joint=new THREE.SphereGeometry(1,14,10);
+  for(const ar of [AL,AR])M(G_.joint,mats.trim,ar.el).scale.set(.049,.049,.049);
+  for(const lg of [LL,LR])M(G_.joint,mats.pants,lg.kn).scale.set(.072,.072,.072);
+  if(!G_.skinTorso)G_.skinTorso=p3TorsoGeometry();
+  const jersey=new THREE.SkinnedMesh(G_.skinTorso,mats.uni);jersey.castShadow=jersey.receiveShadow=true;jersey.frustumCulled=false;g.add(jersey);
+  g.updateMatrixWorld(true);jersey.bind(new THREE.Skeleton([hips,spine,chest]));
   let batPivot=null;
   if(o.bat){batPivot=new THREE.Group();body.add(batPivot);const b=new THREE.Mesh(G_.bat,ML(0xd2a15e));b.castShadow=true;batPivot.add(b);const kb=new THREE.Mesh(G_.knob,ML(0x5b3a1c));batPivot.add(kb)}
   g.userData={body,hips,spine,chest,head,AL,AR,LL,LR,batPivot,mats,gloves,flaps,num:nm,lh:!!o.lh,ph:Math.random()*6,o};
@@ -3226,10 +3247,10 @@ function p3Player(o){
   return g;
 }
 /* ---- 자세: 관절 각도(라디안)와 손 목표(IK) ---- */
-const PJ=['hips','spine','head','thL','knL','ftL','thR','knR','ftR','shL','elL','shR','elR'],Z3=[0,0,0];
-function jointOf(u,k){switch(k){case'hips':return u.hips;case'spine':return u.spine;case'head':return u.head;case'thL':return u.LL.th;case'knL':return u.LL.kn;case'ftL':return u.LL.ft;
+const PJ=['hips','spine','chest','head','thL','knL','ftL','thR','knR','ftR','shL','elL','shR','elR'],Z3=[0,0,0];
+function jointOf(u,k){switch(k){case'hips':return u.hips;case'spine':return u.spine;case'chest':return u.chest;case'head':return u.head;case'thL':return u.LL.th;case'knL':return u.LL.kn;case'ftL':return u.LL.ft;
   case'thR':return u.LR.th;case'knR':return u.LR.kn;case'ftR':return u.LR.ft;case'shL':return u.AL.sh;case'elL':return u.AL.el;case'shR':return u.AR.sh;default:return u.AR.el}}
-const MIRK={thL:'thR',thR:'thL',knL:'knR',knR:'knL',ftL:'ftR',ftR:'ftL',shL:'shR',shR:'shL',elL:'elR',elR:'elL',hL:'hR',hR:'hL',pL:'pR',pR:'pL'};
+const MIRK={footL:'footR',footR:'footL',thL:'thR',thR:'thL',knL:'knR',knR:'knL',ftL:'ftR',ftR:'ftL',shL:'shR',shR:'shL',elL:'elR',elR:'elL',hL:'hR',hR:'hL',pL:'pR',pR:'pL'};
 function mirPose(P){const o={_m:1};for(const k in P){const v=P[k],k2=MIRK[k]||k;
   if(['hL','hR','knob','bdir','pL','pR','footL','footR'].includes(k))o[k2]=[-v[0],v[1],v[2]];else if(Array.isArray(v))o[k2]=[v[0],-v[1],-v[2]];else if(k==='bx')o[k]=-v;else o[k2]=v}return o}
 let _ia,_ib,_ic,_in,_iq,DN,_iw,_bq,_bu,_bh,_cw;   // three.js가 늦게 불러와져서 3D를 처음 만들 때 채워요
@@ -3311,6 +3332,14 @@ const PITK=[
  {t:1.08,hy:.79,bz:.63,hips:[0,.3,0],spine:[.46,.15,0],head:[-.37,-.4,0],footL:[.17,.07,1.12],footR:[-.2,.36,.54],hL:[.22,1.02,.96],hR:[.3,.85,1.08]},
  {t:1.4,hy:.84,bz:.63,hips:[0,.06,0],spine:[.2,0,0],head:[-.18,-.06,0],footL:[.17,.07,1.12],footR:[-.2,.07,.37],hL:[.18,1.14,.93],hR:[-.12,1.14,.95]}
 ];
+// 골반이 먼저 풀리고 어깨가 뒤따르며, 머리는 목표를 계속 바라본다.
+PITK.forEach((P,i)=>{
+  const hip=[-.2,-.7,-.62,-.1,.35,.53,.4,.06][i];
+  P.hips=[P.hips[0],hip,i===2?-.04:i===4?.045:0];
+  P.chest=[[.02,-.06,0],[.02,-.16,.03],[.02,-.26,.04],[.06,-.28,.06],[.12,.18,-.045],[.18,.3,-.08],[.08,.18,-.03],[.02,0,0]][i];
+  P.bx=[0,-.035,-.025,.015,.045,.055,.04,.02][i];
+  P.head=[-P.spine[0]*.8,-(hip+P.spine[1]+P.chest[1]),0];
+});
 function p3PitchPose(p,t){p3Pose(p,kfPose(PITK,t),1)}
 // 릴리스 포즈의 실제 투구 손을 공의 출발점으로 사용한다.
 function p3Release(c){
@@ -3330,6 +3359,13 @@ const SWK=[
  {t:.8,hy:.84,hips:[0,.62,0],spine:[.1,.35,0],head:[0,.23,0],footL:[.36,.07,0],footR:[-.28,.1,0],knob:[.21,1.36,.14],bdir:[.7,.62,-.35]},
  {t:1,hy:.85,hips:[0,.62,0],spine:[.08,.32,0],head:[0,.26,0],footL:[.36,.07,0],footR:[-.28,.1,0],knob:[.12,1.44,.02],bdir:[.26,.68,-.69]}
 ];
+SWK.forEach((P,i)=>{
+  P.hips=[0,[-.13,-.35,.15,.55,.83,.96,.94][i],0];
+  P.spine=[P.spine[0],[-.1,-.2,-.16,.1,.28,.35,.3][i],[-.02,-.04,-.025,.035,.06,.04,.02][i]];
+  P.chest=[[.02,-.05,0],[.02,-.12,0],[.03,-.22,0],[.05,.14,0],[.06,.27,0],[.04,.3,0],[.02,.22,0]][i];
+  P.bx=[-.025,-.05,-.01,.045,.075,.085,.075][i];
+  P.head=[P.head[0],1.2-P.hips[1]-P.spine[1]-P.chest[1],0];
+});
 function p3BatPose(p,P){
   const u=p.userData;if(u.lh)P=mirPose(P);
   const hp={...P};delete hp.knob;delete hp.bdir;hp._m=1;p3Pose(p,hp,1);
