@@ -2685,21 +2685,75 @@ function pgAIBall(G,c,bt,q,mid,corner){
   const la=clamp(10+gauss()*24+bt.p*5-c.v*6+((PTY[c.type]||{}).la||0),-40,75), sp=gauss()*20+(bt.lh?8:-8);
   return bbResolve(ev,la,sp,50);
 }
+// 타자는 구종/실제 도착점 대신 지연된 공 관측과 이전 투구 경험으로 예측한다.
+function pgAISample(c,time){
+  if(!c.path)p3BuildPitch(c);const path=c.path;
+  let lo=0,hi=path.length-1;while(lo+1<hi){const m=(lo+hi)>>1;if(path[m][0]<time)lo=m;else hi=m}
+  const a=path[lo],b=path[hi],f=clamp((time-a[0])/(b[0]-a[0]),0,1);
+  return a.slice(1).map((v,j)=>v+(b[j+1]-v)*f);
+}
+function pgAIStart(G,t0){
+  const bt=G.lu[G.bi],c=G.cur;
+  c.read={t0,decision:null,noiseU:gauss()*(.18+(1-bt.e)*.4),noiseV:gauss()*(.18+(1-bt.e)*.4),
+    motor:gauss()*(8+(1-bt.c)*18),reaction:155+(1-bt.c)*65,learned:false};
+  G.aiSwing=false;
+}
+function pgAITrack(G,now,animate=true){
+  const c=G.cur,r=c.read;if(!r||r.decision!=null)return;
+  const bt=G.lu[G.bi],elapsed=(now-r.t0)/1000;
+  if(elapsed*1000<r.reaction)return;
+  // 시각 처리 지연 65~100ms, 최근 90ms의 위치 차이로 속도/곡률을 추정.
+  const observed=Math.max(.09,elapsed-(.065+(1-bt.e)*.035)),h=.045;
+  const p=pgAISample(c,observed),a=pgAISample(c,observed-h),b=pgAISample(c,observed-2*h);
+  const acc=p.map((v,i)=>(v-2*a[i]+b[i])/(h*h));
+  const vel=p.map((v,i)=>(v-a[i])/h+acc[i]*h/2);
+  const left=clamp(p[2]/Math.max(8,-vel[2])*1.025,.005,1.2);
+  const history=(G.batterMemory||{})[G.bi]||[];
+  let weight=1,ax=0,ay=-6;
+  for(const item of history){const w=Math.exp(-Math.abs(item.speed+vel[2])/3.5)*2;weight+=w;ax+=item.ax*w;ay+=item.ay*w}
+  ax/=weight;ay/=weight;
+  const track=clamp(.2+(observed-.1)*1.25+bt.c*.12,.2,.65);
+  ax=ax*(1-track)+acc[0]*track;ay=ay*(1-track)+acc[1]*track;
+  const u=-(p[0]+vel[0]*left+.5*ax*left*left)/ZW+r.noiseU;
+  const v=(ZC-(p[1]+vel[1]*left+.5*ay*left*left))/ZH+r.noiseV;
+  const contactAt=r.t0+(observed+left)*1000+r.motor;
+  r.prediction={u,v,contactAt,observed,p,vel,left};
+  if(now<contactAt-CONTACT_MS)return;
+  const edge=Math.max(Math.abs(u),Math.abs(v)),protect=G.pa.s===2;
+  const swingChance=edge<=1.65?clamp(.91+(protect?.07:0)-(G.pa.b===3&&!protect?.16:0),0,1):clamp(.4+(protect?.2:0)-bt.e*.25-(edge-1.65)*.5,.015,.65);
+  r.decision=R()<swingChance;r.swingAt=now;r.contactAt=now+CONTACT_MS;r.aim={u,v};
+  G.aiSwing=r.decision;
+  if(r.decision&&animate){PG.swAt=now;PG.aiSw=0}
+}
+function pgAILearn(G){
+  const c=G.cur,r=c.read;if(r.learned)return;r.learned=true;
+  const pred=r.prediction;if(!pred)return;
+  // 홈 도착 후에만 실제 궤적을 학습한다. 현재 투구의 미래 정보는 관측에 쓰지 않는다.
+  const remain=c.ms/1000-pred.observed;if(remain<.08)return;
+  const end=pgAISample(c,c.ms/1000),memory=G.batterMemory||(G.batterMemory={}),list=memory[G.bi]||(memory[G.bi]=[]);
+  list.push({speed:-pred.vel[2],ax:clamp(2*(end[0]-pred.p[0]-pred.vel[0]*remain)/(remain*remain),-30,30),
+    ay:clamp(2*(end[1]-pred.p[1]-pred.vel[1]*remain)/(remain*remain),-35,12)});
+  if(list.length>12)list.shift();
+}
 function pgResolvePit(G){
-  const c=G.cur, pa=G.pa, bt=G.lu[G.bi], L=G.L;G.lastBB=null;
+  const c=G.cur,pa=G.pa,bt=G.lu[G.bi],L=G.L;G.lastBB=null;
+  // 자동 진행도 동일한 관측 모델을 시간 순서대로 실행한다.
+  if(!c.read){p3BuildPitch(c);pgAIStart(G,0);for(let t=0;t<=c.ms+220;t+=1000/60)pgAITrack(G,t,false)}
+  const r=c.read;pgAILearn(G);
   if(bodyHit(c,!!bt.lh)){G.aiSwing=false;G.lastVk=c.vk;return pgApply(G,R()<.88?'HBP':'B',null)}
   const vTyp=128+(L+8-30)*.55+PTY[c.type].dv;
   const q=(pst(G,PTY[c.type].s)-L)/40+(pst(G,'ctl')-L)/120+(c.vk-vTyp)/45;
-  const edge=Math.max(Math.abs(c.u),Math.abs(c.v)), mid=edge<.6, corner=c.inZ&&edge>1;
-  const seq=(G.lastType&&G.lastType!==c.type?.06:0)+(G.lastVk&&Math.abs(G.lastVk-c.vk)>=12?.06:0);G.lastType=c.type;G.lastVk=c.vk;
-  const sw=c.inZ?.66+(pa.s===2?.2:0)-(pa.b===3&&pa.s<2?.1:0)-bt.e*.1:clamp(.3+(pa.s===2?.14:0)+(c.type!=='직구'?.08:0)-bt.e*.25-(edge-1.6)*.4,.03,.6);
-  let k;G.aiSwing=R()<sw;
-  if(!G.aiSwing)k=c.inZ?'CS':'B';
+  const edge=Math.max(Math.abs(c.u),Math.abs(c.v)),mid=edge<.6,corner=c.inZ&&edge>1;
+  G.lastType=c.type;G.lastVk=c.vk;G.aiSwing=!!r.decision;
+  let k;
+  if(!r.decision)k=c.inZ?'CS':'B';
   else{
-    const wh=(PTY[c.type]||{}).wh||0, ct=c.inZ?.84-q*.25-(corner?.12:0)+(mid?.1:0)+bt.c*.12-seq-wh:.46-q*.2+bt.c*.1-(edge-1.6)*.3-seq-wh;
-    if(R()>ct)k='SW';
-    else if(R()<(c.inZ?.38:.52))k='F';
-    else{G.lastBB=pgAIBall(G,c,bt,q,mid,corner);k=G.lastBB.k}
+    const timing=Math.abs(r.contactAt-(r.t0+c.ms)),error=Math.hypot((r.aim.u-c.u)*ZW,(r.aim.v-c.v)*ZH);
+    const window=85+bt.c*70,reach=.13+bt.c*.14;
+    const quality=clamp(1-timing/window,0,1)*clamp(1-error/reach,0,1);
+    if(timing>window||error>reach||R()>clamp(.25+quality*.75-q*.12,.05,.98))k='SW';
+    else if(quality<.32||R()<.2)k='F';
+    else{G.lastBB=pgAIBall(G,c,bt,q+(1-quality)*1.4,mid,corner);k=G.lastBB.k}
   }
   return pgApply(G,k,null);
 }
@@ -3069,7 +3123,16 @@ function p3BatPose(p,P){
   p3IK(lo.sh,lo.el,u.batPivot.localToWorld(_bh.set(0,.06,0)),[sl*.5,-1,-.2]);
   p3IK(hi.sh,hi.el,u.batPivot.localToWorld(_bh.set(0,.155,0)),[-sl*.6,-1,-.1]);
 }
-function p3SwingPose(p,t){if(!p.userData.batPivot)return;p3BatPose(p,kfPose(SWK,clamp(t,0,1)))}
+function p3SwingPose(p,t,aim){
+  if(!p.userData.batPivot)return;
+  const P={...kfPose(SWK,clamp(t,0,1))};
+  if(aim){
+    const w=t<=CONTACT_T?clamp(t/CONTACT_T,0,1):clamp((1-t)/(1-CONTACT_T),0,1);
+    P.knob=P.knob.slice();P.knob[1]+=clamp(zy(aim.v)-.98,-.4,.35)*w;
+    P.knob[2]+=clamp(zx(aim.u)*(p.userData.lh?-1:1),-.18,.18)*w;
+  }
+  p3BatPose(p,P);
+}
 function p3BatStance(p,now,ld){
   if(!p.userData.batPivot)return;const P={...kfPose(SWK,.16*clamp(ld,0,1))},w=(1-clamp(ld,0,1));
   P.bdir=[P.bdir[0]+Math.sin(now/260)*.12*w,P.bdir[1],P.bdir[2]+Math.cos(now/310)*.08*w];P.knob=[P.knob[0],P.knob[1]+Math.sin(now/260)*.012*w,P.knob[2]];
@@ -3167,14 +3230,15 @@ function p3BuildPitch(c){
   const p=PTY[c.type]||PTY['직구'],hs=c.lh?-1:1;
   const r=c.release||[c.lh?-.38:.38,1.88,17.1],speed=Math.max(65,c.vk)/3.6;
   // q에 비례하는 항력과 구종별 회전 가속도. my는 중력 포함 낙차다.
-  const nominal=r[2]/(speed*.94),ax=-2*p.mx*hs/(nominal*nominal),ay=-2*p.my/(nominal*nominal);
+  const breaking=c.type!=='직구',sideBoost=breaking?(c.type==='스위퍼'?1.9:1.65):1,dropBoost=breaking?1.5:1;
+  const nominal=r[2]/(speed*.94),ax=-2*p.mx*hs*sideBoost/(nominal*nominal),ay=-2*p.my*dropBoost/(nominal*nominal);
   const seed=c.kw??(c.kw=R()*Math.PI*2),step=1/300;
   function integrate(vx,vy){
     let x=r[0],y=r[1],z=r[2],vz=-speed,time=0,pts=[[0,x,y,z]];
     for(let i=0;i<900&&z>-.95;i++){
       const q=Math.hypot(vx,vy,vz),f=clamp(1-z/r[2],0,1.1),lift=(q/speed)**2;
       // 포크/스플리터는 비행 후반 양력이 점진적으로 줄어든다.
-      const drop=['포크','스플리터'].includes(c.type)?-5.5*f*f:0;
+      const drop=['포크','스플리터'].includes(c.type)?-8*f*f:0;
       const nx=p.kn?2.8*Math.sin(f*15+seed):0,ny=p.kn?2.2*Math.sin(f*19+seed*1.7):0;
       const dx=-.006*q*vx+ax*lift+nx,dy=-.006*q*vy-9.81+(ay+9.81)*lift+drop+ny,dz=-.006*q*vz;
       // 반-암시적 오일러 적분, 홈플레이트 교차는 아래에서 보간.
@@ -3256,7 +3320,7 @@ function p3Frame(G,now,dt){
   // 타자 스윙
   if(PG.aiSw&&now>=PG.aiSw&&!PG.swAt){PG.swAt=PG.aiSw;PG.aiSw=0}
   A.batter.rotation.z=P3.hbp&&now-P3.hbp<650?Math.sin((now-P3.hbp)/40)*.18*(1-(now-P3.hbp)/650):0;
-  if(PG.swAt&&A.batter.visible&&(!P3.bb||P3.bb.t<.4))p3SwingPose(A.batter,(now-PG.swAt)/SWING_MS);
+  if(PG.swAt&&A.batter.visible&&(!P3.bb||P3.bb.t<.4))p3SwingPose(A.batter,(now-PG.swAt)/SWING_MS,G.mode==='pit'?(G.cur?.read?.aim||PG.last?.read?.aim):PG.aim);
   else if(!P3.bb&&A.batter.visible){const ld=an&&an.k==='fly'?clamp((now-an.t0)/an.dur*1.5,0,1):an&&an.k==='wind'?clamp(((now-an.t0)/an.dur-.55)*1.2,0,.45):an&&an.k==='post'?Math.max(0,1-(now-an.t0)/320):0;p3BatStance(A.batter,now,ld)}
   // 포수 미트
   let mt=null;if(G.mode==='pit'&&G.sel&&G.sel.u!=null)mt=[-zx(G.sel.u),zy(G.sel.v)];else if(an&&(an.k==='wind'||an.k==='fly')&&(G.cur||PG.last)){const c=G.cur||PG.last;mt=[-zx(c.u)*.85,zy(c.v)*.9+.08]}
@@ -3433,8 +3497,12 @@ function pgStep(G,now){
       if(now>=at){const ob=G.pa.on,dt=PG.sw==null?null:(PG.sw<an.t0?-9999:PG.sw-end);p3Post(G,pgResolveBat(G,dt,PG.aim,PG.pw),now,ob)}}
   }else if(G.st==='anim'&&an){
     if(an.k==='wind'&&now-an.t0>=an.dur){p3Release(G.cur);PG.an={k:'fly',t0:now,dur:G.cur.ms};P3.trailN=0;SND.whoosh();
-      const ob=G.pa.on, res=pgResolvePit(G);PG.pre={res,ob};PG.swAt=0;PG.aiSw=G.aiSwing?now+G.cur.ms-CONTACT_MS:0}
-    else if(an.k==='fly'&&now>=an.t0+an.dur+25){const pr=PG.pre;PG.pre=null;if(pr)p3Post(G,pr.res,now,pr.ob)}
+      pgAIStart(G,now);PG.pre=null;PG.swAt=0;PG.aiSw=0}
+    else if(an.k==='fly'){
+      pgAITrack(G,now);
+      const read=G.cur.read,finish=an.t0+an.dur+Math.max(25,read.decision?clamp(read.contactAt-(an.t0+an.dur)+16,25,220):25);
+      if(now>=finish){const ob=G.pa.on,res=pgResolvePit(G);PG.pre=null;p3Post(G,res,now,ob)}
+    }
   }
 }
 function p3Loop(ts){
