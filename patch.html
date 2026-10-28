@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>패치노트 | 2군에서 MVP까지</title>
+<meta name="description" content="2군에서 MVP까지의 업데이트 기록이에요.">
+<link rel="canonical" href="https://minors2mvp.pages.dev/patch.html">
+<meta name="theme-color" content="#0f2b21">
+<meta property="og:type" content="article">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:site_name" content="2군에서 MVP까지">
+<meta property="og:title" content="패치노트 | 2군에서 MVP까지">
+<meta property="og:description" content="2군에서 MVP까지의 업데이트 기록이에요.">
+<meta property="og:url" content="https://minors2mvp.pages.dev/patch.html">
+<meta property="og:image" content="https://minors2mvp.pages.dev/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "WebPage", "name": "패치노트 | 2군에서 MVP까지", "url": "https://minors2mvp.pages.dev/patch.html", "description": "2군에서 MVP까지의 업데이트 기록이에요.", "inLanguage": "ko", "isPartOf": {"@type": "WebSite", "name": "2군에서 MVP까지", "url": "https://minors2mvp.pages.dev/"}}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "2군에서 MVP까지", "item": "https://minors2mvp.pages.dev/"}, {"@type": "ListItem", "position": 2, "name": "패치노트", "item": "https://minors2mvp.pages.dev/patch.html"}]}]}</script>
+<style>
+:root{--bg:#e8ecf1;--card:#ffffff;--ink:#13213a;--ink2:#4a5770;--muted:#8792a6;--line:#dde3ec;--navy:#17305c;--red:#d33a3a;--board:#0f2b21;--lamp:#ffc845;--chalk:#e6f2ea;
+  --f-display:'Black Han Sans','Noto Sans KR','Apple SD Gothic Neo',sans-serif;--f-body:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.75 var(--f-body);word-break:keep-all;overflow-wrap:anywhere;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 40px}
+.wrap{max-width:720px;margin:0 auto;display:grid;gap:12px}
+header.board{background:var(--board);color:var(--chalk);border-radius:18px;padding:24px 22px;display:grid;gap:8px}
+header.board .k{font-size:13px;font-weight:700;color:var(--lamp);letter-spacing:.04em;margin:0}
+header.board h1{font-family:var(--f-display);font-weight:400;font-size:34px;line-height:1.2;margin:0;color:var(--lamp)}
+header.board p{margin:0;color:var(--chalk);font-size:15px}
+nav.toc{background:var(--card);border-radius:16px;padding:16px 20px}
+nav.toc ol{margin:0;padding-left:20px;columns:2;column-gap:24px;font-size:15px}
+nav.toc a{color:var(--navy)}
+section{background:var(--card);border-radius:16px;padding:22px 22px 18px}
+h2{font-family:var(--f-display);font-weight:400;font-size:24px;margin:0 0 8px;color:var(--ink)}
+h3{font-size:16px;margin:16px 0 4px}
+p{margin:0 0 10px;max-width:65ch}
+ul{margin:0 0 10px;padding-left:20px}
+li{margin:2px 0}
+.tablewrap{overflow-x:auto;margin:6px 0 10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:500;font-size:13px;white-space:nowrap}
+.tip{border-left:4px solid var(--red);background:#fdf1f1;padding:10px 14px;border-radius:0 10px 10px 0;margin:8px 0 10px;font-size:15px}
+.cta{display:block;text-align:center;background:var(--red);color:#ffffff;text-decoration:none;font-weight:700;font-size:18px;padding:16px;border-radius:14px}
+.cta:hover{background:#b72f2f}
+a:focus-visible{outline:3px solid var(--lamp);outline-offset:2px}
+footer{font-size:12px;color:var(--muted);text-align:center;padding-top:8px}
+footer a{color:var(--ink2)}
+@media (max-width:520px){nav.toc ol{columns:1}header.board h1{font-size:28px}}
+
+.topnav{display:flex;gap:6px 14px;flex-wrap:wrap;justify-content:center;font-size:14px;padding:4px 0}
+.topnav a{color:var(--ink2);text-decoration:none}.topnav a[aria-current]{color:var(--navy);font-weight:700}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:6px 0 10px}
+.cards a{display:block;background:#f4f6f9;border-radius:12px;padding:14px 16px;color:var(--ink);text-decoration:none}
+.cards a b{display:block;color:var(--navy)}.cards a span{font-size:14px;color:var(--ink2)}
+.log h3{margin-top:18px}.muted{color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="topnav" aria-label="사이트 메뉴"><a href="./">게임</a><a href="about.html">서비스 소개</a><a href="guide.html">게임 가이드</a><a href="tips.html">커리어 공략</a><a href="patch.html" aria-current="page">패치노트</a><a href="contact.html">문의</a><a href="sitemap.html">사이트맵</a></nav>
+<header class="board">
+  <p class="k">2군에서 MVP까지 · 패치노트</p>
+  <h1>패치노트</h1>
+  <p>2군에서 MVP까지의 업데이트 기록이에요.</p>
+</header>
+<section>
+  <h2>2026-10-28</h2>
+  <ul>
+    <li>Blender로 만든 새 3D 선수 모델 적용: 인체 비율, 얼굴, 손, 하체 움직임 개선</li>
+    <li>주자와 수비의 이동 거리에 맞춘 보폭, 부드러운 방향 전환과 동작 연결</li>
+    <li>시즌마다 3D 빅매치 3경기 추가(개막 시리즈, 라이벌전, 순위 싸움), 선택 승부처는 1번으로 조정</li>
+    <li>3D 경기장 조명, 관중석, 잔디 디테일과 투구 물리 개선</li>
+    <li>실시간 랭킹 서버 연결, 랭킹에 전체 기간 보기 추가</li>
+    <li>사이트 안내 페이지(서비스 소개, 커리어 공략, 패치노트, 개인정보처리방침, 이용약관, 문의, 사이트맵) 추가</li>
+  </ul>
+</section><section>
+  <h2>2026-10-27</h2>
+  <ul>
+    <li>3D 직접 플레이 대규모 개선: 타이밍 타격, 반응형 투구 패널, 실시간 병살·태그아웃, 귀루·재터치 등 주루 판단</li>
+    <li>잔디 감속, 바운드, 외야 낙구 후 구르기와 포구 궤적 개선</li>
+    <li>변화구 변화폭 확대와 실제 구종 궤적, 투구 경험을 학습하는 타자 AI</li>
+    <li>오늘의 랭킹(베스트 나인, 랭킹 100, 나의 기록) 추가</li>
+    <li>얻는 게 큰 작전일수록 성공 확률이 낮아지도록 승부처 개편, 나이에 따른 폼 하락 추가</li>
+    <li>시즌 성적 등급으로 OVR이 오르고 최대 OVR 99 적용</li>
+    <li>리그 MVP 시상식, WBSC 올해의 선수, 승부처 56종, 비시즌 메시지 추가</li>
+    <li>실제 구단·리그·대회 이름 적용, 아이패드·PC 넓은 화면 지원</li>
+    <li>첫 버전 공개</li>
+  </ul>
+</section><section>
+  <h2>전체 변경 기록</h2>
+  <p>더 자세한 변경 내역은 <a href="https://github.com/dsfghfgjhk/minors-to-mvp/commits/main">GitHub 커밋 기록</a>에서 볼 수 있어요.</p>
+</section>
+<a class="cta" href="./">게임 시작하기</a>
+<footer>
+  <p>2군에서 MVP까지 · 학교, KBO·NPB·MLB 구단, 리그, 대회 이름은 실제 이름을 빌려 왔어요. 각 이름의 권리는 권리자에게 있고, 이 게임은 공식 제휴가 없는 팬 시뮬레이션이에요. 경기 결과와 기록, 계약은 모두 가상이에요.</p>
+  <p><a href="./">게임 하기</a> · <a href="about.html">서비스 소개</a> · <a href="guide.html">게임 가이드</a> · <a href="tips.html">커리어 공략</a> · <a href="patch.html">패치노트</a> · <a href="privacy.html">개인정보처리방침</a> · <a href="terms.html">이용약관</a> · <a href="contact.html">문의</a> · <a href="sitemap.html">사이트맵</a></p>
+</footer>
+</div>
+</body>
+</html>
