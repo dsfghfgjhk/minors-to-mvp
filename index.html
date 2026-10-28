@@ -2919,6 +2919,7 @@ function bbLegPosition(leg,t,speed){
   if(leg.source)return bbLegPosition(leg.source,t,speed);
   if(leg.mode==='brake'){const q=clamp((t-leg.start)/(leg.end-leg.start),0,1);return leg.from+(leg.to-leg.from)*(2*q-q*q)}
   const f=clamp((t-leg.start)/Math.max(.001,leg.end-leg.start),0,1);
+  if(leg.mode==='cruise')return leg.from+(leg.to-leg.from)*f;
   if(leg.mode==='run'){
     const elapsed=Math.max(0,t-leg.start),distance=elapsed<.38?.5*speed/.38*elapsed*elapsed:speed*(elapsed-.19);
     return leg.from+Math.sign(leg.to-leg.from)*Math.min(Math.abs(leg.to-leg.from),distance/27.4);
@@ -2930,12 +2931,12 @@ function bbRunnerLeg(r,to,start,mode='turn'){
   const from=r.legs?.length?r.legs.at(-1).to:r.from;
   const distance=Math.abs(to-from)*27.4;
   if(distance<.001)return start;
-  const end=start+distance/r.speed*(mode==='run'?1:1.6)+(mode==='run'?.19:.12);
+  const end=start+distance/r.speed*(mode==='run'||mode==='cruise'?1:1.6)+(mode==='run'?.19:mode==='cruise'?0:.12);
   (r.legs||(r.legs=[])).push({from,to,start,end,mode});return end;
 }
 function bbRunnerSetDestination(r,to,start){
   r.to=to;
-  if(r.legs?.length)bbRunnerLeg(r,to,Math.max(start,r.legs.at(-1).end),'run');
+  if(r.legs?.length){const last=r.legs.at(-1),continuous=last.to>=last.from&&['run','cruise'].includes(last.mode)&&start<=last.end+.001;bbRunnerLeg(r,to,Math.max(start,last.end),continuous?'cruise':'run')}
   else r.start=start;
 }
 function bbRunnerFlyRead(r,bb,play,caution){
@@ -2943,9 +2944,9 @@ function bbRunnerFlyRead(r,bb,play,caution){
   // 예상 낙구점과 수비 범위로 판단하며 확정된 안타·아웃 결과는 읽지 않는다.
   let reach=Infinity;
   for(const key of [...IFK,...OFK]){const pos=FPOS[key],distance=Math.hypot(pos[0]-flight.x,pos[1]-flight.z);reach=Math.min(reach,.45+Math.max(0,distance-1.2)/(OFK.includes(key)?6.8:6))}
-  r.readCatch=reach<flight.t+caution;
+  r.readCatch=reach<flight.t*(bb.la<20?.9:1)-.12+caution*.03;
   const lead=r.readCatch?Math.min(2.3,Math.max(.2,(play.catchAt-.45)*r.speed/4)):Math.min(5.5,Math.max(.3,(play.catchAt-.45)*r.speed/4));
-  const out=bbRunnerLeg(r,r.from+lead/27.4,.18);
+  const out=bbRunnerLeg(r,r.from+lead/27.4,.18,'run');
   if(r.readCatch){
     r.retouchAt=bbRunnerLeg(r,r.from,Math.max(out,.38));r.decision='return';
   }
@@ -2957,7 +2958,7 @@ function bbRunnerRetreat(r,at,base){
     r.to=base;r.decision='hold';
     if(r.legs?.length){const kept=[];for(const leg of r.legs){
       if(leg.from>=base&&leg.to>base)break;
-      if(leg.from<base&&leg.to>=base){kept.push({...leg,to:base,end:leg.start+(base-leg.from)*27.4/r.speed*(leg.mode==='run'?1:1.6)+(leg.mode==='run'?.19:.12)});break}
+      if(leg.from<base&&leg.to>=base){kept.push({...leg,to:base,end:leg.start+(base-leg.from)*27.4/r.speed*(['run','cruise'].includes(leg.mode)?1:1.6)+(leg.mode==='run'?.19:leg.mode==='cruise'?0:.12)});break}
       kept.push(leg);
     }r.legs=kept}
     return;
@@ -2986,6 +2987,8 @@ function bbRunnerProgress(r,t){
 function bbRunArrival(r){if(r.legs?.length)return r.legs.at(-1).end;return r.start+(r.to-r.from)*27.4/r.speed+.19}
 function bbPlaySnapshot(G){return{pa:{...G.pa},my:G.my,op:G.op,ms:{...G.ms},msT:{...G.msT}}}
 function bbPlayRestore(G,s){Object.assign(G.pa,s.pa);G.my=s.my;G.op=s.op;Object.assign(G.ms,s.ms);Object.assign(G.msT,s.msT)}
+// 송구 속도(m/s)는 거리와 포지션별로 공유해 예상과 실제 도착 시간이 일치한다.
+function bbThrowSpeed(by,distance,carry=false){return carry?6.5:distance<=12?10:OFK.includes(by)?22:21}
 function bbPlan(G,bb){
   if(!bb||bb.foulOut||bb.k==='F'||bb.k==='HR')return null;
   const before=G.pa.out,on=G.pa.on,baseLen=27.4,batSpeed=baseLen/clamp(4.3-(((G.mode==='bat'?S.stats.spd:50)||50)-50)*.016,3.5,5.1);
@@ -3005,10 +3008,10 @@ function bbPlan(G,bb){
   const batter={from:0,to:1,start:.24,speed:batSpeed,bat:true};runners.push(batter);
   const pos3=([x,z],y=1.15)=>[x,y,z];
   const throwTo=(from,to,t0,by,receiver,base)=>{
-    const distance=Math.hypot(to[0]-from[0],to[2]-from[2]),carry=by===receiver,toss=!carry&&distance<=12,speed=carry?6.5:toss?12:30,dur=Math.max(.12,distance/speed);
+    const distance=Math.hypot(to[0]-from[0],to[2]-from[2]),carry=by===receiver,toss=!carry&&distance<=12,speed=bbThrowSpeed(by,distance,carry),dur=Math.max(.12,distance/speed);
     const prev=play.throws.filter(tr=>tr.receiver===receiver).at(-1),origin=prev?[prev.to[0],prev.to[2]]:FPOS[receiver],since=prev?prev.t0+prev.dur:0;
     const receiverReady=since+.2+Math.hypot(origin[0]-to[0],origin[1]-to[2])/6.5;
-    if(!carry)t0=Math.max(t0,receiverReady-dur);
+    if(!carry)t0=Math.max(t0,receiverReady-dur,play.catchAt+(OFK.includes(by)?.55:.4));
     const tr={from,to,t0,dur,by,receiver,base,carry,toss,speed};play.throws.push(tr);return t0+dur;
   };
   const eventOut=(r,time,base,force)=>{if(play.outs>=3-before)return;r.out=true;r.retireAt=time;r.force=force;play.outs++;
@@ -3024,12 +3027,12 @@ function bbPlan(G,bb){
     const third=runners.find(r=>r.from===3);
     if(third&&before<2&&bb.fly.dist>45){
       const start=Math.max(play.catchAt+.28,third.retouchAt+.08),runnerArrival=start+27.4/third.speed+.19;
-      const distance=Math.hypot(...play.at),estimatedReturn=play.catchAt+.32+distance/30+(distance>58?.28:0);
+      const distance=Math.hypot(...play.at),estimatedReturn=play.catchAt+.42+distance/bbThrowSpeed(bb.fielder,distance)+(distance>58?.38:0);
       if(runnerArrival+caution*.1<estimatedReturn){
         bbRunnerSetDestination(third,4,start);third.decision='tagup';const arrival=bbRunArrival(third);
         let returned;
-        if(distance>58){const cutoff=pos3([play.at[0]*.25,36]);const cut=throwTo(pickup,cutoff,play.catchAt+.3,bb.fielder,'SS',null);returned=throwTo(cutoff,home,cut+.28,'SS','C',4)}
-        else returned=throwTo(pickup,home,play.catchAt+.32,bb.fielder,'C',4);
+        if(distance>58){const cutoff=pos3([play.at[0]*.25,36]);const cut=throwTo(pickup,cutoff,play.catchAt+.3,bb.fielder,'SS',null);returned=throwTo(cutoff,home,cut+.38,'SS','C',4)}
+        else returned=throwTo(pickup,home,play.catchAt+.42,bb.fielder,'C',4);
         if(returned+.08<arrival)eventOut(third,arrival,4,false);
       }
     }
@@ -3038,17 +3041,17 @@ function bbPlan(G,bb){
     const lead=runners.find(r=>r.from===1),receiver=bb.fielder==='2B'?'SS':'2B';
     let threwSecond=false;
     if(lead&&before<2&&bb.fielder!=='1B'){
-      const reaches=play.catchAt+.26+Math.hypot(pickup[0]-second[0],pickup[2]-second[2])/30;
+      const reaches=play.catchAt+.38+Math.hypot(pickup[0]-second[0],pickup[2]-second[2])/bbThrowSpeed(bb.fielder,Math.hypot(pickup[0]-second[0],pickup[2]-second[2]));
       if(reaches+.04<bbRunArrival(lead)){
-        const pivot=throwTo(pickup,second,play.catchAt+.26,bb.fielder,receiver,2);if(pivot+.04<bbRunArrival(lead))eventOut(lead,pivot,2,true);threwSecond=true;
-        if(lead.out&&play.outs<3-before){const arrives=throwTo(second,first,pivot+.28,receiver,'1B',1);if(arrives+.04<bbRunArrival(batter))eventOut(batter,arrives,1,true)}
+        const pivot=throwTo(pickup,second,play.catchAt+.38,bb.fielder,receiver,2);if(pivot+.04<bbRunArrival(lead))eventOut(lead,pivot,2,true);threwSecond=true;
+        if(lead.out&&play.outs<3-before){const arrives=throwTo(second,first,pivot+.38,receiver,'1B',1);if(arrives+.04<bbRunArrival(batter))eventOut(batter,arrives,1,true)}
       }
     }
     if(!threwSecond){
       // 가까우면 1루수가 직접 밟고, 멀면 투수에게 토스해 1루를 커버한다.
       const firstDistance=Math.hypot(pickup[0]-first[0],pickup[2]-first[2]);
       const by=bb.fielder==='1B'?(firstDistance<=4?'1B':'P'):'1B';
-      const arrives=throwTo(pickup,first,play.catchAt+.28,bb.fielder,by,1);
+      const arrives=throwTo(pickup,first,play.catchAt+.4,bb.fielder,by,1);
       if(arrives+.04<bbRunArrival(batter))eventOut(batter,arrives,1,true);
     }
     play.k=batter.out||lead?.out?'GO':'1B';
@@ -3071,8 +3074,8 @@ function bbPlan(G,bb){
     for(const r of runners.slice().sort((a,b)=>b.from-a.from)){
       const mandatory=r.bat||r.from===1||r.from===2&&on.includes('1')||r.from===3&&on.includes('1')&&on.includes('2')?r.from+1:r.from;
       const target=BASEP[r.to%4],distance=Math.hypot(play.at[0]-target[0],play.at[1]-target[1]);
-      let throwArrival=play.catchAt+.32+distance/30;
-      if(distance>58){const cx=play.at[0]*.3,cz=38.8;throwArrival=play.catchAt+.6+(Math.hypot(play.at[0]-cx,play.at[1]-cz)+Math.hypot(cx-target[0],cz-target[1]))/30}
+      let throwArrival=play.catchAt+.42+distance/bbThrowSpeed(play.fielder,distance);
+      if(distance>58){const cx=play.at[0]*.3,cz=38.8;throwArrival=play.catchAt+.8+Math.hypot(play.at[0]-cx,play.at[1]-cz)/bbThrowSpeed(play.fielder,Math.hypot(play.at[0]-cx,play.at[1]-cz))+Math.hypot(cx-target[0],cz-target[1])/bbThrowSpeed('SS',Math.hypot(cx-target[0],cz-target[1]))}
       const risky=r.to>mandatory&&bbRunArrival(r)+safety>throwArrival;
       const blocked=r.to<4&&r.to>=reserved;
       if(risky||blocked){
@@ -3086,8 +3089,8 @@ function bbPlan(G,bb){
     let threat=runners.filter(r=>r.to>r.from).sort((a,b)=>b.to-a.to||b.from-a.from)[0];
     if(threat){const dest=pos3(BASEP[threat.to%4]),receiver=threat.to===4?'C':threat.to===3?'3B':threat.to===2?'2B':'1B';
       let returned;const distance=Math.hypot(pickup[0]-dest[0],pickup[2]-dest[2]);
-      if(distance>58){const cutoff=pos3([play.at[0]*.3,38.8]);const cut=throwTo(pickup,cutoff,play.catchAt+.32,bb.fielder,'SS',null);returned=throwTo(cutoff,dest,cut+.28,'SS',receiver,threat.to)}
-      else returned=throwTo(pickup,dest,play.catchAt+.32,bb.fielder,receiver,threat.to);
+      if(distance>58){const cutoff=pos3([play.at[0]*.3,38.8]);const cut=throwTo(pickup,cutoff,play.catchAt+.42,bb.fielder,'SS',null);returned=throwTo(cutoff,dest,cut+.38,'SS',receiver,threat.to)}
+      else returned=throwTo(pickup,dest,play.catchAt+.42,bb.fielder,receiver,threat.to);
       const forced=threat.to===threat.from+1&&(threat.bat||threat.from===1||threat.from===2&&on.includes('1')||threat.from===3&&on.includes('1')&&on.includes('2'));
       if(forced?returned+.08<bbRunArrival(threat):returned<bbRunArrival(threat)+caution){
         const mandatory=threat.bat||threat.from===1||threat.from===2&&on.includes('1')||threat.from===3&&on.includes('1')&&on.includes('2')?threat.from+1:threat.from;

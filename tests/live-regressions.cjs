@@ -13,5 +13,8 @@ pgHud=()=>{};pgFlash=()=>{};
 const game={pa:{on:'12',out:0}},live={eventIndex:0,play:{runners:[{from:1},{from:2}],events:[{t:1,kind:'safe',from:1,base:2},{t:2,kind:'safe',from:2,base:3}]}};
 p3LiveAdvance(game,live,2.1);
 if(game.pa.on!=='23')throw Error('late departure removed trailing runner');
+const tagGame={pa:{on:'2',out:0}},tagLive={eventIndex:0,play:{runners:[{from:2}],events:[{t:4,kind:'out',from:2,base:3,force:false}]}};
+p3LiveAdvance(tagGame,tagLive,3.99);if(tagGame.pa.out!==0)throw Error('premature tag-out');
+p3LiveAdvance(tagGame,tagLive,4.01);p3LiveAdvance(tagGame,tagLive,5);if(tagGame.pa.out!==1||tagGame.pa.on!=='')throw Error('tag-out timing or duplicate');
 console.log('Carried ball and overlapping base occupancy regressions passed');
 `,{console,Math});

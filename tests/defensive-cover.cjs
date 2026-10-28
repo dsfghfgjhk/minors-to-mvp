@@ -6,7 +6,7 @@ C.cands=makeCands(C.pos);newCareer();let toss=0,cover=0,backup=0;
 for(const f of IFK)for(const at of [[18.5,20],[12,23],[5,34],[-10,32]]){
  const p=bbPlan({mode:'bat',pa:{on:'1',out:0}},{k:'1B',fielder:f,tf:1.2,at,ground:{path:[[0,0,1,0],[1.2,at[0],.037,at[1]]]}});
  for(const tr of p.throws){
-  if(tr.toss){toss++;if(tr.carry||tr.speed!==12||tr.by===tr.receiver)throw Error('invalid toss');}
+  if(tr.toss){toss++;if(tr.carry||tr.speed!==10||tr.by===tr.receiver)throw Error('invalid toss');}
   const expected=Math.max(.12,Math.hypot(tr.to[0]-tr.from[0],tr.to[2]-tr.from[2])/tr.speed);
   if(Math.abs(expected-tr.dur)>.001)throw Error('throw flight mismatch');
  }
