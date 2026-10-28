@@ -3000,11 +3000,11 @@ function bbPlan(G,bb){
   const batter={from:0,to:1,start:.24,speed:batSpeed,bat:true};runners.push(batter);
   const pos3=([x,z],y=1.15)=>[x,y,z];
   const throwTo=(from,to,t0,by,receiver,base)=>{
-    const distance=Math.hypot(to[0]-from[0],to[2]-from[2]),dur=Math.max(.12,distance/30);
+    const distance=Math.hypot(to[0]-from[0],to[2]-from[2]),carry=by===receiver,dur=Math.max(.12,distance/(carry?6.5:30));
     const prev=play.throws.filter(tr=>tr.receiver===receiver).at(-1),origin=prev?[prev.to[0],prev.to[2]]:FPOS[receiver],since=prev?prev.t0+prev.dur:0;
     const receiverReady=since+.2+Math.hypot(origin[0]-to[0],origin[1]-to[2])/6.5;
-    t0=Math.max(t0,receiverReady-dur);
-    const tr={from,to,t0,dur,by,receiver,base};play.throws.push(tr);return t0+dur;
+    if(!carry)t0=Math.max(t0,receiverReady-dur);
+    const tr={from,to,t0,dur,by,receiver,base,carry};play.throws.push(tr);return t0+dur;
   };
   const eventOut=(r,time,base,force)=>{if(play.outs>=3-before)return;r.out=true;r.retireAt=time;r.force=force;play.outs++;
     play.events.push({t:time,kind:'out',base,from:r.from,bat:r.bat,force});};
@@ -3880,7 +3880,7 @@ function p3LiveBall(B,t,out){
   for(const tr of p.throws){
     if(t<tr.t0)break;
     const k=clamp((t-tr.t0)/tr.dur,0,1);
-    out.set(tr.from[0]+(tr.to[0]-tr.from[0])*k,tr.from[1]+(tr.to[1]-tr.from[1])*k+4.905*tr.dur*tr.dur*k*(1-k),tr.from[2]+(tr.to[2]-tr.from[2])*k);
+    out.set(tr.from[0]+(tr.to[0]-tr.from[0])*k,tr.from[1]+(tr.to[1]-tr.from[1])*k+(tr.carry?0:4.905*tr.dur*tr.dur*k*(1-k)),tr.from[2]+(tr.to[2]-tr.from[2])*k);
   }
   const tag=p.events.find(e=>e.kind==='out'&&!e.force&&e.base>0&&t>e.t-.18);
   if(tag)out.y=1.15-.6*clamp((t-(tag.t-.18))/.18,0,1)*(1-clamp((t-tag.t-.3)/.25,0,1));
@@ -3896,7 +3896,7 @@ function p3LiveDefense(B,t,dt){
     for(let i=1;i<points.length;i++){if(t<points[i].t){to=points[i];break}from=points[i]}
     const k=to?clamp((t-from.t)/Math.max(.001,to.t-from.t),0,1):1,x=to?from.x+(to.x-from.x)*k:from.x,z=to?from.z+(to.z-from.z)*k:from.z;
     fig.visible=true;fig.position.set(-x,key==='P'&&t<.25?.25*(1-t/.25):0,z);
-    const throwing=p.throws.find(tr=>tr.by===key&&t>=tr.t0-.22&&t<=tr.t0+.22);
+    const throwing=p.throws.find(tr=>!tr.carry&&tr.by===key&&t>=tr.t0-.22&&t<=tr.t0+.22);
     const receiving=p.throws.find(tr=>tr.receiver===key&&t>=tr.t0&&t<=tr.t0+tr.dur+.25);
     const tagging=p.events.find(e=>e.kind==='out'&&!e.force&&e.base>0&&Math.abs(e.t-t)<.3&&p.throws.some(tr=>tr.receiver===key&&tr.base===e.base));
     if(throwing){p3Face(fig,Math.atan2(-(throwing.to[0]-x),throwing.to[2]-z));p3Pose(fig,kfPose(THRK,clamp((t-throwing.t0+.22)/.44,0,1)),p3Ease(26))}
@@ -3909,11 +3909,14 @@ function p3LiveDefense(B,t,dt){
 }
 function p3LiveAdvance(G,B,t){
   const p=B.play;
+  if(!B.liveBases)B.liveBases=Object.fromEntries(p.runners.filter(r=>!r.bat).map(r=>['r'+r.from,r.from]));
   while(B.eventIndex<p.events.length&&p.events[B.eventIndex].t<=t){
     const e=p.events[B.eventIndex++];
-    if(e.from)G.pa.on=G.pa.on.replace(String(e.from),'');
+    const runnerKey=(e.bat?'b':'r')+e.from;
+    delete B.liveBases[runnerKey];
+    if(e.kind==='safe'||e.kind==='return')B.liveBases[runnerKey]=e.base;
+    G.pa.on=[...new Set(Object.values(B.liveBases))].sort().join('');
     if(e.kind==='out'){G.pa.out=Math.min(3,G.pa.out+1);pgFlash((e.base===0?'포구 아웃':e.force?'포스 아웃':'태그 아웃')+' · '+G.pa.out+'아웃',G.mode==='bat'?'bad':'good',e.base===4?'홈':e.base?e.base+'루':'포구')}
-    if(e.kind==='safe'||e.kind==='return'){G.pa.on=[...new Set((G.pa.on+e.base).split(''))].sort().join('')}
     if(e.kind==='run'){G.pa.runs++;if(G.mode==='bat')G.my++;else G.op++;pgFlash('홈인!','good','주자 득점')}
     P3.board='';pgHud();
   }

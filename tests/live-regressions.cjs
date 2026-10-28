@@ -1,0 +1,17 @@
+const fs=require('fs'),vm=require('vm');
+const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8');
+const source=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].find(m=>!m[1].includes('application/ld+json')&&m[2].trim())[2];
+vm.runInNewContext(source+`;
+C.cands=makeCands(C.pos);newCareer();S.stats.spd=50;
+const g={mode:'bat',pa:{on:'12',out:1}},bb=bbResolve(51.847449123160914,13.072872245684266,-37.746229922398925,50),p=bbPlan(g,bb);
+const carry=p.throws.find(t=>t.by===t.receiver);
+if(!carry||!carry.carry||Math.abs(Math.hypot(carry.to[0]-carry.from[0],carry.to[2]-carry.from[2])/carry.dur-6.5)>.001)throw Error('self throw not replaced by running');
+const v={set(x,y,z){this.x=x;this.y=y;this.z=z;return this}};
+p3LiveBall({play:p},carry.t0+carry.dur/2,v);
+if(Math.abs(v.y-1.15)>.001)throw Error('carried ball follows throw arc');
+pgHud=()=>{};pgFlash=()=>{};
+const game={pa:{on:'12',out:0}},live={eventIndex:0,play:{runners:[{from:1},{from:2}],events:[{t:1,kind:'safe',from:1,base:2},{t:2,kind:'safe',from:2,base:3}]}};
+p3LiveAdvance(game,live,2.1);
+if(game.pa.on!=='23')throw Error('late departure removed trailing runner');
+console.log('Carried ball and overlapping base occupancy regressions passed');
+`,{console,Math});
