@@ -2727,9 +2727,24 @@ function bbFly(ev,la,sp,keep,height=.95){
   return{x:hr?cross.x:x,z:hr?cross.z:z,t:hr?cross.t:t,dist:Math.hypot(hr?cross.x:x,hr?cross.z:z),apex,hr,wall,vx,vy,vz,y,path,tEnd:end.t};
 }
 /* ---- 수비 판정: 수비수가 낙구 지점·타구 길목에 제때 갈 수 있는지 ---- */
+function bbFoulCatch(flight){
+  const pts=flight.path||[];
+  for(const point of pts){const [t,x,y,z]=point;
+    // 관중석·백스톱 너머의 공과 바운드된 공은 포구할 수 없다.
+    if(t<.35||y<.3||y>2.3||z< -9||Math.abs(x)-Math.max(0,z)>12||Math.hypot(x,z)>104)continue;
+    for(const key of FKEYS){const [fx,fz]=FPOS[key],speed=OFK.includes(key)?6.8:6;
+      if(.4+Math.max(0,Math.hypot(x-fx,z-fz)-.65)/speed<=t)return{fielder:key,t,at:[x,z]};
+    }
+  }
+  return null;
+}
 function bbResolve(ev,la,sp,spd,height=.95){
   const out={ev,la,sp,height};
-  if(Math.abs(sp)>45){if(la>25&&ev>70&&R()<.22){out.k='FO';out.foulOut=1;out.fielder=sp>0?'1B':'3B';out.fly=bbFly(ev,la,sp,false,height)}else out.k='F';return out}
+  if(Math.abs(sp)>45){
+    out.fly=bbFly(ev,la,sp,true,height);const catchable=bbFoulCatch(out.fly);
+    if(catchable){out.k='FO';out.foulOut=1;out.fielder=catchable.fielder;out.at=catchable.at;out.tf=catchable.t}
+    else out.k='F';return out;
+  }
   if(la<8){
     const path=bbGround(ev,la,sp,height),pick=bbPickup(path);
     out.ground={path};out.fielder=pick.f;out.at=[pick.x,pick.z];out.tf=pick.t;
@@ -3021,7 +3036,7 @@ function bbPlayRestore(G,s){Object.assign(G.pa,s.pa);G.my=s.my;G.op=s.op;Object.
 // 송구 속도(m/s)는 거리와 포지션별로 공유해 예상과 실제 도착 시간이 일치한다.
 function bbThrowSpeed(by,distance,carry=false){return carry?6.5:distance<=12?10:OFK.includes(by)?22:21}
 function bbPlan(G,bb){
-  if(!bb||bb.foulOut||bb.k==='F'||bb.k==='HR')return null;
+  if(!bb||bb.k==='F'||bb.k==='HR')return null;
   const before=G.pa.out,on=G.pa.on,baseLen=27.4,batSpeed=baseLen/clamp(4.3-(((G.mode==='bat'?S.stats.spd:50)||50)-50)*.016,3.5,5.1);
   const play={events:[],throws:[],runners:[],fielder:bb.fielder,catchAt:bb.tf,at:bb.at,pts:null,k:bb.k,outs:0,runs:0,on:'',text:'',end:0};
   if(bb.ground){play.pts=bb.ground.path;play.catchAt=bb.tf;play.at=bb.at}
@@ -3189,7 +3204,7 @@ function bbPlan(G,bb){
   play.events.sort((a,b)=>a.t-b.t);play.thirdAt=third?.t;
   play.end=Math.max(play.catchAt,...runners.map(r=>r.legs?.at(-1)?.end||0),...play.events.map(e=>e.t),...play.throws.map(tr=>tr.t0+tr.dur))+.65;
   const tag=outEvents.some(e=>!e.bat&&!e.force);
-  play.text=play.outs>=2?(tag?'태그아웃 · 더블 플레이':'병살타!'):tag?'안타 뒤 주루사!':play.k==='GO'?(batter.out?(bb.ground?'땅볼 아웃':'타자 주자 아웃'):'선행 주자 아웃 · 야수 선택'):caught?(play.runs?'희생플라이':bb.k==='LO'?'직선타 아웃':'뜬공 아웃'):{'1B':'안타!','2B':'2루타!','3B':'3루타!'}[play.k];
+  play.text=play.outs>=2?(tag?'태그아웃 · 더블 플레이':'병살타!'):tag?'안타 뒤 주루사!':play.k==='GO'?(batter.out?(bb.ground?'땅볼 아웃':'타자 주자 아웃'):'선행 주자 아웃 · 야수 선택'):caught?(play.runs?'희생플라이':bb.foulOut?'파울 플라이 아웃':bb.k==='LO'?'직선타 아웃':'뜬공 아웃'):{'1B':'안타!','2B':'2루타!','3B':'3루타!'}[play.k];
   return play;
 }
 function pgApplyPlanned(G,bb,play){
@@ -3993,7 +4008,7 @@ function p3LiveDefense(B,t,dt){
     else if(to&&Math.hypot(to.x-x,to.z-z)>.2){p3Face(fig,Math.atan2(-(to.x-x),to.z-z));p3Run(fig,t*11,.85)}
     else if(tagging)p3Pose(fig,P_SCOOP,1-Math.exp(-dt*15));
     else if(receiving)p3CatchPose(fig,A.ball.position,1-Math.exp(-dt*12));
-    else if(key===p.fielder&&t<p.catchAt+.25)p3Pose(fig,P_SCOOP,1-Math.exp(-dt*12));
+    else if(key===p.fielder&&t<p.catchAt+.25){if(['FO','LO'].includes(p.k))p3CatchPose(fig,A.ball.position,1-Math.exp(-dt*12));else p3Pose(fig,P_SCOOP,1-Math.exp(-dt*12))}
     else p3Pose(fig,P_STAND,1-Math.exp(-dt*8));
   }
 }
