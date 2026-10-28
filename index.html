@@ -2705,9 +2705,9 @@ function pgMs(G){const m=G.ms;return G.role==='pit'?{outs:m.outs,K:m.Ka,ER:m.ER,
 function bodyHit(c,lb){const x=zx(c.u),y=zy(c.v),bx=lb?.95:-.95;return Math.abs(x-bx)<.34&&y>.05&&y<1.85}
 const pst=(G,k)=>G.role==='pit'?S.stats[k]:G.cl[k];
 /* ---- 타구 비행: 공기 저항과 백스핀 양력 ---- */
-function bbFly(ev,la,sp,keep){
+function bbFly(ev,la,sp,keep,height=.95){
   const v=ev/3.6,a=la*Math.PI/180,s=sp*Math.PI/180,dt=.01,K=.0056,CL=.0022*clamp(1-(la-30)/40,.45,1);
-  let x=0,y=.95,z=.6,vx=v*Math.cos(a)*Math.sin(s),vy=v*Math.sin(a),vz=v*Math.cos(a)*Math.cos(s),t=0,apex=y,hr=false,wall=false,cross=null;
+  let x=0,y=height,z=.6,vx=v*Math.cos(a)*Math.sin(s),vy=v*Math.sin(a),vz=v*Math.cos(a)*Math.cos(s),t=0,apex=y,hr=false,wall=false,cross=null;
   const path=keep?[[0,x,y,z]]:null;
   for(let i=0;i<1600;i++){
     const q=Math.hypot(vx,vy,vz),vh=Math.hypot(vx,vz)||1e-6,l=la>6?CL*q:0;
@@ -2727,17 +2727,17 @@ function bbFly(ev,la,sp,keep){
   return{x:hr?cross.x:x,z:hr?cross.z:z,t:hr?cross.t:t,dist:Math.hypot(hr?cross.x:x,hr?cross.z:z),apex,hr,wall,vx,vy,vz,y,path,tEnd:end.t};
 }
 /* ---- 수비 판정: 수비수가 낙구 지점·타구 길목에 제때 갈 수 있는지 ---- */
-function bbResolve(ev,la,sp,spd){
-  const out={ev,la,sp};
-  if(Math.abs(sp)>45){if(la>25&&ev>70&&R()<.22){out.k='FO';out.foulOut=1;out.fielder=sp>0?'1B':'3B';out.fly=bbFly(ev,la,sp)}else out.k='F';return out}
+function bbResolve(ev,la,sp,spd,height=.95){
+  const out={ev,la,sp,height};
+  if(Math.abs(sp)>45){if(la>25&&ev>70&&R()<.22){out.k='FO';out.foulOut=1;out.fielder=sp>0?'1B':'3B';out.fly=bbFly(ev,la,sp,false,height)}else out.k='F';return out}
   if(la<8){
-    const path=bbGround(ev,la,sp),pick=bbPickup(path);
+    const path=bbGround(ev,la,sp,height),pick=bbPickup(path);
     out.ground={path};out.fielder=pick.f;out.at=[pick.x,pick.z];out.tf=pick.t;
     out.k=pick.bounced?'1B':'LO';
-    if(!pick.bounced){out.fly={...bbFly(ev,la,sp),dist:Math.hypot(pick.x,pick.z),t:pick.t};delete out.ground}
+    if(!pick.bounced){out.fly={...bbFly(ev,la,sp,false,height),dist:Math.hypot(pick.x,pick.z),t:pick.t};delete out.ground}
     return out;
   }
-  const f=bbFly(ev,la,sp);out.fly=f;
+  const f=bbFly(ev,la,sp,false,height);out.fly=f;
   if(f.hr){out.k='HR';return out}
   const L=[f.x,f.z],T=f.t;let best=null;
   if(!f.wall)for(const k of [...IFK,...OFK]){const [fx,fz]=FPOS[k],d=Math.hypot(L[0]-fx,L[1]-fz),v=OFK.includes(k)?6.8:6,tr=(la<20?.6:.45)+Math.max(0,d-1.2)/v+(f.dist>fenceR(sp)-5?.4:0);
@@ -2843,6 +2843,32 @@ function pgAiPitch(G){
   return{type,u,v,vk,inZ:Math.abs(u)<=1.62&&Math.abs(v)<=1.62,ms:pgFlightMs(vk),lh:G.pit.lh};
 }
 function pgWindows(){const con=S.stats.con,pf=42+Math.max(0,con-40)*.5,gd=pf+40+Math.max(0,con-40)*.4;return{pf,gd,fl:gd+60}}
+// 간소화한 이동 배트–공 충돌: m/s 단위 상대 속도, 접촉면 법선, 유효 반발계수.
+// 타이밍은 배트 회전 각도와 공 중심 대비 맞는 높이를 함께 바꾼다.
+function bbBatContact(c,dt,power,stats,left){
+  const P=clamp(power,0,1),con=clamp(stats.con||50,20,99),strength=clamp(stats.pow||50,20,99);
+  const sweet=Math.exp(-Math.pow(dt/(60+con*.3),2));
+  const theta=clamp(-dt*.0045,-1.22,1.22),hand=left?1:-1;
+  const radius=.07,scatter=(.009+.012*P)*(1.2-con*.006);
+  const offset=clamp(.002+(P-.5)*.006-dt*.00020+(c.v||0)*.004+(c.inZ===false?Math.sign(c.v||c.u||1)*.03:0)+gauss()*scatter,-radius*.94,radius*.94);
+  const attack=(7+P*4)*Math.PI/180,tilt=clamp(attack+Math.asin(offset/radius),-1.15,1.15);
+  const nx=hand*Math.sin(theta)*Math.cos(tilt),ny=Math.sin(tilt),nz=Math.cos(theta)*Math.cos(tilt);
+  let vx=0,vy=-2.5,vz=-Math.max(65,c.vk||135)/3.6;
+  if(c.path?.length>1){
+    const at=Math.max(0,(c.ms||pgFlightMs(c.vk||135))/1000+dt/1000);
+    const j=c.path.findIndex(p=>p[0]>=at),i=j<0?c.path.length-1:Math.max(1,j),a=c.path[i-1],b=c.path[i],step=b[0]-a[0];
+    if(step>0){vx=-(b[1]-a[1])/step;vy=(b[2]-a[2])/step;vz=(b[3]-a[3])/step}
+  }
+  const centered=Math.sqrt(1-Math.pow(offset/radius,2));
+  const batSpeed=(22+.1*(strength-40))*(.9+.24*P)*(.65+.35*sweet);
+  const restitution=(.18+.06*sweet)*centered,approach=vx*nx+vy*ny+vz*nz;
+  const impulse=(1+restitution)*Math.max(0,batSpeed-approach);
+  vx+=impulse*nx;vy+=impulse*ny;vz+=impulse*nz;
+  // 볼을 억지로 건드리면 유효 배트 속도 전달이 줄어든다.
+  const reach=c.inZ===false?.78:1;vx*=reach;vy*=reach;vz*=reach;
+  return{ev:Math.hypot(vx,vy,vz)*3.6,la:Math.atan2(vy,Math.hypot(vx,vz))*180/Math.PI,
+    sp:Math.atan2(vx,vz)*180/Math.PI,height:clamp(zy(c.v||0),.18,1.7),velocity:[vx,vy,vz],offset,sweet};
+}
 function pgResolveBat(G,dt,aim,pw){
   const c=G.cur, st=S.stats, P=clamp(pw==null?.5:pw,0,1), W0=pgWindows(), wf=1.04-.08*P, W={pf:W0.pf*wf,gd:W0.gd*wf,fl:W0.fl*wf};let k;G.lastBB=null;
   if(bodyHit(c,isLeftBat()))return pgApply(G,'HBP',dt);
@@ -2855,16 +2881,8 @@ function pgResolveBat(G,dt,aim,pw){
       let Q=qt;if(!c.inZ)Q*=.6;Q*=1-((PTY[c.type]||{}).wh||0)-(c.type!=='직구'?.02:0);
       if(Q<.2)k='F';
       else{
-        const evMax=156+Math.max(0,st.pow-40)*.5+(st.pow-G.L)*.2;
-        let ev=clamp(evMax*(.97+.06*P+.012*P*P)*(.62+.38*Math.pow(Q,.8))*rnd(.95,1.04)*(c.inZ?1:.68),40,192);
-        const dy=rnd(-.35,.55)+(c.inZ?0:pick([-.5,.75]));
-        let la=clamp(11+(P-.5)*3+dy*42+rnd(-7,7)+((PTY[c.type]||{}).la||0),-35,75);
-        // 세게 휘두를수록 정타의 보상과 빗맞을 위험을 조금씩 함께 높인다.
-        // 판정을 강제로 아웃으로 바꾸지 않고 타구 속도·각도로 수비 결과를 결정한다.
-        const mishit=.02+.50*P*(.7+.3*(1-qt));
-        if(R()<mishit){ev*=.86;la=rnd(60,75)}
-        const pull=clamp(-dt/W.gd,-1.3,1.3), sp=(isLeftBat()?1:-1)*pull*26+c.u*6+rnd(-9,9);
-        G.lastBB=bbResolve(ev,la,sp,st.spd);k=G.lastBB.k;
+        const contact=bbBatContact(c,dt,P,st,isLeftBat());
+        G.lastBB=bbResolve(contact.ev,contact.la,contact.sp,st.spd,contact.height);G.lastBB.contact=contact;k=G.lastBB.k;
       }
     }
   }
@@ -2901,9 +2919,9 @@ function bbSurfacePath(start,velocity,wall=false){
   }
   return pts;
 }
-function bbGround(ev,la,sp){
+function bbGround(ev,la,sp,height=.95){
   const v=ev/3.6,a=la*Math.PI/180,s=sp*Math.PI/180;
-  return bbSurfacePath([0,0,.95,.6],[v*Math.cos(a)*Math.sin(s),v*Math.sin(a),v*Math.cos(a)*Math.cos(s)]);
+  return bbSurfacePath([0,0,height,.6],[v*Math.cos(a)*Math.sin(s),v*Math.sin(a),v*Math.cos(a)*Math.cos(s)]);
 }
 function bbPickup(path,after=0){
   for(const point of path){const [t,x,y,z]=point;if(t<Math.max(.18,after)||y>1.6)continue;
@@ -3007,7 +3025,7 @@ function bbPlan(G,bb){
   const before=G.pa.out,on=G.pa.on,baseLen=27.4,batSpeed=baseLen/clamp(4.3-(((G.mode==='bat'?S.stats.spd:50)||50)-50)*.016,3.5,5.1);
   const play={events:[],throws:[],runners:[],fielder:bb.fielder,catchAt:bb.tf,at:bb.at,pts:null,k:bb.k,outs:0,runs:0,on:'',text:'',end:0};
   if(bb.ground){play.pts=bb.ground.path;play.catchAt=bb.tf;play.at=bb.at}
-  else if(bb.fly){const f=bbFly(bb.ev,bb.la,bb.sp,true);play.pts=f.path;
+  else if(bb.fly){const f=bbFly(bb.ev,bb.la,bb.sp,true,bb.height??.95);play.pts=f.path;
     if(!['FO','LO'].includes(bb.k)){
       const last=[f.tEnd,f.x,f.y,f.z],roll=bbSurfacePath(last,[f.vx,f.vy,f.vz],f.wall);
       play.pts=play.pts.filter(point=>point[0]<last[0]).concat(roll);
@@ -3918,7 +3936,7 @@ function p3MakeBB(G,res,ob){
     if(bb.at){A.fT=bb.tf;A.fAt=bb.at;A.thr={t0:bb.tf+.3,dur:Math.hypot(bb.at[0]-19.4,bb.at[1]-19.4)/30+.15,to:[19.4,1.2,19.4]}}
     else{const L=A.pts[A.pts.length-1];A.fT=tEnd+.5;A.fAt=[L[1],L[3]]}
   }else if(bb.fly){
-    const f=bbFly(bb.ev,bb.la,bb.sp,true);A.pts=f.path;
+    const f=bbFly(bb.ev,bb.la,bb.sp,true,bb.height??.95);A.pts=f.path;
     if(res.k==='FO'||res.k==='LO'){const T=bb.fly.t;A.pts=A.pts.filter(p=>p[0]<=T);A.fT=T;A.fAt=[bb.fly.x,bb.fly.z]}
     else if(!A.hr){const L=A.pts[A.pts.length-1];let [t,x,y,z]=L,vx=f.vx*.45,vz=f.vz*.45;
       for(let i=0;i<40;i++){t+=.04;x+=vx*.04;z+=vz*.04;vx*=.93;vz*=.93;const r=Math.hypot(x,z),ang=Math.atan2(x,z)*180/Math.PI;if(Math.abs(ang)<45&&r>fenceR(ang)-1)break;A.pts.push([t,x,.04+Math.abs(Math.sin(t*8))*Math.max(0,.8-i*.03),z])}
