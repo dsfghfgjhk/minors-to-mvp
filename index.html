@@ -2569,7 +2569,7 @@ function dFab(on){
 }
 
 /* ================= title screen & illustrated opening ================= */
-const LAUNCH={screen:HAS_DOM?'title':null,scene:0,timer:null};
+const LAUNCH={screen:HAS_DOM?'cut':null,scene:0,timer:null};
 const OPENING=[
   {credit:'original',k:'ORIGINAL WORK',title:'원작: 벤치부터 발롱까지',text:'',ms:3200},
   {credit:'studio',k:'A GAME BY',title:"Seo's Games",text:'',ms:2800},
@@ -2595,14 +2595,14 @@ function openingArt(scene=2){
   </svg>`;
 }
 function launchHTML(){
-  if(LAUNCH.screen==='title')return `<section class="launch" aria-label="게임 시작 화면"><div class="launch-art">${openingArt(2)}</div><header class="launch-top"><span class="launch-emblem"><i><b>M</b></i> A BASEBALL LIFE</span><span>2군에서 MVP까지</span></header><main class="launch-main"><p class="launch-kicker">당신의 이름이 전광판에 오를 때까지</p><h1>2군에서<br><em>MVP</em>까지.</h1><p class="launch-copy">한 번의 스윙, 하나의 선택.<br>평범한 유망주에서 시작하는 나만의 야구 인생.</p><div class="launch-actions"><button class="launch-primary" data-a="launch-${S?'enter':'opening'}">${S?'이어하기':'게임 시작'}<span aria-hidden="true">↗</span></button>${S?`<p class="launch-save">${esc(S.name)} · ${S.year} 시즌<br>${esc(teamLabel())} · ${esc(SUBPOS[S.pos]?.n||S.pos)}</p><button class="launch-secondary" data-a="launch-opening">오프닝 보기</button>`:'<button class="launch-secondary" data-a="launch-enter">오프닝 없이 바로 시작</button>'}</div></main><footer class="launch-foot"><p>고교의 첫 유니폼부터, 가장 빛나는 순간까지.<br>진행 상황은 이 브라우저에 자동 저장됩니다.</p><nav aria-label="시작 화면 안내"><a href="guide.html">게임 가이드</a><a href="about.html">게임 소개</a></nav></footer></section>`;
-  return `<section class="launch launch-movie" aria-label="오프닝 영상"><video id="opening-video" autoplay muted playsinline preload="auto" aria-label="원작과 제작사 소개, 야구 선수의 성장 오프닝"><source src="assets/opening/opening.mp4" type="video/mp4"></video><button class="cut-skip movie-skip" data-a="launch-enter">건너뛰기 ↗</button><p class="movie-error" hidden>영상을 재생할 수 없습니다. 건너뛰기를 눌러 게임을 시작해 주세요.</p></section>`;
+  if(LAUNCH.screen==='title')return `<section class="launch" aria-label="게임 시작 화면"><div class="launch-art">${openingArt(2)}</div><header class="launch-top"><span class="launch-emblem"><i><b>M</b></i> A BASEBALL LIFE</span><span>2군에서 MVP까지</span></header><main class="launch-main"><p class="launch-kicker">당신의 이름이 전광판에 오를 때까지</p><h1>2군에서<br><em>MVP</em>까지.</h1><p class="launch-copy">한 번의 스윙, 하나의 선택.<br>평범한 유망주에서 시작하는 나만의 야구 인생.</p><div class="launch-actions"><button class="launch-primary" data-a="launch-enter">${S?'이어하기':'게임 시작'}<span aria-hidden="true">↗</span></button>${S?`<p class="launch-save">${esc(S.name)} · ${S.year} 시즌<br>${esc(teamLabel())} · ${esc(SUBPOS[S.pos]?.n||S.pos)}</p><button class="launch-secondary" data-a="launch-opening">오프닝 보기</button>`:'<button class="launch-secondary" data-a="launch-opening">오프닝 다시 보기</button>'}</div></main><footer class="launch-foot"><p>고교의 첫 유니폼부터, 가장 빛나는 순간까지.<br>진행 상황은 이 브라우저에 자동 저장됩니다.</p><nav aria-label="시작 화면 안내"><a href="guide.html">게임 가이드</a><a href="about.html">게임 소개</a></nav></footer></section>`;
+  return `<section class="launch launch-movie" data-a="launch-title" aria-label="오프닝 영상, 클릭하면 건너뛰기"><video id="opening-video" autoplay muted playsinline preload="auto" aria-label="원작과 제작사 소개, 야구 선수의 성장 오프닝"><source src="assets/opening/opening.mp4" type="video/mp4"></video><button class="cut-skip movie-skip" data-a="launch-title">화면을 누르면 건너뛰기 ↗</button><p class="movie-error" hidden>영상을 재생할 수 없습니다. 건너뛰기를 눌러 게임을 시작해 주세요.</p></section>`;
 }
 function launchSchedule(){
   clearTimeout(LAUNCH.timer);LAUNCH.timer=null;
   const video=document.getElementById('opening-video');
   if(!video)return;
-  video.onended=launchEnter;
+  video.onended=launchTitle;
   video.onerror=()=>{document.querySelector('.movie-error').hidden=false};
   if(document.hidden)video.pause();
   else video.play().catch(()=>{video.controls=true});
@@ -2613,6 +2613,10 @@ function launchNext(){
   if(LAUNCH.scene>=OPENING.length-1)launchEnter();
   else{LAUNCH.scene++;render();launchSchedule()}
 }
+function launchTitle(){
+  clearTimeout(LAUNCH.timer);LAUNCH.timer=null;LAUNCH.screen='title';render();
+  document.querySelector('.launch-primary')?.focus({preventScroll:true});
+}
 function launchEnter(){
   clearTimeout(LAUNCH.timer);LAUNCH.timer=null;LAUNCH.screen=null;render();
   const el=document.querySelector('#app button:not([disabled]),#app input');if(el)el.focus({preventScroll:true});
@@ -2621,7 +2625,7 @@ function render(){
   if(!HAS_DOM)return;
   const app=document.getElementById('app');
   document.body.classList.toggle('launching',!!LAUNCH.screen);
-  if(LAUNCH.screen){if(timer){clearInterval(timer);timer=null}dFab(false);app.className='app';app.innerHTML=launchHTML();return}
+  if(LAUNCH.screen){if(timer){clearInterval(timer);timer=null}dFab(false);app.className='app';app.innerHTML=launchHTML();if(LAUNCH.screen==='cut')launchSchedule();return}
   dFab(!(S&&S.phase==='play'&&S.play));
   if(S&&S.phase==='play'&&S.play){
     if(timer){clearInterval(timer);timer=null}
@@ -4220,6 +4224,7 @@ function initHold(){
 
 /* ================= events ================= */
 function act(a,v){
+  if(a==='launch-title'){launchTitle();return}
   if(a==='launch-enter'){launchEnter();return}
   if(a==='launch-opening'){LAUNCH.screen='cut';LAUNCH.scene=0;render();document.querySelector('.cut-skip')?.focus({preventScroll:true});launchSchedule();return}
   if(a==='launch-next'){launchNext();document.querySelector('.cut-next')?.focus({preventScroll:true});return}
@@ -4313,7 +4318,7 @@ if(HAS_DOM){
     if(e.target.id==='p3pow'){P3.bpow=clamp(+e.target.value/100,0,1);try{localStorage.setItem('b2mvp_bpow',String(P3.bpow))}catch(er){}const l=document.getElementById('p3powv');if(l)l.textContent=powLab(P3.bpow)}});
   document.addEventListener('visibilitychange',()=>{if(LAUNCH.screen==='cut'){document.querySelector('.launch')?.classList.toggle('launch-paused',document.hidden);launchSchedule()}});
   document.addEventListener('keydown',e=>{
-    if(LAUNCH.screen){if(e.key==='Escape'){e.preventDefault();launchEnter()}return}
+    if(LAUNCH.screen){if(e.key==='Escape'||(LAUNCH.screen==='cut'&&(e.key==='Enter'||e.code==='Space'))){e.preventDefault();LAUNCH.screen==='cut'?launchTitle():launchEnter()}return}
     if(S&&S.phase==='play'&&S.play&&S.play.mode==='pit'&&(e.code==='Space'||e.key===' ')){const t=e.target;if(t&&(t.tagName==='BUTTON'&&t.dataset.a||t.tagName==='INPUT'))return;e.preventDefault();if(e.repeat)return;pgCharge();return}
     if(e.key==='Escape'&&ui.sheet){ui.sheet=null;render()}});
   document.addEventListener('pointerdown',e=>{
