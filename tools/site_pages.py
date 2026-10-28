@@ -9,6 +9,7 @@ BASE=(sys.argv[1] if len(sys.argv)>1 else 'https://minors2mvp.pages.dev').rstrip
 TODAY=datetime.date.today().isoformat()
 SITE='2군에서 MVP까지'
 REPO='https://github.com/dsfghfgjhk/minors-to-mvp'
+IG='https://www.instagram.com/minors2mvp/'
 def rd(p):return open(os.path.join(ROOT,p),encoding='utf-8').read()
 def wr(p,s):open(os.path.join(ROOT,p),'w',encoding='utf-8').write(s)
 guide=rd('guide.html')
@@ -36,7 +37,7 @@ def nav(cur):
   cur_attr=' aria-current="page"'
   return '<nav class="topnav" aria-label="사이트 메뉴">'+''.join('<a href="%s"%s>%s</a>'%(f,cur_attr if f==cur else '',m) for f,m in items)+'</nav>'
 def foot():
-  links=' · '.join(f'<a href="{f}">{m}</a>' for f,m,_,_ in PAGES)
+  links=' · '.join(f'<a href="{f}">{m}</a>' for f,m,_,_ in PAGES)+f' · <a href="{IG}" rel="noopener">인스타그램 @minors2mvp</a>'
   return f"""<footer>
   <p>{SITE} · 학교, KBO·NPB·MLB 구단, 리그, 대회 이름은 실제 이름을 빌려 왔어요. 각 이름의 권리는 권리자에게 있고, 이 게임은 공식 제휴가 없는 팬 시뮬레이션이에요. 경기 결과와 기록, 계약은 모두 가상이에요.</p>
   <p><a href="./">게임 하기</a> · {links}</p>
@@ -102,7 +103,7 @@ about=S('어떤 게임인가요?','''  <p><b>2군에서 MVP까지</b>는 고교 
     <a href="guide.html"><b>게임 가이드</b><span>처음이라면 여기부터</span></a>
     <a href="tips.html"><b>커리어 공략</b><span>MVP 빨리 받는 법</span></a>
     <a href="patch.html"><b>패치노트</b><span>무엇이 새로 바뀌었나</span></a>
-  </div>''')+S('만든 사람','''  <p>개인 개발자가 만들고 함께 고쳐 나가는 무료 팬 게임이에요. 소스 코드는 <a href="'''+REPO+'''">GitHub</a>에 공개돼 있어요. 버그 제보와 아이디어는 <a href="contact.html">문의</a> 페이지로 보내 주세요.</p>''')
+  </div>''')+S('인스타그램','''  <p>공식 인스타그램 <a href="'''+IG+'''"><b>@minors2mvp</b></a>에서 명예의 전당 TOP 3, 새 기능, 이벤트 소식을 가장 먼저 올려요. 팔로우하고 랭킹 1위에 도전해 보세요.</p>''')+S('만든 사람','''  <p>개인 개발자가 만들고 함께 고쳐 나가는 무료 팬 게임이에요. 소스 코드는 <a href="'''+REPO+'''">GitHub</a>에 공개돼 있어요. 버그 제보와 아이디어는 <a href="contact.html">문의</a> 페이지로 보내 주세요.</p>''')
 # ---------------- 커리어 공략 ----------------
 tips=S('1. 진로 선택 공략','''  <ul>
     <li><b>고졸 프로 직행 vs 대학</b> · 10대 후반~20대 초반이 가장 많이 자라는 시기예요. 이때 많이 뛰는 게 핵심이라, 드래프트에 뽑히면 바로 프로로 가는 쪽이 대체로 유리해요. 대학은 4년 늦게 출발하는 대신 주전으로 뛰며 경험을 쌓을 수 있어요.</li>
@@ -160,7 +161,7 @@ privacy=S('1. 회원가입과 수집하지 않는 정보','''  <p>2군에서 MVP
 terms=S('1. 서비스','''  <p>2군에서 MVP까지(이하 "게임")는 누구나 무료로 이용할 수 있는 웹 야구 시뮬레이션 게임이에요. 게임은 있는 그대로 제공되며, 기능은 예고 없이 바뀌거나 중단될 수 있어요.</p>''')+S('2. 실제 이름과 가상 기록','''  <p>게임에 나오는 학교, 구단, 리그, 대회 이름은 실제 이름을 빌려 왔어요. 각 이름의 권리는 권리자에게 있고, 게임은 공식 제휴가 없는 팬 시뮬레이션이에요. 경기 결과와 기록, 계약, 연봉은 모두 가상이에요.</p>''')+S('3. 랭킹 이용 규칙','''  <ul><li>욕설, 혐오 표현, 다른 사람을 사칭하거나 개인정보가 담긴 선수 이름은 쓸 수 없어요.</li><li>기록을 조작하거나 랭킹 서버에 비정상적인 요청을 보내는 행위는 금지돼요.</li><li>규칙을 어긴 기록은 알림 없이 지워질 수 있어요.</li></ul>''')+S('4. 저장 데이터','''  <p>게임 저장 데이터는 이용자의 브라우저에만 있어요. 브라우저 데이터 삭제나 기기 변경으로 사라진 데이터는 복구해 드릴 수 없으니, 설정의 저장 코드를 따로 보관해 주세요.</p>''')+S('5. 후원','''  <p>"개발자 서버비 내주기" 후원은 전적으로 자발적이에요. 후원 여부와 상관없이 모든 기능을 똑같이 쓸 수 있고, 후원으로 게임 안의 혜택을 드리지 않아요.</p>''')+S('6. 약관 변경','''  <p>약관이 바뀌면 이 페이지에 알려요. 바뀐 뒤에도 게임을 계속 이용하면 바뀐 약관에 동의한 것으로 봐요.</p>
   <p class="muted">시행일: 2026년 10월 28일</p>''')
 # ---------------- 문의 ----------------
-contact=S('문의하는 방법',f'''  <p>버그 제보, 기능 제안, 랭킹 기록 삭제 요청은 GitHub 이슈로 받아요. GitHub 계정이 있으면 누구나 글을 남길 수 있어요.</p>
+contact=S('문의하는 방법',f'''  <p>가벼운 질문이나 소식은 인스타그램 <a href="{IG}">@minors2mvp</a> DM으로 보내도 돼요. 버그 제보, 기능 제안, 랭킹 기록 삭제 요청은 GitHub 이슈로 받아요. GitHub 계정이 있으면 누구나 글을 남길 수 있어요.</p>
   <div class="cards"><a href="{REPO}/issues/new"><b>새 문의 남기기</b><span>GitHub 이슈 작성</span></a><a href="{REPO}/issues"><b>다른 문의 보기</b><span>이미 올라온 제보와 답변</span></a></div>''')+S('버그를 제보할 때','''  <ul><li>사용한 기기와 브라우저(예: 아이폰 사파리, 갤럭시 크롬)</li><li>어떤 화면에서 무엇을 눌렀는지</li><li>가능하면 화면 캡처</li></ul>
   <p>게임 설정의 저장 코드를 함께 보내 주시면 같은 상황을 재현하기 쉬워요.</p>''')+S('랭킹 기록 삭제 요청','''  <p>선수 이름과 은퇴한 날짜를 알려 주시면 랭킹에서 지워 드려요. 실명이나 연락처는 적지 마세요.</p>''')
 # ---------------- 사이트맵 ----------------
@@ -185,7 +186,7 @@ def fix_urls(s,f):
     s=s.replace('<link rel="apple-touch-icon" href="apple-touch-icon.png">','<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">\n<link rel="apple-touch-icon" href="apple-touch-icon.png">',1)
   return s
 idx=fix_urls(rd('index.html'),'index.html')
-menu='<nav aria-label="사이트 안내">'+''.join(f'<a href="{f}">{m}</a>' for f,m,_,_ in PAGES)+f'<a href="{REPO}">GitHub</a></nav>'
+menu='<nav aria-label="사이트 안내">'+''.join(f'<a href="{f}">{m}</a>' for f,m,_,_ in PAGES)+f'<a href="{IG}" rel="noopener">인스타그램</a><a href="{REPO}">GitHub</a></nav>'
 idx=re.sub(r'<nav aria-label="사이트 안내">.*?</nav>',menu,idx,count=1,flags=re.S)
 wr('index.html',idx)
 g=fix_urls(guide,'guide.html')

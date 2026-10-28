@@ -27,7 +27,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@graph":[
- {"@type":"WebSite","name":"2군에서 MVP까지","alternateName":["2군에서 MVP","야구선수 키우기 게임"],"url":"https://minors2mvp.pages.dev/","inLanguage":"ko"},
+ {"@type":"WebSite","name":"2군에서 MVP까지","alternateName":["2군에서 MVP","야구선수 키우기 게임"],"url":"https://minors2mvp.pages.dev/","inLanguage":"ko","sameAs":["https://www.instagram.com/minors2mvp/"]},
  {"@type":"VideoGame","name":"2군에서 MVP까지","url":"https://minors2mvp.pages.dev/","image":"https://minors2mvp.pages.dev/og.png","description":"고교 1학년 유망주로 시작해 신인 드래프트, 2군, 주전 경쟁, 상무 입대, FA와 빅리그 진출, 국가대표를 거쳐 MVP에 도전하는 무료 야구선수 키우기 웹게임. 회원가입 없이 브라우저에서 바로 플레이해요.","inLanguage":"ko","genre":["스포츠","시뮬레이션","육성"],"gamePlatform":"웹 브라우저","applicationCategory":"GameApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"KRW"}}
 ]}
 </script>
@@ -677,6 +677,10 @@ select{border-radius:4px;background:var(--card)}
 .rk .chip{border-radius:3px} .rk .chip.on{background:var(--dug);border-color:var(--dug);color:var(--led)}
 .rk-tabs{border-radius:4px} .rk-tabs button{border-radius:3px}
 .rk-entry{box-shadow:0 4px 0 var(--dug);border:0}
+.ig-entry{width:100%;border-radius:6px;padding:14px 16px;display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;text-decoration:none;color:#fff;margin-top:12px;
+  background:linear-gradient(100deg,#c13584,#e1306c 45%,#f77737);box-shadow:0 4px 0 #6d1b4a}
+.ig-entry>svg:first-child{width:26px;height:26px}.ig-entry b{display:block;font-size:15px}.ig-entry small{font-size:12.5px;color:#ffe3ef}
+.ig-entry:hover{filter:brightness(1.06)}.ig-entry:focus-visible{outline:3px solid var(--lamp);outline-offset:2px}
 .rk-back{color:var(--ink2)}
 /* 잔디 위에 바로 놓이는 글자 */
 .site-foot{color:#c9e2d3} .site-foot strong{color:var(--chalk)} .site-foot a{color:var(--chalk)}
@@ -744,7 +748,7 @@ body.launching>.site-foot,body.launching>.dfab{display:none!important}
 <p style="margin:0"><strong>2군에서 MVP까지</strong> · 고교 야구부터 빅리그까지, 나만의 야구선수 키우기 게임</p>
 <p style="margin:0">드래프트, 2군, 주전 경쟁, 상무, FA와 해외 진출, 국가대표를 거쳐 MVP에 도전해요. 회원가입 없이 무료로 플레이할 수 있어요.</p>
 <p style="margin:0">실제 학교·구단·리그·대회 이름은 각 권리자의 것이며, 이 게임은 공식 제휴가 없는 팬 시뮬레이션이에요.</p>
-<nav aria-label="사이트 안내"><a href="about.html">서비스 소개</a><a href="guide.html">게임 가이드</a><a href="tips.html">커리어 공략</a><a href="patch.html">패치노트</a><a href="privacy.html">개인정보처리방침</a><a href="terms.html">이용약관</a><a href="contact.html">문의</a><a href="sitemap.html">사이트맵</a><a href="https://github.com/dsfghfgjhk/minors-to-mvp">GitHub</a></nav>
+<nav aria-label="사이트 안내"><a href="about.html">서비스 소개</a><a href="guide.html">게임 가이드</a><a href="tips.html">커리어 공략</a><a href="patch.html">패치노트</a><a href="privacy.html">개인정보처리방침</a><a href="terms.html">이용약관</a><a href="contact.html">문의</a><a href="sitemap.html">사이트맵</a><a href="https://www.instagram.com/minors2mvp/" rel="noopener">인스타그램</a><a href="https://github.com/dsfghfgjhk/minors-to-mvp">GitHub</a></nav>
 </footer>
 
 <script>
@@ -1242,6 +1246,7 @@ const ICON={
   gear:'<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7 7 0 0 0-1.7 1l-2.4-1-2 3.4L6.6 11a7.5 7.5 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7 7 0 0 0 1.7-1l2.4 1 2-3.4zM13 15.5A3.5 3.5 0 1 1 13 8.5a3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg>',
   back:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
   close:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  cam:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.4" cy="6.6" r="1" fill="currentColor" stroke="none"/></svg>',
   chev:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>',
   flag:'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3h2v18H5zm3 1h10l-2 4 2 4H8z"/></svg>',
   trend:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16l6-6 4 4 6-7"/><path d="M15 7h5v5"/></svg>',
@@ -2102,10 +2107,13 @@ function renderRank(){
     h+=mine.length?`<div class="rk-list">${mine.slice().reverse().map(r=>`<div class="rk-it"><div class="rk-av">${rkAva(r)}</div><span class="rk-nm"><b>${esc(r.name)}</b><small>${r.day.slice(5).replace('-','.')} 은퇴 · ${rkPos(r)} · ${r.seasons}시즌 · OVR ${r.ovr} · 개인상 ${r.aw}${r.wbsc?` · WBSC ${r.wbsc}`:''}</small></span>${rkTro(r.mvp)}</div>`).join('')}</div>`
       :`<p class="rk-empty">아직 은퇴한 선수가 없어요.<br>커리어를 끝내면 여기 기록이 쌓여요.</p>`;
   }
-  h+=`<p class="rk-foot">MVP 횟수 → 개인상 → 최고 OVR → 통산 WAR 순으로 순위를 매겨요. 날짜는 한국 시간 기준이에요.</p></div>`;
+  h+=`<p class="rk-foot">MVP 횟수 → 개인상 → 최고 OVR → 통산 WAR 순으로 순위를 매겨요. 날짜는 한국 시간 기준이에요.</p>${igEntry('랭킹 1~3위는 인스타 명예의 전당 스토리에 박제돼요')}</div>`;
   rkLoad();
   return h;
 }
+/* 인스타그램 팔로우 홍보 */
+const IG={handle:'minors2mvp',url:'https://www.instagram.com/minors2mvp/'};
+const igEntry=(msg)=>`<a class="ig-entry" href="${IG.url}" target="_blank" rel="noopener">${ICON.cam}<span><b>인스타 @${IG.handle} 팔로우</b><small>${msg||'명예의 전당 TOP 3 · 업데이트 소식을 제일 먼저 받아요'}</small></span>${ICON.chev||'›'}</a>`;
 const rankEntry=()=>`<button class="rk-entry" data-a="rk-open">${ICON.trophy}<span><b>랭킹</b><small>은퇴한 선수들의 MVP 순위 · 전체 기간·오늘</small></span>${ICON.chev||'›'}</button>`;
 
 /* ================= retire & hof ================= */
@@ -2223,7 +2231,7 @@ function renderCreate(){
     <div class="pcard"><div class="ava">${avaImg(AVS[C.avatar],sch)}</div><div><div style="font-size:20px;font-weight:800">${esc(C.name||'이름 없는 신인')} <span class="badge">${SUBPOS[C.pos].n}</span></div><div class="muted" style="font-size:13px">${c.style} · 등번호 ${parseInt(C.num)>=0&&C.num!==''?clamp(parseInt(C.num),0,99):'자동'} · 16세</div></div></div>
     <div class="rows"><div class="row"><span>소속</span><span>${emblem(sch,20)} ${sch}</span></div><div class="row"><span>국적 · 투타</span><span>대한민국 · ${C.hand}</span></div><div class="row"><span>능력치 합 · OVR</span><span>${Object.values(c.stats).reduce((a,b)=>a+b,0)} · 45</span></div><div class="row"><span>훈련 포커스</span><span>${C.focus.map(k=>SN[k]).join(', ')}</span></div><div class="row"><span>잠재력</span><span>스카우트도 아직 몰라요</span></div></div>
     <div class="btns"><button class="btn gray" data-a="c-noconfirm">다시 고르기</button><button class="btn play" data-a="c-start">입학하기</button></div></div></div>`}
-  return`<div class="page">${nav}<div class="stack">${body}</div><div></div>${btn}</div>${ov}${s===0?rankEntry():''}${hofMini()}`;
+  return`<div class="page">${nav}<div class="stack">${body}</div><div></div>${btn}</div>${ov}${s===0?rankEntry()+igEntry():''}${hofMini()}`;
 }
 function hofMini(){const l=loadHof().slice(0,5);if(!l.length||C.step)return'';return`<section class="sec"><h2>명예의 전당 <span>이 기기</span></h2>${hofTable(l)}</section>`}
 function hofTable(l){return l.length?`<div class="tablewrap"><table><thead><tr><th>#</th><th>선수</th><th class="r">MVP</th><th class="r">WBSC</th><th class="r">최고</th><th class="r">개인상</th><th class="r">WAR</th></tr></thead><tbody>${l.map((h,i)=>`<tr><td>${i+1}</td><td>${esc(h.name)} <span class="muted">${esc(h.pos)}</span></td><td class="r">${h.mvp}</td><td class="r">${h.wb||0}</td><td class="r">${h.maxOvr}</td><td class="r">${h.aw}</td><td class="r">${h.war}</td></tr>`).join('')}</tbody></table></div>`:'<p class="desc">아직 은퇴한 선수가 없어요.</p>'}
@@ -2245,6 +2253,7 @@ function tabHome(){
   return`<section class="scoreboard"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="lg">${S.year} · ${esc(stageTxt()||LG[playLg()].n)}</span><button class="icbtn" data-a="settings" aria-label="설정" style="color:var(--chalk)">${ICON.gear}</button></div>
   <h1>2군에서 MVP까지</h1>
   <div class="sbgrid">${careerTrio().map(([a,b])=>`<div><small>${a}</small><b>${b}</b></div>`).join('')}</div></section>
+  ${igEntry('팔로우하고 랭킹 1위 도전 소식 받기')}
   <section class="sec tcard" style="--tc:${TC[S.team]||'#17305c'}">${pHead()}</section>
   <section class="sec"><h2>매니저 메모</h2><div class="list">${todos().map(itemHTML).join('')}</div></section>
   <section class="sec"><h2>${S.year} 시즌 <span>${stageTxt()||esc(LG[playLg()].n)}</span></h2><div class="rows">${seasonInfoRows()}</div></section>`;
@@ -2304,7 +2313,7 @@ function tabRecord(){
     h+=`<div class="chips">${cats.map(([k,l])=>`<button class="chip ${ui.recCat===k?'on':''}" data-a="rec-cat" data-v="${k}">${l} ${src.filter(x=>k==='all'||x.cat===k).length}</button>`).join('')}</div>`;
     h+=Object.keys(g).length?Object.entries(g).map(([n,ys])=>`<div class="tro"><span class="ic">${ui.recTab==='tro'?ICON.trophy:ICON.medal}</span><span><b>${esc(n)}</b><small>${ys.join(', ')}</small></span><span class="n">${ys.length}회</span></div>`).join(''):`<p class="desc">${ui.recTab==='tro'?'아직 우승 기록이 없어요.':'아직 개인상 기록이 없어요.'}</p>`;
   }
-  h+=`</section>${rankEntry()}<section class="sec"><h2>명예의 전당 <span>이 기기</span></h2>${hofTable(loadHof().slice(0,10))}</section>`;
+  h+=`</section>${rankEntry()}${igEntry()}<section class="sec"><h2>명예의 전당 <span>이 기기</span></h2>${hofTable(loadHof().slice(0,10))}</section>`;
   return h;
 }
 function renderApp(){
@@ -2553,7 +2562,7 @@ function renderRetired(){
   const TR={late:'대기만성',glass:'잦은 부상',iron:'강철 체력',clutch:'강심장','':'평범한 성장'};
   return`<section class="sec center" style="padding-block:28px"><div class="ava" style="width:88px;height:88px">${avaImg()}</div><p class="eyebrow">${S.year-1} 은퇴 · ${S.hist.length}시즌</p><div class="ttl">${esc(S.name)}의 야구 인생</div>${S.mvp||S.wbsc?`<p class="desc"><b class="blue">${[S.mvp?`MVP ${S.mvp}회`:'',S.wbsc?`${WBSC_AW} ${S.wbsc}회`:''].filter(Boolean).join(' · ')}</b></p>`:''}</section>
   <section class="sec"><h2>1군 통산</h2><p style="margin:0;font-weight:700">${tl}</p><div class="rows"><div class="row"><span>통산 WAR</span><span>${t.war}</span></div><div class="row"><span>최고 OVR</span><span>${S.maxOvr}</span></div><div class="row"><span>우승 · 개인상</span><span>${trophyCount()}회 · ${awardCount()}회</span></div><div class="row"><span>누적 수입</span><span>${money(r1(S.earn))}</span></div></div></section>
-  ${rankEntry()}
+  ${rankEntry()}${igEntry('은퇴한 레전드는 명예의 전당 스토리에 올라가요')}
   <section class="sec"><h2>숨겨져 있던 재능</h2><div class="rows"><div class="row"><span>잠재력</span><span>${S.pot}</span></div><div class="row"><span>성장 특성</span><span>${TR[S.trait]}</span></div></div></section>
   <section class="sec"><h2>명예의 전당 <span>이 기기</span></h2>${hofTable(loadHof().slice(0,10))}</section>
   <button class="btn" data-a="reset-yes">새 커리어 시작</button>`;
