@@ -10,7 +10,7 @@ for(const on of ['','1','12','123'])for(const outs of [0,1,2])for(const ev of [7
  const g=fixture(on,outs),bb=bbResolve(ev,-12,sp,50),p=bbPlan(g,bb);if(!p)throw Error('ground play missing');total++;
  if(p.outs>3-outs)throw Error('too many outs');
  for(const e of p.events.filter(e=>e.kind==='out')){const r=p.runners.find(r=>r.from===e.from&&r.bat===e.bat);if(e.force&&e.t>=bbRunArrival(r))throw Error('force out after runner arrival');if(!e.force&&e.base&&e.t<bbRunArrival(r)-.001)throw Error('tag before runner arrives')}
- for(const tr of p.throws){if(tr.t0<p.catchAt||Math.abs(Math.hypot(tr.to[0]-tr.from[0],tr.to[2]-tr.from[2])/tr.dur-(tr.carry?6.5:30))>.001)throw Error('throw timing/speed');}
+ for(const tr of p.throws){if(tr.t0<p.catchAt||Math.abs(Math.hypot(tr.to[0]-tr.from[0],tr.to[2]-tr.from[2])/tr.dur-(tr.speed||(tr.carry?6.5:30)))>.001)throw Error('throw timing/speed');}
  if(p.outs===2&&!found.dp)found.dp={g,bb,p};
  if(outs===2&&p.outs&&p.runs)throw Error('force third out scored');
 }

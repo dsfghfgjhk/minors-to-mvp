@@ -3001,11 +3001,11 @@ function bbPlan(G,bb){
   const batter={from:0,to:1,start:.24,speed:batSpeed,bat:true};runners.push(batter);
   const pos3=([x,z],y=1.15)=>[x,y,z];
   const throwTo=(from,to,t0,by,receiver,base)=>{
-    const distance=Math.hypot(to[0]-from[0],to[2]-from[2]),carry=by===receiver,dur=Math.max(.12,distance/(carry?6.5:30));
+    const distance=Math.hypot(to[0]-from[0],to[2]-from[2]),carry=by===receiver,toss=!carry&&distance<=12,speed=carry?6.5:toss?12:30,dur=Math.max(.12,distance/speed);
     const prev=play.throws.filter(tr=>tr.receiver===receiver).at(-1),origin=prev?[prev.to[0],prev.to[2]]:FPOS[receiver],since=prev?prev.t0+prev.dur:0;
     const receiverReady=since+.2+Math.hypot(origin[0]-to[0],origin[1]-to[2])/6.5;
     if(!carry)t0=Math.max(t0,receiverReady-dur);
-    const tr={from,to,t0,dur,by,receiver,base,carry};play.throws.push(tr);return t0+dur;
+    const tr={from,to,t0,dur,by,receiver,base,carry,toss,speed};play.throws.push(tr);return t0+dur;
   };
   const eventOut=(r,time,base,force)=>{if(play.outs>=3-before)return;r.out=true;r.retireAt=time;r.force=force;play.outs++;
     play.events.push({t:time,kind:'out',base,from:r.from,bat:r.bat,force});};
@@ -3041,7 +3041,9 @@ function bbPlan(G,bb){
       }
     }
     if(!threwSecond){
-      const by=bb.fielder==='1B'?'P':'1B';
+      // 가까우면 1루수가 직접 밟고, 멀면 투수에게 토스해 1루를 커버한다.
+      const firstDistance=Math.hypot(pickup[0]-first[0],pickup[2]-first[2]);
+      const by=bb.fielder==='1B'?(firstDistance<=4?'1B':'P'):'1B';
       const arrives=throwTo(pickup,first,play.catchAt+.28,bb.fielder,by,1);
       if(arrives+.04<bbRunArrival(batter))eventOut(batter,arrives,1,true);
     }
@@ -3117,6 +3119,16 @@ function bbPlan(G,bb){
     else {play.on+=r.to;play.events.push({t:time,kind:'safe',from:r.from,bat:r.bat,base:r.to})}
   }
   play.on=[...new Set(play.on)].sort().join('');
+  // 공을 다루지 않는 수비수도 베이스 커버와 후방 백업에 참여한다.
+  const busy=new Set([play.fielder,...play.throws.flatMap(tr=>[tr.by,tr.receiver])]);
+  play.support=[];
+  const cover=(key,x,z,role)=>{if(busy.has(key))return;busy.add(key);play.support.push({key,x,z,role,arrive:.2+Math.hypot(FPOS[key][0]-x,FPOS[key][1]-z)/6.5})};
+  cover('1B',...BASEP[1],'cover');
+  cover(play.fielder==='2B'?'SS':'2B',...BASEP[2],'cover');
+  cover('3B',...BASEP[3],'cover');
+  if(play.throws.some(tr=>tr.base===4))cover('P',0,-5,'backup');
+  if(play.throws.some(tr=>tr.base===1))cover('RF',25,25,'backup');
+  if(play.throws.some(tr=>tr.base===3))cover('LF',-25,25,'backup');
   play.events.sort((a,b)=>a.t-b.t);play.thirdAt=third?.t;
   play.end=Math.max(play.catchAt,...runners.map(r=>r.legs?.at(-1)?.end||0),...play.events.map(e=>e.t),...play.throws.map(tr=>tr.t0+tr.dur))+.65;
   const tag=outEvents.some(e=>!e.bat&&!e.force);
@@ -3900,7 +3912,7 @@ function p3LiveBall(B,t,out){
   for(const tr of p.throws){
     if(t<tr.t0)break;
     const k=clamp((t-tr.t0)/tr.dur,0,1);
-    out.set(tr.from[0]+(tr.to[0]-tr.from[0])*k,tr.from[1]+(tr.to[1]-tr.from[1])*k+(tr.carry?0:4.905*tr.dur*tr.dur*k*(1-k)),tr.from[2]+(tr.to[2]-tr.from[2])*k);
+    out.set(tr.from[0]+(tr.to[0]-tr.from[0])*k,tr.from[1]+(tr.to[1]-tr.from[1])*k+(tr.carry?0:(tr.toss?2.8:4.905)*tr.dur*tr.dur*k*(1-k)),tr.from[2]+(tr.to[2]-tr.from[2])*k);
   }
   const tag=p.events.find(e=>e.kind==='out'&&!e.force&&e.base>0&&t>e.t-.18);
   if(tag)out.y=1.15-.6*clamp((t-(tag.t-.18))/.18,0,1)*(1-clamp((t-tag.t-.3)/.25,0,1));
@@ -3910,6 +3922,7 @@ function p3LiveDefense(B,t,dt){
   const p=B.play,A=P3.A,way={};
   for(const key of FKEYS)way[key]=[{t:0,x:FPOS[key][0],z:FPOS[key][1]}];
   way[p.fielder].push({t:p.catchAt,x:p.at[0],z:p.at[1]});
+  for(const support of p.support||[])way[support.key].push({t:support.arrive,x:support.x,z:support.z});
   for(const tr of p.throws)way[tr.receiver].push({t:tr.t0+tr.dur,x:tr.to[0],z:tr.to[2]});
   for(const key of FKEYS){const fig=key==='P'?A.pitcher:key==='C'?A.catcher:A.f[key];if(!fig)continue;
     const points=way[key].sort((a,b)=>a.t-b.t);let from=points[0],to=null;
@@ -3919,7 +3932,7 @@ function p3LiveDefense(B,t,dt){
     const throwing=p.throws.find(tr=>!tr.carry&&tr.by===key&&t>=tr.t0-.22&&t<=tr.t0+.22);
     const receiving=p.throws.find(tr=>tr.receiver===key&&t>=tr.t0&&t<=tr.t0+tr.dur+.25);
     const tagging=p.events.find(e=>e.kind==='out'&&!e.force&&e.base>0&&Math.abs(e.t-t)<.3&&p.throws.some(tr=>tr.receiver===key&&tr.base===e.base));
-    if(throwing){p3Face(fig,Math.atan2(-(throwing.to[0]-x),throwing.to[2]-z));p3Pose(fig,kfPose(THRK,clamp((t-throwing.t0+.22)/.44,0,1)),p3Ease(26))}
+    if(throwing){p3Face(fig,Math.atan2(-(throwing.to[0]-x),throwing.to[2]-z));p3Pose(fig,throwing.toss?{...P_STAND,spine:[.25,0,0],shR:[-.2-1.2*clamp((t-throwing.t0+.22)/.44,0,1),0,-.15],elR:[-.4,0,0],shL:[-.3,0,.2],elL:[-.8,0,0]}:kfPose(THRK,clamp((t-throwing.t0+.22)/.44,0,1)),p3Ease(26))}
     else if(to&&Math.hypot(to.x-x,to.z-z)>.2){p3Face(fig,Math.atan2(-(to.x-x),to.z-z));p3Run(fig,t*11,.85)}
     else if(tagging)p3Pose(fig,P_SCOOP,1-Math.exp(-dt*15));
     else if(receiving)p3CatchPose(fig,A.ball.position,1-Math.exp(-dt*12));
