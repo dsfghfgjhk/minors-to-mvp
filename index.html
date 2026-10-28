@@ -7,7 +7,7 @@
 <meta name="description" content="고교 1학년 유망주로 시작해 신인 드래프트, 2군, 주전 경쟁, 상무 입대, FA와 빅리그 진출, 국가대표를 거쳐 MVP에 도전하는 무료 야구선수 키우기 웹게임. 회원가입 없이 브라우저에서 바로 플레이해요.">
 <meta name="keywords" content="2군에서 MVP까지, 야구선수 키우기, KBO 선수 키우기, 야구 게임, 야구 커리어 게임, 프로야구 선수 키우기, 고교야구, 웹게임, 시뮬레이션 게임">
 <link rel="canonical" href="https://minors2mvp.pages.dev/">
-<meta name="theme-color" content="#ede9df">
+<meta name="theme-color" content="#0f2b21">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="ko_KR">
 <meta property="og:site_name" content="2군에서 MVP까지">
@@ -43,7 +43,7 @@ img{max-width:100%}
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Barlow+Condensed:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;700;800&display=swap">
 <style>
-/* Shared component primitives; the career notebook identity is defined below. */
+/* Layout: a phone-app column on cool grey; white rounded sections; one blue for every primary action, red only for alerts and stat gains, warm yellow for trophies; people and scenes are pixel art */
 :root{
   --bg:#f2f4f6; --card:#ffffff; --ink:#191f28; --ink2:#4e5968; --muted:#8b95a1; --line:#e5e8eb; --fill:#f2f4f6;
   --blue:#3182f6; --blue-d:#1b64da; --blue-s:#e8f3ff; --blue-dis:#a9cbfb; --red:#f04452; --down:#3182f6;
@@ -574,185 +574,6 @@ body,.ttl,h1,h2,.desc,.situ,.choice,.item,.fi,.art h3{word-break:keep-all;overfl
   .ttl{font-size:28px}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-
-/* THE PLAYER JOURNAL — warm paper, field ink and vermilion. */
-:root{--bg:#ede9df;--card:#faf8f1;--ink:#202f2b;--ink2:#52615a;--muted:#68736a;--line:#d5d6c9;--fill:#eaeade;--blue:#285345;--blue-d:#193d32;--blue-s:#e1e9df;--blue-dis:#a3b5a7;--accent:#b43f28;--accent-d:#95301f;--red:#b43f28;--down:#326078;--gold:#926818;--gold-s:#f3e8c8;--board:#203e34;--board2:#2c4b40;--lamp:#eccc86;--chalk:#faf8ee;--boardtxt:#c1cdbd;--toast:#203e34;--scrim:#14271fcc}
-
-body{background:var(--bg);background-image:repeating-linear-gradient(0deg,transparent,transparent 47px,#283c2c05 48px);padding:24px 20px 0}
-
-.app{max-width:1120px;gap:18px}
-.app.tabs{display:grid;grid-template-columns:212px minmax(0,1fr);align-items:start;gap:32px;padding-bottom:0}
-
-.sec,.page{border:1px solid var(--line);border-radius:3px;box-shadow:0 3px 0 #263b2705}
-.sec{padding:22px;gap:16px}
-.sec h2{font-size:17px;letter-spacing:-.03em}
-.hd{padding:8px 0 18px;border-bottom:2px solid var(--ink);margin-bottom:18px}
-.hd h1{font-family:var(--f-body);font-size:28px;font-weight:800}
-.hd small{margin-top:5px}
-
-.btn{border-radius:3px;font-size:15px;letter-spacing:-.02em}
-.btn.sm{border-radius:3px}
-.btn.gray{border:1px solid var(--line);background:transparent}
-.btn.play{background:var(--accent)}
-.icbtn{border-radius:3px}
-.field,.stycard,.avopt,.infobox,.choice,.art,.acct,.mom,.rk-entry,.rk-list,.rk-pc,.ovrbox,.ava,.scoreboard{border-radius:3px}
-.badge,.tag,.chip,.seg,.seg button{border-radius:2px}
-.sheet{border-radius:5px;border-top:5px solid var(--accent)}
-.bar .tr,.bar .tr i,.prog,.prog i{border-radius:0}
-.bar.focus .tr i{background:var(--accent)}
-.item{border-radius:0;padding-block:13px;border-bottom:1px solid var(--line)}
-.item:last-child{border-bottom:0}
-.item .ic{border-radius:3px;background:transparent;border:1px solid var(--line)}
-.list{margin:0}
-.item small{font-size:12px}
-.row{font-size:14px}
-.trio b{font-family:var(--f-num);font-size:28px}
-.scene{border-radius:3px}
-
-.journal-brand{display:flex;gap:10px;align-items:center;min-width:0}
-.journal-brand strong{display:block;font-size:15px;font-weight:800;letter-spacing:-.06em}
-.journal-brand small{display:block;font-family:var(--f-num);font-size:9px;letter-spacing:.08em;margin-top:2px;color:var(--muted)}
-.brand-mark{width:38px;height:42px;border:2px solid var(--ink);display:grid;place-items:center;font:700 29px/1 var(--f-num);position:relative;flex:none}
-.brand-mark>span{position:absolute;right:-5px;bottom:-4px;background:var(--accent);color:var(--white);font:700 14px/1 var(--f-num);padding:2px 4px;border:2px solid var(--bg)}
-
-.journal-rail{position:sticky;top:24px;padding:12px 0}
-.rail-caption{font:600 11px var(--f-num);color:var(--muted);letter-spacing:.16em;margin:44px 0 12px}
-.journal-rail nav{display:grid;border-top:1px solid var(--line)}
-.journal-tab{appearance:none;border:0;border-bottom:1px solid var(--line);background:transparent;padding:17px 8px;text-align:left;display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px}
-.journal-tab svg{width:18px;height:18px}
-.journal-tab .tab-index{font:600 12px var(--f-num);color:var(--muted)}
-.journal-tab.on{background:var(--ink);color:var(--card);box-shadow:inset 3px 0 var(--accent)}
-.journal-tab.on .tab-index{color:#d3c4a7}
-.journal-tab:hover:not(.on){background:var(--fill)}
-.rail-season{display:grid;gap:4px;margin-top:50px;padding-top:14px;border-top:2px solid var(--ink)}
-.rail-season small{font:600 11px var(--f-num);letter-spacing:.12em}
-.rail-season b{font:600 56px/1 var(--f-num)}
-.rail-season>span{font-size:12px;color:var(--ink2)}
-
-.journal-workspace{min-width:0}
-.journal-top{display:flex;justify-content:space-between;gap:12px;font:500 11px var(--f-body);color:var(--ink2);border-bottom:2px solid var(--ink);padding:12px 0 18px;margin-bottom:22px}
-.journal-top b{color:var(--ink);margin-left:8px}
-.journal-year{font:600 13px var(--f-num);letter-spacing:.1em}
-#career-content{display:grid;gap:18px}
-#career-content>.hd{margin-bottom:0}
-.home-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:18px}
-.career-cover{background:var(--ink);color:var(--card);padding:22px 26px 0;position:relative;overflow:hidden;min-width:0}
-.cover-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;position:relative;z-index:1;border-bottom:1px solid #faf8f133;padding-bottom:8px;font:500 11px var(--f-num);letter-spacing:.1em}
-.cover-meta .icbtn{color:#e7e7d9;width:28px;height:28px}
-.cover-kicker{font-size:11px;color:#c8d0bc;margin:24px 0 10px;position:relative;z-index:1}
-.career-cover h1{font:800 clamp(28px,3vw,42px)/1.35 var(--f-body);letter-spacing:-.07em;margin:0;position:relative;z-index:1}
-.career-cover h1 em{font-style:normal;color:#efc68d}
-.cover-desc{font-size:12px;color:#c8d0bc;position:relative;z-index:1;margin:14px 0 28px}
-.cover-diamond{position:absolute;right:-65px;top:95px;width:210px;height:210px;transform:rotate(45deg);border:1px solid #e8dcb428;display:grid;place-items:center}
-.cover-diamond i{position:absolute;inset:23px;border:1px solid #e8dcb428}
-.cover-diamond span{transform:rotate(-45deg);font-size:10px;color:#e8dcb433;text-align:center}
-.career-numbers{display:grid;grid-template-columns:repeat(3,1fr);position:relative;border-top:1px solid #faf8f133;padding:18px 0;gap:12px}
-.career-numbers div{display:grid;gap:3px}
-.career-numbers b{font:600 32px/1 var(--f-num);color:#efc68d}
-.career-numbers small{font-size:10px;color:#c8d0bc}
-.panel-label{font:600 10px var(--f-num);letter-spacing:.14em;color:var(--muted)}
-.roster-card{align-content:start;border-top:4px solid var(--accent)}
-.roster-card .pcard{grid-template-columns:48px minmax(0,1fr)!important;gap:12px}
-.roster-card .ava{width:48px;height:70px;background:var(--fill)}
-.roster-card .ovrbox{grid-column:1/-1;display:flex;align-items:baseline;justify-content:start;gap:10px;background:transparent;padding:12px 0 0;border-top:1px dashed var(--line)}
-.roster-card .ovrbox b{font-size:54px}
-.roster-note{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px}
-.roster-note span{color:var(--ink2)}
-.roster-card .btn{display:flex;align-items:center;justify-content:space-between}
-.roster-card .btn svg{width:16px}
-.career-route{grid-column:1/-1;border-block:1px solid var(--line);padding:18px 0 22px}
-.route-title{font:600 12px var(--f-num);letter-spacing:.1em}
-.route-title>span{font:500 10px var(--f-body);color:var(--muted);margin-left:8px;letter-spacing:0}
-.career-route ol{list-style:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:0;margin:16px 0 0}
-.career-route li{position:relative;display:grid;justify-items:start;gap:6px;border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font-size:11px}
-.career-route li::before{content:'';position:absolute;left:0;top:-4px;width:7px;height:7px;background:var(--bg);border:1px solid var(--muted);transform:rotate(45deg)}
-.career-route li.done::before{background:var(--blue);border-color:var(--blue)}
-.career-route li>span{font:600 12px var(--f-num)}
-.career-route li.current{color:var(--accent)}
-.career-route li.current::before{background:var(--accent);border-color:var(--accent)}
-.career-route li small{font-size:9px}
-.manager-panel,.season-panel{align-content:start}
-.season-panel .row{align-items:start;gap:8px;font-size:12px}
-.season-panel .row>span:first-child{max-width:45%}
-.season-panel .row>span:last-child{font-size:12px}
-.season-panel h2{flex-wrap:wrap}
-.season-action{position:sticky;bottom:16px;z-index:19;margin-top:22px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:20px;background:var(--card);border:1px solid var(--ink);box-shadow:4px 4px 0 #202f2b20}
-.season-action>div{display:grid;gap:3px}
-.season-action small{font:600 10px var(--f-num);color:var(--accent);letter-spacing:.1em}
-.season-action b{font-size:14px}
-.season-action .btn{width:164px;height:48px;display:flex;align-items:center;justify-content:space-between;flex:none}
-.season-action .btn span{font-size:24px}
-.site-foot{max-width:1120px;padding-top:28px}
-.app.tabs~.site-foot{padding-bottom:84px}
-.dfab{animation:none;border-radius:3px;background:var(--card);border:1px solid var(--line);box-shadow:0 2px 6px #0001;color:var(--ink2);font-size:11px;padding:7px 10px;gap:4px}
-.dfab::before{display:none}
-.dfab svg{width:15px;height:15px}
-.create-masthead{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:2px solid var(--ink);padding-bottom:20px;width:100%;max-width:760px;margin:auto}
-.create-masthead>span{font-size:11px;color:var(--muted)}
-.create-page{max-width:760px;width:100%;margin:auto;min-height:0;grid-template-rows:auto 1fr auto auto;padding:26px 36px 30px;border-top:4px solid var(--accent)}
-.fab-on .create-page{min-height:0}
-.create-page .ttl{font:800 36px/1.3 var(--f-body);letter-spacing:-.06em}
-.create-page .stepnum{font-size:13px;letter-spacing:.15em}
-.create-page .field{border-bottom:1px solid var(--ink)}
-
-/* Match graphics use the same journal trim, with high contrast over the field. */
-.bugm{border-radius:2px;border-left:3px solid #d8754a;box-shadow:3px 3px 0 #0003;background:#203229ed}
-.bugm .tms b,.bugm .p3inn{color:#efc68d}
-.p3bug .who{border-radius:2px;background:#203229e8}
-.p3act .when{font:700 13px var(--f-body);color:#efc68d}
-.p3btns button{border-radius:2px;background:#203229df}
-.p3btns button.on{background:#efc68d;border-color:#efc68d}
-.p3card,.pitw{border-radius:3px;background:#203229ed;border:1px solid #faf8f138;border-top:3px solid #cf6841}
-.pg-types button{border-radius:2px}
-.pg-types button.on{background:#efc68d;border-color:#efc68d}
-.p3card .btn{color:white}
-.p3card .btn.gray{background:#edf0e5;color:#203229}
-.p3card .k,.p3card .stampx{color:#efc68d}
-.p3card .badge{color:#203229;background:#efc68d}
-.pg-big{border-radius:3px;box-shadow:none;font-family:var(--f-body);font-weight:800}
-
-@media(min-width:960px){.app.tabs~.site-foot{padding-left:244px}
-.app:not(.tabs)>.page:not(.rk){max-width:760px;width:100%;margin:auto}
-}
-
-@media(max-width:959px){body{padding:16px 16px 0}
-.app.tabs{grid-template-columns:1fr;gap:16px}
-.journal-rail{position:static;padding:0}
-.journal-rail .rail-caption,.journal-rail .rail-season{display:none}
-.journal-rail nav{position:fixed;left:0;right:0;bottom:0;z-index:25;display:grid;grid-template-columns:repeat(5,1fr);padding:0 8px env(safe-area-inset-bottom,0px);border-top:1px solid var(--ink);background:var(--card)}
-.journal-tab{display:grid;justify-items:center;gap:4px;padding:12px 2px 10px;border-bottom:0;font-size:10px;min-width:0}
-.journal-tab .tab-index{display:none}
-.journal-tab.on{background:var(--fill);color:var(--ink);box-shadow:inset 0 3px var(--accent)}
-.journal-rail .journal-brand{padding-bottom:10px}
-.journal-top{margin-bottom:16px;padding-top:0}
-.season-action{bottom:calc(76px + env(safe-area-inset-bottom,0px));padding:12px 14px}
-.app.tabs~.site-foot{padding-bottom:calc(168px + env(safe-area-inset-bottom,0px))}
-.dfab{position:static;margin:0 auto calc(94px + env(safe-area-inset-bottom,0px));width:max-content}
-.app.tabs~.dfab{position:static}
-.create-page{padding:20px}
-.create-page .ttl{font-size:30px}
-}
-
-@media(max-width:600px){.home-grid{grid-template-columns:1fr}
-.career-cover{padding:18px 22px 0}
-.career-cover h1{font-size:36px}
-.cover-desc{margin-bottom:22px}
-.roster-card{gap:14px}
-.roster-card .pcard{grid-template-columns:48px minmax(0,1fr) auto!important}
-.roster-card .ovrbox{grid-column:auto;border:0;padding:0;display:grid;justify-items:center;gap:2px}
-.roster-card .ovrbox b{font-size:40px}
-.roster-card .pcard>div:nth-child(2)>div:nth-child(2){font-size:17px!important}
-.career-route{grid-column:auto}
-.season-action>div b{font-size:12px}
-.season-action .btn{width:132px;height:44px}
-.create-masthead>span{display:none}
-.career-numbers b{font-size:30px}
-.manager-panel,.season-panel{padding:20px}
-.season-panel .row{font-size:14px}
-.season-panel .row>span:last-child{font-size:14px}
-.sheet{border-radius:4px 4px 0 0}
-}
-
 </style>
 </head>
 <body>
@@ -2240,7 +2061,7 @@ function renderCreate(){
     <div class="pcard"><div class="ava">${avaImg(AVS[C.avatar],sch)}</div><div><div style="font-size:20px;font-weight:800">${esc(C.name||'이름 없는 신인')} <span class="badge">${SUBPOS[C.pos].n}</span></div><div class="muted" style="font-size:13px">${c.style} · 등번호 ${parseInt(C.num)>=0&&C.num!==''?clamp(parseInt(C.num),0,99):'자동'} · 16세</div></div></div>
     <div class="rows"><div class="row"><span>소속</span><span>${emblem(sch,20)} ${sch}</span></div><div class="row"><span>국적 · 투타</span><span>대한민국 · ${C.hand}</span></div><div class="row"><span>능력치 합 · OVR</span><span>${Object.values(c.stats).reduce((a,b)=>a+b,0)} · 45</span></div><div class="row"><span>훈련 포커스</span><span>${C.focus.map(k=>SN[k]).join(', ')}</span></div><div class="row"><span>잠재력</span><span>스카우트도 아직 몰라요</span></div></div>
     <div class="btns"><button class="btn gray" data-a="c-noconfirm">다시 고르기</button><button class="btn play" data-a="c-start">입학하기</button></div></div></div>`}
-  return`<div class="create-masthead">${journalBrand()}<span>첫 페이지를 펼치다</span></div><div class="page create-page">${nav}<div class="stack">${body}</div><div></div>${btn}</div>${ov}${s===0?rankEntry():''}${hofMini()}`;
+  return`<div class="page">${nav}<div class="stack">${body}</div><div></div>${btn}</div>${ov}${s===0?rankEntry():''}${hofMini()}`;
 }
 function hofMini(){const l=loadHof().slice(0,5);if(!l.length||C.step)return'';return`<section class="sec"><h2>명예의 전당 <span>이 기기</span></h2>${hofTable(l)}</section>`}
 function hofTable(l){return l.length?`<div class="tablewrap"><table><thead><tr><th>#</th><th>선수</th><th class="r">MVP</th><th class="r">WBSC</th><th class="r">최고</th><th class="r">개인상</th><th class="r">WAR</th></tr></thead><tbody>${l.map((h,i)=>`<tr><td>${i+1}</td><td>${esc(h.name)} <span class="muted">${esc(h.pos)}</span></td><td class="r">${h.mvp}</td><td class="r">${h.wb||0}</td><td class="r">${h.maxOvr}</td><td class="r">${h.aw}</td><td class="r">${h.war}</td></tr>`).join('')}</tbody></table></div>`:'<p class="desc">아직 은퇴한 선수가 없어요.</p>'}
@@ -2258,22 +2079,13 @@ function seasonInfoRows(){
     ${S.comp&&S.role?`<div class="row"><span>포지션 경쟁자</span><span>OVR ${S.comp} · 내 OVR ${ovr()}</span></div>`:''}
     ${S.nat&&S.nat.joined?`<div class="row"><span>대표팀</span><span>${S.year} ${S.nat.ev} 합류</span></div>`:''}`;
 }
-function careerRoute(){
-  const pro=S.hist.some(h=>['KR','JP','US','ARMY'].includes(h.org))||!['HS','UNIV'].includes(S.org);
-  const steps=[['첫 유니폼',true],['프로 입단',pro],['1군의 이름',totals().G>0],['MVP',!!S.mvp]];
-  const current=steps.reduce((n,x,i)=>x[1]?i:n,0);
-  return `<section class="career-route" aria-label="커리어 이정표"><div class="route-title">THE ROAD TO MVP <span>나의 이정표</span></div><ol>${steps.map(([name,done],i)=>`<li class="${done?'done':''} ${i===current?'current':''}" ${i===current?'aria-current="step"':''}><span>${String(i+1).padStart(2,'0')}</span><b>${name}</b>${i===current?'<small>현재 도달</small>':''}</li>`).join('')}</ol></section>`;
-}
 function tabHome(){
-  return `<div class="home-grid"><section class="career-cover"><div class="cover-meta"><span>PLAYER JOURNAL / ${S.year}</span><button class="icbtn" data-a="settings" aria-label="설정">${ICON.gear}</button></div>
-  <p class="cover-kicker">${esc(stageTxt()||LG[playLg()].n)} · ${esc(teamLabel())}</p>
-  <h1>오늘의 땀이,<br>내일의 <em>MVP.</em></h1><p class="cover-desc">${esc(S.name)}의 야구는 지금부터.</p>
-  <div class="cover-diamond" aria-hidden="true"><i></i><span>홈에서 시작한<br>나만의 여정</span></div>
-  <div class="career-numbers">${careerTrio().map(([a,b])=>`<div><b>${b}</b><small>${a}</small></div>`).join('')}</div></section>
-  <section class="sec roster-card"><div class="panel-label">01 / ACTIVE PLAYER</div>${pHead()}<div class="roster-note"><span>이번 시즌의 역할</span><strong>${esc(roleName(S.role))}</strong></div><button class="btn gray sm" data-a="go-player">선수 리포트 ${ICON.chev}</button></section>
-  ${careerRoute()}
-  <section class="sec manager-panel"><div class="panel-label">02 / DUGOUT NOTES</div><h2>덕아웃에서 온 메모</h2><div class="list">${todos().map(itemHTML).join('')}</div></section>
-  <section class="sec season-panel"><div class="panel-label">03 / SEASON FILE</div><h2>${S.year} 시즌 파일 <span>${esc(stageTxt()||LG[playLg()].n)}</span></h2><div class="rows">${seasonInfoRows()}</div></section></div>`;
+  return`<section class="scoreboard"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="lg">${S.year} · ${esc(stageTxt()||LG[playLg()].n)}</span><button class="icbtn" data-a="settings" aria-label="설정" style="color:var(--chalk)">${ICON.gear}</button></div>
+  <h1>2군에서 MVP까지</h1>
+  <div class="sbgrid">${careerTrio().map(([a,b])=>`<div><small>${a}</small><b>${b}</b></div>`).join('')}</div></section>
+  <section class="sec tcard" style="--tc:${TC[S.team]||'#17305c'}">${pHead()}</section>
+  <section class="sec"><h2>매니저 메모</h2><div class="list">${todos().map(itemHTML).join('')}</div></section>
+  <section class="sec"><h2>${S.year} 시즌 <span>${stageTxt()||esc(LG[playLg()].n)}</span></h2><div class="rows">${seasonInfoRows()}</div></section>`;
 }
 function tabNews(){
   return`${head('뉴스','기사와 팬 게시판')}
@@ -2305,7 +2117,7 @@ function tabPlayer(){
   return`${head('선수 카드')}
   <section class="sec"><div class="pcard"><div class="ava">${avaImg()}</div><div style="min-width:0"><div class="who">${emblem(S.team,16)} ${esc(teamLabel())}</div><div style="font-size:22px;font-weight:800">${esc(S.name)} <span class="badge">${SUBPOS[S.pos].n}</span></div><div class="muted" style="font-size:13px">${esc(S.style)} · ${S.hand} · 등번호 ${S.num} · ${S.age}세</div></div></div>
   <div class="trio"><div><small>종합 능력치</small><b>${ovr()}</b></div><div><small>훈련 포커스</small><b style="font-size:15px">${S.focus.map(k=>SN[k]).join(', ')}</b></div><div><small>잠재력</small><b>???</b></div></div></section>
-  <section class="sec"><h2>능력치 <span>강조 막대는 훈련 포커스</span></h2><div class="bars">${keys.map(k=>{const v=Math.floor(S.stats[k]),d=prev[k]!=null?v-Math.floor(prev[k]):0;
+  <section class="sec"><h2>능력치 <span>남색 막대는 훈련 포커스</span></h2><div class="bars">${keys.map(k=>{const v=Math.floor(S.stats[k]),d=prev[k]!=null?v-Math.floor(prev[k]):0;
     return`<div class="bar ${S.focus.includes(k)?'focus':''}"><span>${SN[k]}</span><span class="tr"><i style="width:${S.stats[k]}%"></i></span><span>${v}${d?`<small class="${d>0?'up':'dn'}">${sgn(d)}</small>`:''}</span></div>`}).join('')}</div></section>
   <section class="sec"><h2>상태</h2><div class="rows">
     <div class="row"><span>사기</span><span>${S.morale>=80?'최고':S.morale>=65?'좋음':S.morale>=45?'보통':'낮음'} · ${Math.round(S.morale)}</span></div>
@@ -2333,13 +2145,13 @@ function tabRecord(){
   h+=`</section>${rankEntry()}<section class="sec"><h2>명예의 전당 <span>이 기기</span></h2>${hofTable(loadHof().slice(0,10))}</section>`;
   return h;
 }
-const journalBrand=()=>`<div class="journal-brand"><span class="brand-mark" aria-hidden="true">M<span>2</span></span><div><strong>2군에서 MVP까지</strong><small>EVERY PLAYER HAS A STORY</small></div></div>`;
 function renderApp(){
-  const tabs=[['home','나의 여정'],['season','시즌 일정'],['player','선수 리포트'],['news','클럽 소식'],['record','커리어 기록']];
+  const tabs=[['home','라커룸'],['news','뉴스'],['season','시즌'],['player','선수 카드'],['record','기록실']];
   const body={home:tabHome,news:tabNews,season:tabSeason,player:tabPlayer,record:tabRecord}[ui.tab]();
-  return `<aside class="journal-rail">${journalBrand()}<p class="rail-caption">CAREER NOTEBOOK</p><nav aria-label="메뉴">${tabs.map(([k,l],i)=>`<button class="journal-tab ${ui.tab===k?'on':''}" data-a="tab" data-v="${k}" ${ui.tab===k?'aria-current="page"':''}><span class="tab-index">0${i+1}</span>${ICON[k]}<span>${l}</span></button>`).join('')}</nav><div class="rail-season"><small>CURRENT SEASON</small><b>${S.year}</b><span>${esc(S.name)} · No.${S.num}</span></div></aside>
-  <div class="journal-workspace"><header class="journal-top"><span>MY CAREER / <b>${tabs.find(x=>x[0]===ui.tab)[1]}</b></span><span class="journal-year">${S.year} SEASON</span></header><main id="career-content">${body}</main>
-  <div class="season-action"><div><small>NEXT CHAPTER</small><b>${S.year} 시즌, 그라운드로</b></div><button class="btn play" data-a="go">플레이볼 <span aria-hidden="true">↗</span></button></div></div>${renderSheet()}`;
+  return`${body}
+  <div class="dock"><div><div class="cta"><button class="btn play" data-a="go">${S.year} 시즌 플레이볼</button></div>
+  <nav class="tabbar" aria-label="메뉴">${tabs.map(([k,l])=>`<button class="tab ${ui.tab===k?'on':''}" data-a="tab" data-v="${k}" ${ui.tab===k?'aria-current="page"':''}>${ICON[k]}<span>${l}</span></button>`).join('')}</nav></div></div>
+  ${renderSheet()}`;
 }
 
 /* ================= sheets ================= */
