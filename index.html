@@ -2952,6 +2952,7 @@ function bbRunnerRetreat(r,at,base){
     // 베이스를 돌기 전이면 그 베이스까지만 달린 뒤 멈춘다.
     r.to=base;r.decision='hold';
     if(r.legs?.length){const kept=[];for(const leg of r.legs){
+      if(leg.from>=base&&leg.to>base)break;
       if(leg.from<base&&leg.to>=base){kept.push({...leg,to:base,end:leg.start+(base-leg.from)*27.4/r.speed*(leg.mode==='run'?1:1.6)+(leg.mode==='run'?.19:.12)});break}
       kept.push(leg);
     }r.legs=kept}
@@ -3056,6 +3057,25 @@ function bbPlan(G,bb){
         // 실제 공을 본 뒤 추가 진루를 결정하며, 목적지만 몰래 바꾸지 않는다.
         if(r.legs?.length)r.legs.pop();bbRunnerSetDestination(r,4,start);
       }
+    }
+    // 수비가 공을 확보하면 모든 주자가 추가 진루의 여유와 뒤 주자 간격을 다시 판단한다.
+    // 가장 앞선 한 명만 송구 후에 판단하던 방식은 늦은 홈 쇄도와 귀루 실패를 만들었다.
+    const decisionAt=play.catchAt+.12,safety=.65+caution*.6;
+    let reserved=5;
+    for(const r of runners.slice().sort((a,b)=>b.from-a.from)){
+      const mandatory=r.bat||r.from===1||r.from===2&&on.includes('1')||r.from===3&&on.includes('1')&&on.includes('2')?r.from+1:r.from;
+      const target=BASEP[r.to%4],distance=Math.hypot(play.at[0]-target[0],play.at[1]-target[1]);
+      let throwArrival=play.catchAt+.32+distance/30;
+      if(distance>58){const cx=play.at[0]*.3,cz=38.8;throwArrival=play.catchAt+.6+(Math.hypot(play.at[0]-cx,play.at[1]-cz)+Math.hypot(cx-target[0],cz-target[1]))/30}
+      const risky=r.to>mandatory&&bbRunArrival(r)+safety>throwArrival;
+      const blocked=r.to<4&&r.to>=reserved;
+      if(risky||blocked){
+        const reached=Math.floor(bbRunnerProgress(r,decisionAt));
+        const stop=Math.max(mandatory,Math.min(r.to-1,Math.max(r.from,reached),reserved-1));
+        bbRunnerRetreat(r,decisionAt,stop);
+        r.riskRead={at:decisionAt,throwArrival,safety};
+      }
+      if(r.to<4)reserved=r.to;
     }
     let threat=runners.filter(r=>r.to>r.from).sort((a,b)=>b.to-a.to||b.from-a.from)[0];
     if(threat){const dest=pos3(BASEP[threat.to%4]),receiver=threat.to===4?'C':threat.to===3?'3B':threat.to===2?'2B':'1B';

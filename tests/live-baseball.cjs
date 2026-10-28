@@ -17,6 +17,8 @@ for(const on of ['','1','12','123'])for(const outs of [0,1,2])for(const ev of [7
 for(const ev of [80,100,120,140])for(const la of [10,18,25,35])for(const sp of [-30,0,30]){
  const g=fixture('2'),bb=bbResolve(ev,la,sp,50),p=bbPlan(g,bb);if(p?.events.some(e=>e.kind==='out'&&!e.bat&&!e.force))found.tag={g,bb,p};
 }
+// A conservative runner still can be trapped on a late-read shallow pop-up.
+{const g=fixture('2',0),bb=bbResolve(113.17141573061235,56.89572156406939,-43.393579637631774,50),p=bbPlan(g,bb);if(p?.events.some(e=>e.kind==='out'&&!e.bat&&!e.force))found.tag={g,bb,p};}
 if(!found.dp||!found.tag)throw Error('double play or tag out never occurs');
 const {g,bb,p}=found.dp;g.lastBB=bb;const before=bbPlaySnapshot(g),res=pgApply(g,bb.k,0);
 if(g.pa.out-before.pa.out!==p.outs||g.pa.on!==p.on||res.runs!==p.runs)throw Error('scoreboard disagrees with timeline');
