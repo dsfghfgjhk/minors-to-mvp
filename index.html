@@ -41,7 +41,7 @@ img{max-width:100%}
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Barlow+Condensed:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Barlow+Condensed:wght@500;600;700&family=Do+Hyeon&family=IBM+Plex+Sans+KR:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700;800&display=swap">
 <style>
 /* Layout: a phone-app column on cool grey; white rounded sections; one blue for every primary action, red only for alerts and stat gains, warm yellow for trophies; people and scenes are pixel art */
 :root{
@@ -574,6 +574,123 @@ body,.ttl,h1,h2,.desc,.situ,.choice,.item,.fi,.art h3{word-break:keep-all;overfl
   .ttl{font-size:28px}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* ===== 새 인터페이스: 잔디 위의 전광판 =====
+   바탕은 줄무늬로 깎은 야구장 잔디, 글과 메뉴는 분필(초크) 흰색, 숫자는 전광판 앰버.
+   카드는 흰 상자가 아니라 잔디 위에 놓인 분필판/전광판이고, 시작 버튼은 홈플레이트 모양이에요. */
+:root{
+  --turf:#1d6a44; --turf2:#217449; --dug:#0f3a27; --dug2:#16492f; --chalk:#f3f7f2; --chalk2:#e3ece5;
+  --ink:#10291d; --ink2:#3f5a4b; --muted:#6f8a7b; --line:#d3e0d6; --fill:#e6eee8; --card:#f6faf6;
+  --bg:#1d6a44; --lamp:#ffbb2e; --led:#ffbb2e; --boardtxt:#9fc7b0;
+  --blue:#10291d; --blue-d:#061a10; --blue-s:#e2efe5; --blue-dis:#9fb5a8; --accent:#e23d3d; --accent-d:#c22f2f;
+  --board:#0f3a27; --board2:#174a32; --toast:#0f3a27; --scrim:#04140cb3;
+  --f-display:'Do Hyeon','Noto Sans KR',sans-serif; --f-num:'Do Hyeon','Noto Sans KR',sans-serif;
+  --f-body:'IBM Plex Sans KR','Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+}
+body{font-family:var(--f-body);background-color:var(--turf);
+  background-image:repeating-linear-gradient(180deg,var(--turf) 0 64px,var(--turf2) 64px 128px);background-attachment:fixed}
+/* 제목: 잔디 위에 분필로 쓴 글씨 */
+.ttl,.hd h1,.move .amt,.scoreboard h1,.sec h2,.stycard .t b,.pcard .big{font-family:var(--f-display);font-weight:400;letter-spacing:0}
+.hd{padding:10px 2px 2px}
+.hd h1{font-size:30px;color:var(--chalk);line-height:1.1}
+.hd small{color:#c9e2d3;font-size:13px}
+.hd .icbtn{color:var(--chalk)} .hd .icbtn:hover{background:#ffffff1a}
+/* 분필판: 네모에 가까운 모서리, 그림자 없이 아래쪽에 짙은 잔디색 턱 */
+.sec{background:var(--card);border-radius:6px;box-shadow:0 4px 0 var(--dug);padding:18px 18px 20px}
+.sec h2{font-size:22px;color:var(--ink)}
+.sec h2 span{font-family:var(--f-body);font-size:13px}
+.page{background:var(--card);border-radius:8px;box-shadow:0 5px 0 var(--dug)}
+.ttl{font-size:30px;line-height:1.25}
+.ttl b{color:var(--accent)}
+/* 전광판 */
+.scoreboard{background:var(--dug);border-radius:6px;box-shadow:inset 0 0 0 3px var(--dug2),0 4px 0 #082517;padding:16px 16px 14px}
+.scoreboard h1{font-size:32px;color:var(--led);text-shadow:0 0 14px #ffbb2e55}
+.scoreboard .lg{color:#9fc7b0;letter-spacing:0;font-weight:500}
+.sbgrid div{background:#0a2c1d;border-radius:3px;box-shadow:inset 0 0 0 1px #1f5a3d}
+.sbgrid small{color:#8fb9a2}
+.sbgrid b{font-family:var(--f-num);font-weight:400;font-size:30px;color:var(--led);text-shadow:0 0 10px #ffbb2e66}
+.inn i{border-radius:2px;background:#0a2c1d;color:#5f8f75;font-family:var(--f-num);font-weight:400;font-size:14px}
+.inn i.on{background:var(--led);color:var(--dug);box-shadow:0 0 10px #ffbb2e88}
+/* 선수 카드: 위쪽 띠 대신 왼쪽에 굵은 팀 색 기둥 */
+.tcard{border-top:0;border-left:10px solid var(--tc);border-radius:6px}
+.ovrbox{background:var(--dug);color:var(--led);border-radius:4px}
+.ovrbox b{color:var(--led);font-family:var(--f-num);font-weight:400}
+.ovrbox small{color:#9fc7b0}
+.ava{border-radius:6px;background:var(--chalk2)}
+.badge{border-radius:3px;background:var(--chalk2);color:var(--ink)}
+.mvpb{border-radius:3px}
+/* 목록, 칩, 탭 */
+.item{border-radius:4px} .item:hover{background:var(--fill)}
+.item .ic{border-radius:4px;background:var(--chalk2);color:var(--ink)}
+.item .ic.blue{background:var(--dug);color:var(--led)}
+.chip{border-radius:3px;background:var(--chalk2);color:var(--ink2)} .chip.on{background:var(--dug);color:var(--led)}
+.seg{border-radius:4px;background:var(--chalk2)} .seg button{border-radius:3px} .seg button.on{background:var(--dug);color:var(--led);box-shadow:none}
+.opt-row .seg{background:var(--chalk2)} .opt-row .seg button.on{background:var(--dug);color:var(--led)}
+.field{border-radius:4px;background:var(--chalk2)} .field:focus-within{box-shadow:0 0 0 2px var(--ink)}
+select{border-radius:4px;background:var(--card)}
+.avopt{border-radius:6px} .avopt.on{border-color:var(--ink);background:var(--chalk2)}
+.stycard{border-radius:6px} .stycard.on{border-color:var(--ink);box-shadow:0 3px 0 var(--ink)}
+.stycard.on .check,.check.on{background:var(--ink);border-color:var(--ink)}
+.tag{border-radius:3px;background:var(--chalk2);color:var(--ink)}
+.steps i{border-radius:0;height:5px} .steps i.on{background:var(--led)}
+/* 능력치 막대: 베이스 라인처럼 */
+.bar .tr{height:8px;border-radius:0;background:var(--chalk2)} .bar .tr i{border-radius:0;background:#8aa596} .bar.focus .tr i{background:var(--ink)}
+.prog{border-radius:0;height:8px} .prog i{border-radius:0;background:var(--led)}
+/* 버튼: 기본은 짙은 더그아웃 색 직사각형 */
+.btn{border-radius:4px;background:var(--ink);font-family:var(--f-body)}
+.btn:hover{background:var(--blue-d)}
+.btn.gray{background:var(--card);color:var(--ink);box-shadow:inset 0 0 0 2px var(--ink)} .btn.gray:hover{background:var(--chalk2)}
+/* 시작 버튼은 홈플레이트 모양 */
+.btn.play{background:var(--led);color:var(--dug);font-family:var(--f-display);font-weight:400;font-size:24px;height:66px;border-radius:0;
+  clip-path:polygon(0 0,100% 0,100% 58%,50% 100%,0 58%);padding-bottom:12px;letter-spacing:.02em}
+.btn.play:hover{background:#ffc94f}
+.btns .btn.play{font-size:20px;height:58px}
+.cta{background:linear-gradient(#1d6a4400,var(--turf) 40%)}
+/* 아래 메뉴: 화면 끝까지 닿는 더그아웃 띠, 위에 흰 파울 라인 */
+.dock{padding-left:0;padding-right:0}
+.dock>div{max-width:none}
+.dock .cta{max-width:760px;margin:0 auto;padding:10px 16px 8px}
+.tabbar{border-radius:0;margin:0;background:var(--dug);box-shadow:inset 0 3px 0 var(--chalk);padding:9px max(4px,env(safe-area-inset-left,0px)) calc(8px + env(safe-area-inset-bottom,0px));
+  max-width:none}
+.tabbar .tab{max-width:150px;justify-self:center;width:100%}
+.tab{color:#8fb9a2;border-radius:0} .tab.on{color:var(--led)}
+.tab::after{width:7px;height:7px;border-radius:0;transform:rotate(45deg);margin-top:2px}
+.tab.on::after{background:var(--led)}
+@media (min-width:800px){.tabbar{display:flex;justify-content:center;gap:28px}.tabbar .tab{width:120px}}
+/* 시즌 진행 소식: 전광판 자막처럼 */
+.fi{background:transparent;border-radius:0;border-left:4px solid #9fbdab;padding:8px 12px;background:var(--fill)}
+.fi::before{display:none}
+.fi.gold{border-color:var(--led);background:#fff4d6} .fi.bad{border-color:var(--accent)} .fi.hl{border-color:var(--ink);background:var(--blue-s)}
+.sit{border-radius:6px;background:var(--dug)}
+.mom{border-radius:6px;border-color:var(--ink)}
+.momres{border-radius:6px}
+.choice{border-radius:4px} .choice:hover{background:var(--chalk2)} .choice em{color:var(--ink)}
+.infobox,.art,.move,.rk-empty{border-radius:4px}
+/* 아래 시트와 알림 */
+.sheet{background:var(--card);border-radius:8px 8px 0 0;box-shadow:inset 0 4px 0 var(--led)}
+@media (min-width:600px){.sheet{border-radius:8px}}
+.toast{border-radius:4px;background:var(--dug);box-shadow:inset 0 0 0 2px var(--led)}
+/* 랭킹 */
+.rk-pc,.rk-list,.rk-entry,.rk-field{border-radius:6px}
+.rk-pc.first{background:#fff4d6;border-color:var(--led)}
+.rk .chip{border-radius:3px} .rk .chip.on{background:var(--dug);border-color:var(--dug);color:var(--led)}
+.rk-tabs{border-radius:4px} .rk-tabs button{border-radius:3px}
+.rk-entry{box-shadow:0 4px 0 var(--dug);border:0}
+.rk-back{color:var(--ink2)}
+/* 잔디 위에 바로 놓이는 글자 */
+.site-foot{color:#c9e2d3} .site-foot strong{color:var(--chalk)} .site-foot a{color:var(--chalk)}
+:focus-visible{outline:3px solid var(--led);outline-offset:2px}
+/* 더그아웃(더그아웃) 선수 카드: 야구 카드처럼 팀 색 사진 칸 */
+.tcard{padding:14px 14px 14px 12px}
+.tcard .pcard{gap:14px}
+.tcard .ava{width:88px;height:108px;border-radius:4px;background:var(--tc);background-image:repeating-linear-gradient(135deg,#ffffff1f 0 6px,transparent 6px 14px);box-shadow:inset 0 0 0 3px #ffffffcc}
+.tcard .ava img{width:58px;height:74px;margin-top:22px}
+.tcard .ovrbox{min-width:66px;padding:8px 10px}
+.tcard .ovrbox b{font-size:34px;line-height:1}
+/* 승부처 선택지·빅매치 카드도 같은 모서리로 */
+.call{border-radius:6px;box-shadow:0 3px 0 var(--line)} .call:hover{border-color:var(--ink)}
+.call .sv{border-radius:3px;background:var(--dug);color:var(--led)} .call .sv small{color:#9fc7b0} .call .sv b{color:var(--led);font-weight:400}
+.bigc{border-radius:6px}
+.sbgrid b{font-size:clamp(22px,7vw,30px);white-space:nowrap}
 </style>
 </head>
 <body>
@@ -2146,7 +2263,7 @@ function tabRecord(){
   return h;
 }
 function renderApp(){
-  const tabs=[['home','라커룸'],['news','뉴스'],['season','시즌'],['player','선수 카드'],['record','기록실']];
+  const tabs=[['home','더그아웃'],['news','뉴스'],['season','시즌'],['player','선수 카드'],['record','기록실']];
   const body={home:tabHome,news:tabNews,season:tabSeason,player:tabPlayer,record:tabRecord}[ui.tab]();
   return`${body}
   <div class="dock"><div><div class="cta"><button class="btn play" data-a="go">${S.year} 시즌 플레이볼</button></div>
@@ -2219,7 +2336,7 @@ function dmView(){
       <div class="typing" aria-hidden="true"><i></i><i></i><i></i></div>
       <div class="msgrow">${pf}<div class="col"><div class="bub in late">${esc(r.re||'알겠어요.')}</div></div></div>
       <div class="sys late2"><b>바뀐 점</b><div class="effs">${(r.effs||[]).map(t=>`<span class="eff ${effClass(t)}">${esc(t)}</span>`).join('')||'<span class="eff">변화 없음</span>'}</div><p>능력치와 컨디션은 바로 반영됐어요. 역할이 바뀌는 선택은 새 시즌부터 적용돼요.</p></div>`;
-    tray=`<div class="tray"><button class="btn" data-a="close-sheet">라커룸으로</button></div>`;
+    tray=`<div class="tray"><button class="btn" data-a="close-sheet">더그아웃으로</button></div>`;
   }else{
     tray=`<div class="tray"><span class="lb">답장 고르기</span>${d.opts().map((o,i)=>`<button class="rep" data-a="tp-pick" data-v="${i}"><b>${esc(o.t)}</b><small>${esc(o.hint||'')}</small></button>`).join('')}<button class="later" data-a="close-sheet">나중에 답장할게요</button></div>`;
   }
@@ -2334,7 +2451,7 @@ function renderSummary(){
       ${L.aw.map(t=>`<div class="tro"><span class="ic">${ICON.medal}</span><span><b>${esc(t)}</b><small>개인상</small></span><span class="n">수상</span></div>`).join('')}
       ${L.callup?`<div class="fi hl"><span>2군 활약으로 다음 시즌 1군 경쟁에서 유리해졌어요</span></div>`:''}
     </div>
-    <button class="btn" data-a="sum-ok">라커룸으로</button></div>`;
+    <button class="btn" data-a="sum-ok">더그아웃으로</button></div>`;
 }
 function nextAfter(stage){
   const L=S.last||{}, order=['award','nat','world'];
