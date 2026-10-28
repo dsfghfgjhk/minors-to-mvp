@@ -482,9 +482,11 @@ body,.ttl,h1,h2,.desc,.situ,.choice,.item,.fi,.art h3{word-break:keep-all;overfl
 .p3btns button{appearance:none;border:1px solid rgba(255,255,255,.3);background:rgba(6,12,24,.65);color:#e2e8f0;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer}
 .p3btns button.on{background:#ffd35a;color:#0f172a;border-color:#ffd35a}
 .p3fl{position:absolute;left:50%;top:30%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;opacity:0;display:grid;gap:2px;width:max-content;max-width:94vw}
-.p3fl b{font-family:var(--f-display);font-weight:400;font-size:42px;line-height:1.1;text-shadow:0 3px 0 #000b,0 0 22px #000}
-.p3fl small{font-size:14px;font-weight:700;color:#e2e8f0;text-shadow:0 1px 4px #000}
-.p3fl.on{animation:p3fl 1.7s ease both}.p3fl.good b{color:#ffd35a}.p3fl.bad b{color:#fca5a5}.p3fl.big b{font-size:62px}
+/* 판정 자막: 중계 화면처럼 기울어진 띠 위에 굵은 글씨 */
+.p3fl b{justify-self:center;font-family:'Black Han Sans','Noto Sans KR',sans-serif;font-weight:400;font-size:46px;line-height:1;letter-spacing:.01em;color:#ffffff;
+  padding:13px 30px 11px;background:#0b1a12eb;clip-path:polygon(5% 0,100% 0,95% 100%,0 100%);text-shadow:none;box-shadow:none;white-space:nowrap}
+.p3fl small{justify-self:center;margin-top:6px;font-size:14px;font-weight:700;color:#ffffff;background:#000000a6;padding:4px 12px;border-radius:3px;text-shadow:none}
+.p3fl.on{animation:p3fl 1.7s ease both}.p3fl.good b{background:#ffc436;color:#10291d}.p3fl.bad b{background:#d8323c;color:#ffffff}.p3fl.big b{font-size:66px;padding:16px 40px 13px}
 @keyframes p3fl{0%{opacity:0;transform:translate(-50%,-50%) scale(1.5)}10%{opacity:1;transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0}}
 .p3btm{position:absolute;left:0;right:0;bottom:0;padding:10px max(12px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));display:grid;gap:8px;max-width:620px;margin:0 auto;pointer-events:none}
 .p3btm>*{pointer-events:auto}
@@ -561,7 +563,7 @@ body,.ttl,h1,h2,.desc,.situ,.choice,.item,.fi,.art h3{word-break:keep-all;overfl
 .lsc td.t i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;vertical-align:middle}
 .lsc td.r{color:#ffc845;font-weight:700;font-size:17px;padding-right:10px}
 .lsc td.cur{background:#ffc84529;color:#ffc845}
-@media (max-width:420px){.p3fl b{font-size:34px}.p3fl.big b{font-size:48px}.bugm .tms div{min-width:80px;font-size:14px}}
+@media (max-width:420px){.p3fl b{font-size:36px;padding:11px 24px 9px}.p3fl.big b{font-size:44px;padding:13px 28px 11px}.bugm .tms div{min-width:80px;font-size:14px}}
 @media (prefers-reduced-motion:reduce){.typing{display:none}}
 @keyframes stamp{from{transform:scale(1.8) rotate(-8deg);opacity:0}}
 @media (min-width:640px){
