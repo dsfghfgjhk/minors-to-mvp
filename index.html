@@ -2951,8 +2951,10 @@ function bbRunnerFlyRead(r,bb,play,caution){
     r.retouchAt=bbRunnerLeg(r,r.from,Math.max(out,.38));r.decision='return';
   }
 }
+function bbForceActive(r,t){return !!r.forceBase&&t>=r.forceAt&&t<(r.forceUntil??Infinity)}
+function bbRunCounts(third,arrival){return !third||(!third.force&&!third.catch&&!third.batterBeforeFirst&&arrival<third.t)}
 function bbRunnerRetreat(r,at,base){
-  if(r.forceBase&&at>=r.forceAt)base=Math.max(base,r.forceBase);
+  if(bbForceActive(r,at))base=Math.max(base,r.forceBase);
   const current=bbRunnerProgress(r,at),oldTo=r.to;
   if(current<=base+.002){
     // 베이스를 돌기 전이면 그 베이스까지만 달린 뒤 멈춘다.
@@ -2975,7 +2977,7 @@ function bbRunnerRetreat(r,at,base){
 }
 // 타구가 땅에 닿아 강제 진루가 확정되면, 남아 있는 귀루 예약도 취소한다.
 function bbRunnerEnforceForce(r){
-  if(!r.forceBase||!r.legs?.some(leg=>leg.end>r.forceAt&&leg.to<leg.from&&leg.to<r.forceBase))return;
+  if(!bbForceActive(r,r.forceAt)||!r.legs?.some(leg=>leg.end>r.forceAt&&leg.to<leg.from&&leg.to<r.forceBase))return;
   const at=r.forceAt,current=bbRunnerProgress(r,at),history=[];
   for(const leg of r.legs){if(leg.start>=at)break;if(leg.end<=at)history.push(leg);else history.push({...leg,source:{...leg},end:at,to:current})}
   r.legs=history;
@@ -3026,8 +3028,12 @@ function bbPlan(G,bb){
     if(!carry)t0=Math.max(t0,receiverReady-dur,play.catchAt+(OFK.includes(by)?.55:.4));
     const tr={from,to,t0,dur,by,receiver,base,carry,toss,speed};play.throws.push(tr);return t0+dur;
   };
-  const eventOut=(r,time,base,force)=>{if(play.outs>=3-before)return;r.out=true;r.retireAt=time;r.force=force;play.outs++;
-    play.events.push({t:time,kind:'out',base,from:r.from,bat:r.bat,force});};
+  const eventOut=(r,time,base,force)=>{if(play.outs>=3-before)return;
+    // 뒤 주자가 먼저 아웃되면 앞 주자는 베이스 터치만으로 잡을 수 없다.
+    if(force&&!bbForceActive(r,time)){force=false;time=Math.max(time,bbRunArrival(r))}
+    r.out=true;r.retireAt=time;r.force=force;play.outs++;
+    for(const ahead of runners)if(ahead.from>r.from)ahead.forceUntil=Math.min(ahead.forceUntil??Infinity,time);
+    play.events.push({t:time,kind:'out',base,from:r.from,bat:r.bat,force,catch:caught&&base===0,batterBeforeFirst:r.bat&&base===1});};
   const pickup=pos3(play.at),first=pos3(BASEP[1]),second=pos3(BASEP[2]),home=pos3(BASEP[0]);
   if(caught){
     eventOut(batter,play.catchAt,0,false);
@@ -3065,6 +3071,19 @@ function bbPlan(G,bb){
       const by=bb.fielder==='1B'?(firstDistance<=4?'1B':'P'):'1B';
       const arrives=throwTo(pickup,first,play.catchAt+.4,bb.fielder,by,1);
       if(arrives+.04<bbRunArrival(batter))eventOut(batter,arrives,1,true);
+      // 1루에서 타자 주자를 먼저 잡은 뒤에는 2루 포스가 아니라 태그가 필요하다.
+      if(batter.out&&lead&&!lead.out&&play.outs<3-before){
+        const cover=bb.fielder==='2B'?'SS':'2B',distance=Math.hypot(first[0]-second[0],first[2]-second[2]);
+        if(arrives+.38+distance/bbThrowSpeed(by,distance)+.08<bbRunArrival(lead)){
+          const received=throwTo(first,second,arrives+.38,by,cover,2);
+          const at=play.throws.at(-1).t0+.16;
+          const retreat=JSON.parse(JSON.stringify(lead));bbRunnerRetreat(retreat,at,1);
+          const returnBall=received+.38+distance/bbThrowSpeed(cover,distance);
+          if(bbRunArrival(retreat)+.15<returnBall){
+            Object.assign(lead,retreat);throwTo(second,first,received+.38,cover,by,1);
+          }else if(received+.08<bbRunArrival(lead))eventOut(lead,bbRunArrival(lead),2,false);
+        }
+      }
     }
     play.k=batter.out||lead?.out?'GO':'1B';
   }else{
@@ -3135,7 +3154,7 @@ function bbPlan(G,bb){
     if(r.to===r.from){if(!r.bat)play.on+=r.from;if(r.legs?.length)play.events.push({t:bbRunArrival(r),kind:'return',base:r.from,from:r.from,bat:false});continue}
     const time=bbRunArrival(r);
     if(third&&time>=third.t)continue;
-    if(r.to===4){if(third&&third.force)continue;play.runs++;play.events.push({t:time,kind:'run',from:r.from,bat:r.bat,base:4})}
+    if(r.to===4){if(!bbRunCounts(third,time))continue;play.runs++;play.events.push({t:time,kind:'run',from:r.from,bat:r.bat,base:4})}
     else {play.on+=r.to;play.events.push({t:time,kind:'safe',from:r.from,bat:r.bat,base:r.to})}
   }
   play.on=[...new Set(play.on)].sort().join('');
