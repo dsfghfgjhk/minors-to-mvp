@@ -717,6 +717,19 @@ body.launching>.site-foot,body.launching>.dfab{display:none!important}
 @media(max-width:600px){.launch{padding-inline:max(22px,env(safe-area-inset-left,0px)) max(22px,env(safe-area-inset-right,0px))}.launch-top{font-size:10px;letter-spacing:.08em}.launch-main{padding:36px 0;gap:16px}.launch h1{font-size:54px}.launch-foot{align-items:start;flex-direction:column;gap:12px}.launch::after{background:linear-gradient(90deg,#071610cb,#07161066),linear-gradient(0deg,#071610ed,transparent 75%)}.launch-cut::after{background:linear-gradient(0deg,#04120df5,#04120d11)}.launch-copy{font-size:13px}.cut-caption h2{font-size:30px}.cut-caption p{font-size:13px}.cut-skip{font-size:11px;padding:9px 12px}}
 @media(max-height:540px){.launch{padding-block:16px}.launch-main{padding:20px 0;gap:9px}.launch h1{font-size:42px}.launch-actions{margin:0;gap:7px}.launch-primary{min-height:46px;padding-block:8px;font-size:15px}.launch-secondary{min-height:38px}.launch-foot{font-size:10px}.launch-cut .cut-caption{padding-top:34px}.cut-caption h2{font-size:28px;margin:6px 0}.cut-progress{margin-top:16px}.cut-controls{margin-top:6px}}
 @media(prefers-reduced-motion:reduce){.launch-art,.launch-cut .launch-art,.cut-caption,.cut-player,.cut-ball{animation:none!important}.cut-progress .on i{width:100%}}
+
+/* Opening credits precede the three baseball scenes. */
+.cut-progress .on i{animation-duration:var(--cut-duration,3800ms)}
+.launch-credit{background:radial-gradient(ellipse at 50% 45%,#19372c,#06110d 75%)}
+.launch-credit::after{background:none}
+.launch-credit .cut-caption{margin:auto;max-width:1100px;width:100%;padding:50px 0;text-align:center}
+.launch-credit .cut-caption>span{letter-spacing:.28em;color:#c9b784}
+.launch-credit .cut-caption h2{font:800 clamp(36px,5.8vw,82px)/1.45 var(--f-body);letter-spacing:-.05em;margin:24px 0 42px;word-break:keep-all;overflow-wrap:normal;color:#f5edd4}
+.launch-credit.credit-studio .cut-caption h2{font:700 clamp(48px,8vw,108px)/1.3 Georgia,'Times New Roman',serif;letter-spacing:-.04em;color:#edc879}
+.launch-credit .cut-progress{margin:0 auto;width:min(100%,300px)}
+.launch-credit .cut-controls{max-width:300px;margin:18px auto 0}
+@media(max-width:600px){.launch-credit .cut-caption{padding:28px 0}.launch-credit .cut-caption h2{font-size:38px}.launch-credit.credit-studio .cut-caption h2{font-size:52px}}
+@media(max-height:540px){.launch-credit .cut-caption{padding:16px 0}.launch-credit .cut-caption h2{font-size:38px;margin:12px 0 20px}.launch-credit.credit-studio .cut-caption h2{font-size:56px}}
 </style>
 </head>
 <body>
@@ -2552,9 +2565,11 @@ function dFab(on){
 /* ================= title screen & illustrated opening ================= */
 const LAUNCH={screen:HAS_DOM?'title':null,scene:0,timer:null};
 const OPENING=[
-  {k:'01 / THE BEGINNING',title:'아무도 없는 구장에서,',text:'새벽 공기를 가르는 첫 스윙. 아직 내 이름을 아는 사람은 없다.'},
-  {k:'02 / EVERY SINGLE DAY',title:'오늘도 한 번 더.',text:'수없이 놓치고, 다시 휘두른다. 작은 가능성이 실력이 될 때까지.'},
-  {k:'03 / YOUR NEXT CHAPTER',title:'이제, 너의 야구를 보여줘.',text:'고교의 첫 유니폼부터 MVP의 순간까지. 다음 장면은 네가 만든다.'}
+  {credit:'original',k:'ORIGINAL WORK',title:'원작: 벤치부터 발롱까지',text:'',ms:3200},
+  {credit:'studio',k:'A GAME BY',title:"Seo's Games",text:'',ms:2800},
+  {art:0,k:'01 / THE BEGINNING',title:'아무도 없는 구장에서,',text:'새벽 공기를 가르는 첫 스윙. 아직 내 이름을 아는 사람은 없다.'},
+  {art:1,k:'02 / EVERY SINGLE DAY',title:'오늘도 한 번 더.',text:'수없이 놓치고, 다시 휘두른다. 작은 가능성이 실력이 될 때까지.'},
+  {art:2,k:'03 / YOUR NEXT CHAPTER',title:'이제, 너의 야구를 보여줘.',text:'고교의 첫 유니폼부터 MVP의 순간까지. 다음 장면은 네가 만든다.'}
 ];
 function openingArt(scene=2){
   const night=scene===2,training=scene===1;
@@ -2576,11 +2591,11 @@ function openingArt(scene=2){
 function launchHTML(){
   if(LAUNCH.screen==='title')return `<section class="launch" aria-label="게임 시작 화면"><div class="launch-art">${openingArt(2)}</div><header class="launch-top"><span class="launch-emblem"><i><b>M</b></i> A BASEBALL LIFE</span><span>2군에서 MVP까지</span></header><main class="launch-main"><p class="launch-kicker">당신의 이름이 전광판에 오를 때까지</p><h1>2군에서<br><em>MVP</em>까지.</h1><p class="launch-copy">한 번의 스윙, 하나의 선택.<br>평범한 유망주에서 시작하는 나만의 야구 인생.</p><div class="launch-actions"><button class="launch-primary" data-a="launch-${S?'enter':'opening'}">${S?'이어하기':'게임 시작'}<span aria-hidden="true">↗</span></button>${S?`<p class="launch-save">${esc(S.name)} · ${S.year} 시즌<br>${esc(teamLabel())} · ${esc(SUBPOS[S.pos]?.n||S.pos)}</p><button class="launch-secondary" data-a="launch-opening">오프닝 보기</button>`:'<button class="launch-secondary" data-a="launch-enter">오프닝 없이 바로 시작</button>'}</div></main><footer class="launch-foot"><p>고교의 첫 유니폼부터, 가장 빛나는 순간까지.<br>진행 상황은 이 브라우저에 자동 저장됩니다.</p><nav aria-label="시작 화면 안내"><a href="guide.html">게임 가이드</a><a href="about.html">게임 소개</a></nav></footer></section>`;
   const c=OPENING[LAUNCH.scene];
-  return `<section class="launch launch-cut" aria-label="오프닝 컷신"><div class="launch-art">${openingArt(LAUNCH.scene)}</div><header class="launch-top"><span>2군에서 MVP까지 / OPENING</span><button class="cut-skip" data-a="launch-enter">건너뛰기 <span aria-hidden="true">↗</span></button></header><div class="cut-caption" aria-live="polite"><span>${c.k}</span><h2>${c.title}</h2><p>${c.text}</p><div class="cut-progress" aria-hidden="true">${OPENING.map((_,i)=>`<span class="${i<LAUNCH.scene?'done':i===LAUNCH.scene?'on':''}"><i></i></span>`).join('')}</div><div class="cut-controls"><span>${LAUNCH.scene+1} / ${OPENING.length}</span><button class="cut-next" data-a="launch-next">${LAUNCH.scene===2?'나의 야구 시작하기':'다음 장면'} →</button></div></div></section>`;
+  return `<section class="launch launch-cut ${c.credit?`launch-credit credit-${c.credit}`:''}" style="--cut-duration:${c.ms||3800}ms" aria-label="오프닝 컷신">${c.credit?'':`<div class="launch-art">${openingArt(c.art)}</div>`}<header class="launch-top"><span>2군에서 MVP까지 / OPENING</span><button class="cut-skip" data-a="launch-enter">건너뛰기 <span aria-hidden="true">↗</span></button></header><div class="cut-caption" aria-live="polite"><span>${c.k}</span><h2>${c.title}</h2><p>${c.text}</p><div class="cut-progress" aria-hidden="true">${OPENING.map((_,i)=>`<span class="${i<LAUNCH.scene?'done':i===LAUNCH.scene?'on':''}"><i></i></span>`).join('')}</div><div class="cut-controls"><span>${LAUNCH.scene+1} / ${OPENING.length}</span><button class="cut-next" data-a="launch-next">${LAUNCH.scene===OPENING.length-1?'나의 야구 시작하기':'다음 장면'} →</button></div></div></section>`;
 }
 function launchSchedule(){
   clearTimeout(LAUNCH.timer);LAUNCH.timer=null;
-  if(LAUNCH.screen==='cut'&&!document.hidden)LAUNCH.timer=setTimeout(launchNext,3800);
+  if(LAUNCH.screen==='cut'&&!document.hidden)LAUNCH.timer=setTimeout(launchNext,OPENING[LAUNCH.scene].ms||3800);
 }
 function launchNext(){
   if(LAUNCH.screen!=='cut')return;
