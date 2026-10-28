@@ -2844,7 +2844,7 @@ function pgAiPitch(G){
 }
 function pgWindows(){const con=S.stats.con,pf=42+Math.max(0,con-40)*.5,gd=pf+40+Math.max(0,con-40)*.4;return{pf,gd,fl:gd+60}}
 function pgResolveBat(G,dt,aim,pw){
-  const c=G.cur, st=S.stats, P=clamp(pw==null?.5:pw,0,1), W0=pgWindows(), wf=1.15-.3*P, W={pf:W0.pf*wf,gd:W0.gd*wf,fl:W0.fl*wf};let k;G.lastBB=null;
+  const c=G.cur, st=S.stats, P=clamp(pw==null?.5:pw,0,1), W0=pgWindows(), wf=1.04-.08*P, W={pf:W0.pf*wf,gd:W0.gd*wf,fl:W0.fl*wf};let k;G.lastBB=null;
   if(bodyHit(c,isLeftBat()))return pgApply(G,'HBP',dt);
   if(dt==null)k=c.inZ?'CS':'B';
   else{
@@ -2856,9 +2856,13 @@ function pgResolveBat(G,dt,aim,pw){
       if(Q<.2)k='F';
       else{
         const evMax=156+Math.max(0,st.pow-40)*.5+(st.pow-G.L)*.2;
-        const ev=clamp(evMax*(.9+.2*P)*(.62+.38*Math.pow(Q,.8))*rnd(.95,1.04)*(c.inZ?1:.68),40,192);
+        let ev=clamp(evMax*(.97+.06*P+.012*P*P)*(.62+.38*Math.pow(Q,.8))*rnd(.95,1.04)*(c.inZ?1:.68),40,192);
         const dy=rnd(-.35,.55)+(c.inZ?0:pick([-.5,.75]));
-        const la=clamp(11+(P-.5)*6+dy*42+rnd(-7,7)+((PTY[c.type]||{}).la||0),-35,75);
+        let la=clamp(11+(P-.5)*3+dy*42+rnd(-7,7)+((PTY[c.type]||{}).la||0),-35,75);
+        // 세게 휘두를수록 정타의 보상과 빗맞을 위험을 조금씩 함께 높인다.
+        // 판정을 강제로 아웃으로 바꾸지 않고 타구 속도·각도로 수비 결과를 결정한다.
+        const mishit=.02+.50*P*(.7+.3*(1-qt));
+        if(R()<mishit){ev*=.86;la=rnd(60,75)}
         const pull=clamp(-dt/W.gd,-1.3,1.3), sp=(isLeftBat()?1:-1)*pull*26+c.u*6+rnd(-9,9);
         G.lastBB=bbResolve(ev,la,sp,st.spd);k=G.lastBB.k;
       }
@@ -3971,7 +3975,7 @@ function p3Fireworks(x,z){
   const p=new THREE.Points(g,new THREE.PointsMaterial({size:1.6,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));P3.sc.add(p);P3.fx.push({p,vel,t:0});
 }
 /* ---- 카메라 ---- */
-const VIEW3={bat:{pos:[0,1.5,-3.9],look:[0,-.1,16.1],h:31,v:27},pit:{pos:[-.6,3.25,28],look:[0,.43,0],h:6.8,v:10}};
+const VIEW3={bat:{pos:[0,1.05,-4.6],look:[0,1,18.44],h:31,v:27},pit:{pos:[-.6,3.25,28],look:[0,.43,0],h:6.8,v:10}};
 function p3Fov(h,v){const a=P3.cam.aspect;return Math.max(v,2*Math.atan(Math.tan(h*Math.PI/360)/a)*180/Math.PI)}
 /* ---- 프레임 ---- */
 function p3Frame(G,now,dt){
@@ -4236,7 +4240,8 @@ function pgCtlHTML(G){
   if(G.st==='between')return`<div class="p3card"><p>${esc(G.msg)}</p>${pgLineHTML(G)}<button class="btn" data-a="pg-next">다음</button></div>`;
   if(G.mode==='bat'){const pw=Math.round(P3.bpow*100);
     return`<p class="p3hint">공이 홈플레이트에 도착할 때 화면 어디든 누르세요. 위치 조준은 필요 없어요. 볼에 손대면 헛스윙하거나 약한 타구가 나오기 쉬워요.</p>
-    <div class="spow"><span>짧게</span><input type="range" id="p3pow" min="0" max="100" value="${pw}" aria-label="스윙 세기"><span>세게</span><b id="p3powv">${powLab(P3.bpow)}</b></div>
+    <div class="spow"><span>짧게</span><input type="range" id="p3pow" min="0" max="100" value="${pw}" aria-label="스윙 세기"><span>풀스윙</span><b id="p3powv">${powLab(P3.bpow)}</b></div>
+    <p class="p3hint">짧게: 컨택 유리 · 풀스윙: 장타 증가, 헛스윙·범타 위험 증가</p>
     <div class="p3tap-guide"><span class="p3tap-dot"></span>화면 어디든 터치 / 클릭해서 타격</div>`}
   const types=`<div class="pg-types" role="group" aria-label="구종">${G.ars.map(t=>`<button class="${G.sel.type===t?'on':''}" data-a="pg-type" data-v="${t}" ${G.st==='anim'?'disabled':''}>${t}<small>최고 ${Math.round(pgVk(G,t,1))}km</small></button>`).join('')}</div>`;
   const map=`<div class="amap" id="p3map" role="img" aria-label="던질 곳 조준판. 누르거나 끌어서 위치를 정해요">${pgMapSVG(G)}</div>`;
