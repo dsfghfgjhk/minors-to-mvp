@@ -739,6 +739,7 @@ body.launching>.site-foot,body.launching>.dfab{display:none!important}
 .launch-movie{padding:0;background:#06110d;overflow:hidden;justify-content:center}
 .launch-movie::after{display:none}
 .launch-movie video{display:block;width:100%;height:100%;object-fit:contain}
+.launch-movie video::-webkit-media-controls,.launch-movie video::-webkit-media-controls-start-playback-button,.launch-movie video::-webkit-media-controls-overlay-play-button{display:none!important;-webkit-appearance:none;opacity:0}
 .movie-skip{position:absolute;top:max(20px,env(safe-area-inset-top));right:max(20px,env(safe-area-inset-right));z-index:2}
 .movie-error{position:absolute;bottom:40px;left:20px;right:20px;text-align:center;color:#fff}
 </style>
@@ -2614,8 +2615,12 @@ function launchSchedule(){
   if(!video)return;
   video.onended=launchTitle;
   video.onerror=()=>{document.querySelector('.movie-error').hidden=false};
-  if(document.hidden)video.pause();
-  else video.play().catch(()=>{video.controls=true});
+  video.muted=true;video.defaultMuted=true;video.playsInline=true;video.setAttribute('webkit-playsinline','');
+  if(document.hidden){video.pause();return}
+  // 자동 재생이 막힌 기기(아이폰·아이패드 저전력 모드 등)에서는 재생 버튼을 띄우지 않고 바로 타이틀로 넘어가요
+  const blocked=()=>{if(LAUNCH.user){video.controls=true;return}if(LAUNCH.screen==='cut'&&video.isConnected)launchTitle()};
+  const pr=video.play();if(pr&&pr.catch)pr.catch(blocked);
+  if(!LAUNCH.user)LAUNCH.timer=setTimeout(()=>{if(video.isConnected&&video.paused&&!video.ended&&!document.hidden)blocked()},2500);
 }
 
 function launchNext(){
@@ -4400,7 +4405,7 @@ function initHold(){
 function act(a,v){
   if(a==='launch-title'){launchTitle();return}
   if(a==='launch-enter'){launchEnter();return}
-  if(a==='launch-opening'){LAUNCH.screen='cut';LAUNCH.scene=0;render();document.querySelector('.cut-skip')?.focus({preventScroll:true});launchSchedule();return}
+  if(a==='launch-opening'){LAUNCH.user=true;LAUNCH.screen='cut';LAUNCH.scene=0;render();document.querySelector('.cut-skip')?.focus({preventScroll:true});launchSchedule();return}
   if(a==='launch-next'){launchNext();document.querySelector('.cut-next')?.focus({preventScroll:true});return}
   let top=false;
   if(a&&a.startsWith('rk-')){
