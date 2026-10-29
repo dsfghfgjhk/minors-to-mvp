@@ -8,7 +8,15 @@ To regenerate the action frames, serve the repository and run `tools/render_open
 
 The website autoplays the muted movie before the title menu. Clicking or tapping the movie skips to the title; normal completion does the same.
 
-`frames/00.webp` … `frames/27.webp` hold the same movie as 768 × 432 still frames, 16 per sheet in a 4 × 4 grid. Devices that block video autoplay, such as iPhones and iPads in Low Power Mode, draw these sheets on a canvas at 24 fps instead, so the opening still starts without a tap. Playback waits for a sheet that has not arrived yet instead of skipping frames, and frees sheets that have already played. Regenerate them after changing the movie:
+Devices that block video autoplay, such as iPhones and iPads in Low Power Mode, play the opening without a video element so it still starts without a tap:
+
+1. `opening.h264` is the same movie as a raw H.264 stream (1280 × 720, 24 fps, no B-frames, an access unit delimiter before every frame). The page downloads it as a stream, decodes it with WebCodecs `VideoDecoder` as data arrives, and draws each frame on a canvas at 24 fps. Regenerate it after changing the movie:
+
+```sh
+ffmpeg -i assets/opening/opening.mp4 -an -c:v libx264 -profile:v main -level 3.1 -pix_fmt yuv420p -preset slow -crf 20 -x264-params "aud=1:repeat-headers=1:keyint=48:min-keyint=48:scenecut=0:bframes=0" -f h264 assets/opening/opening.h264
+```
+
+2. Browsers without WebCodecs use `frames/00.webp` … `frames/27.webp` hold the same movie as 768 × 432 still frames, 16 per sheet in a 4 × 4 grid. Devices that block video autoplay, such as iPhones and iPads in Low Power Mode, draw these sheets on a canvas at 24 fps instead, so the opening still starts without a tap. Playback waits for a sheet that has not arrived yet instead of skipping frames, and frees sheets that have already played. Regenerate them after changing the movie:
 
 ```sh
 mkdir -p /tmp/op && ffmpeg -i assets/opening/opening.mp4 -vf "scale=768:432:flags=lanczos" /tmp/op/%04d.png

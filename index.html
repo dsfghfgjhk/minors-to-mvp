@@ -2608,7 +2608,7 @@ function openingArt(scene=2){
 }
 function launchHTML(){
   if(LAUNCH.screen==='title')return `<section class="launch" aria-label="게임 시작 화면"><div class="launch-art">${openingArt(2)}</div><header class="launch-top"><span class="launch-emblem"><i><b>M</b></i> A BASEBALL LIFE</span><span>2군에서 MVP까지</span></header><main class="launch-main"><p class="launch-kicker">당신의 이름이 전광판에 오를 때까지</p><h1>2군에서<br><em>MVP</em>까지.</h1><p class="launch-copy">한 번의 스윙, 하나의 선택.<br>평범한 유망주에서 시작하는 나만의 야구 인생.</p><div class="launch-actions"><button class="launch-primary" data-a="launch-enter">${S?'이어하기':'게임 시작'}<span aria-hidden="true">↗</span></button>${S?`<p class="launch-save">${esc(S.name)} · ${S.year} 시즌<br>${esc(teamLabel())} · ${esc(SUBPOS[S.pos]?.n||S.pos)}</p><button class="launch-secondary" data-a="launch-opening">오프닝 보기</button>`:'<button class="launch-secondary" data-a="launch-opening">오프닝 다시 보기</button>'}</div></main><footer class="launch-foot"><p>고교의 첫 유니폼부터, 가장 빛나는 순간까지.<br>진행 상황은 이 브라우저에 자동 저장됩니다.</p><nav aria-label="시작 화면 안내"><a href="guide.html">게임 가이드</a><a href="about.html">게임 소개</a></nav></footer></section>`;
-  return `<section class="launch launch-movie" data-a="launch-title" aria-label="오프닝 영상, 클릭하면 건너뛰기">${LAUNCH.anim?'<canvas class="opening-anim" width="768" height="432" role="img" aria-label="원작과 제작사 소개, 야구 선수의 성장 오프닝"></canvas>':`<video id="opening-video" autoplay muted playsinline preload="auto" aria-label="원작과 제작사 소개, 야구 선수의 성장 오프닝"><source src="assets/opening/opening.mp4?v=cinematic3" type="video/mp4"></video>`}<button class="cut-skip movie-skip" data-a="launch-title">화면을 누르면 건너뛰기 ↗</button><p class="movie-error" hidden>영상을 재생할 수 없습니다. 건너뛰기를 눌러 게임을 시작해 주세요.</p></section>`;
+  return `<section class="launch launch-movie" data-a="launch-title" aria-label="오프닝 영상, 클릭하면 건너뛰기">${LAUNCH.anim?'<canvas class="opening-anim" width="1280" height="720" role="img" aria-label="원작과 제작사 소개, 야구 선수의 성장 오프닝"></canvas>':`<video id="opening-video" autoplay muted playsinline preload="auto" aria-label="원작과 제작사 소개, 야구 선수의 성장 오프닝"><source src="assets/opening/opening.mp4?v=cinematic3" type="video/mp4"></video>`}<button class="cut-skip movie-skip" data-a="launch-title">화면을 누르면 건너뛰기 ↗</button><p class="movie-error" hidden>영상을 재생할 수 없습니다. 건너뛰기를 눌러 게임을 시작해 주세요.</p></section>`;
 }
 /* 영상 자동 재생이 막힌 기기용 오프닝: 16장씩 묶은 그림판을 차례로 받아 캔버스에 24fps로 그려요.
    다음 장면이 아직 안 왔으면 시간을 멈추고 기다려서 끊기지 않게 하고, 지나간 그림판은 메모리에서 비워요. */
@@ -2624,7 +2624,7 @@ function opaLoad(i){
 }
 function opaStop(){cancelAnimationFrame(OPA.raf);OPA.raf=0;OPA.bm.forEach(b=>b&&b.close&&b.close());OPA.bm=[];OPA.req=[]}
 function opaTick(ts){
-  if(LAUNCH.screen!=='cut'||!LAUNCH.anim){opaStop();return}
+  if(LAUNCH.screen!=='cut'||LAUNCH.anim!=='s'){opaStop();return}
   OPA.raf=requestAnimationFrame(opaTick);
   const per=OPF.per,s=Math.floor(OPA.f/per);
   for(let k=0;k<4;k++)opaLoad(s+k);
@@ -2636,11 +2636,64 @@ function opaTick(ts){
   const cv=document.querySelector('.opening-anim'),b=OPA.bm[Math.floor(OPA.f/per)];if(!cv||!b)return;
   const j=OPA.f%per;cv.getContext('2d').drawImage(b,(j%OPF.cols)*OPF.w,Math.floor(j/OPF.cols)*OPF.h,OPF.w,OPF.h,0,0,cv.width,cv.height);
 }
+/* 1순위 대체 재생: 원본 화질 H.264 데이터를 받는 대로 WebCodecs로 풀어 캔버스에 24fps로 그려요(영상 태그가 아니라 저전력 모드에도 안 막혀요).
+   WebCodecs가 없는 옛 브라우저만 위 그림판 방식으로 틀어요. */
+const OPV={fps:24,url:'assets/opening/opening.h264?v=1',w:1280,h:720};
+const OPP={raf:0,q:[]};
+function opvOK(){return !!(window.VideoDecoder&&window.EncodedVideoChunk&&window.ReadableStream&&window.fetch)}
+function opvReset(){opvStop();Object.assign(OPP,{buf:new Uint8Array(1<<21),len:0,scan:0,auS:-1,auK:false,sps:null,aus:[],loaded:false,dec:null,q:[],cur:null,next:0,acc:0,last:0,flushed:false,flushDone:false,started:false,raf:0})}
+function opvStop(){cancelAnimationFrame(OPP.raf);OPP.raf=0;(OPP.q||[]).forEach(f=>f.close());OPP.q=[];if(OPP.cur){OPP.cur.close();OPP.cur=null}if(OPP.dec&&OPP.dec.state!=='closed'){try{OPP.dec.close()}catch(e){}}OPP.dec=null}
+function opvPush(c){
+  if(OPP.len+c.length>OPP.buf.length){const n=new Uint8Array(Math.max(OPP.buf.length*2,OPP.len+c.length));n.set(OPP.buf.subarray(0,OPP.len));OPP.buf=n}
+  OPP.buf.set(c,OPP.len);OPP.len+=c.length;const u=OPP.buf;let i=OPP.scan;
+  for(;i+4<OPP.len;i++){
+    if(u[i]||u[i+1])continue;let h;if(u[i+2]===1)h=i+3;else if(u[i+2]===0&&u[i+3]===1)h=i+4;else continue;
+    const t=u[h]&31;
+    if(t===9){if(OPP.auS>=0)OPP.aus.push({s:OPP.auS,e:i,key:OPP.auK});OPP.auS=i;OPP.auK=false}
+    else if(t===5)OPP.auK=true;
+    else if(t===7&&!OPP.sps&&h+3<OPP.len)OPP.sps=[u[h+1],u[h+2],u[h+3]];
+    i=h;
+  }
+  OPP.scan=i;
+}
+async function opvInit(){
+  const s=OPP.sps,hx=x=>x.toString(16).padStart(2,'0'),cfg={codec:s?'avc1.'+hx(s[0])+hx(s[1])+hx(s[2]):'avc1.4d401f',codedWidth:OPV.w,codedHeight:OPV.h,optimizeForLatency:true};
+  const sup=await VideoDecoder.isConfigSupported(cfg);if(!sup||!sup.supported)throw 0;
+  if(LAUNCH.anim!=='v'||OPP.dec)return;
+  OPP.dec=new VideoDecoder({output:f=>{if(LAUNCH.anim==='v'&&OPP.dec)OPP.q.push(f);else f.close()},error:()=>opvFallback()});
+  OPP.dec.configure(cfg);
+}
+async function opvStart(){
+  try{
+    const r=await fetch(OPV.url);if(!r.ok||!r.body)throw 0;const rd=r.body.getReader();
+    for(;;){const{done,value}=await rd.read();if(LAUNCH.anim!=='v')return;if(done)break;opvPush(value);if(!OPP.dec&&OPP.aus.length)await opvInit()}
+    if(OPP.auS>=0){OPP.aus.push({s:OPP.auS,e:OPP.len,key:OPP.auK});OPP.auS=-1}
+    OPP.loaded=true;if(!OPP.dec)await opvInit();
+  }catch(e){opvFallback()}
+}
+function opvFeed(){
+  const d=OPP.dec;if(!d||d.state!=='configured')return;
+  while(OPP.next<OPP.aus.length&&OPP.q.length+d.decodeQueueSize<8){const a=OPP.aus[OPP.next];
+    d.decode(new EncodedVideoChunk({type:a.key?'key':'delta',timestamp:Math.round(OPP.next*1e6/OPV.fps),data:OPP.buf.subarray(a.s,a.e)}));OPP.next++}
+  if(OPP.loaded&&OPP.next>=OPP.aus.length&&!OPP.flushed){OPP.flushed=true;d.flush().then(()=>{OPP.flushDone=true}).catch(()=>{})}
+}
+function opvDraw(){const cv=document.querySelector('.opening-anim');if(cv&&OPP.cur)cv.getContext('2d').drawImage(OPP.cur,0,0,cv.width,cv.height)}
+function opvTick(ts){
+  if(LAUNCH.screen!=='cut'||LAUNCH.anim!=='v'){opvStop();return}
+  OPP.raf=requestAnimationFrame(opvTick);opvFeed();
+  if(document.hidden){OPP.last=ts;return}
+  if(!OPP.started){if(OPP.q.length<4&&!OPP.flushDone){OPP.last=ts;return}if(!OPP.q.length){launchTitle();return}OPP.started=true;OPP.last=ts;OPP.acc=0;OPP.cur=OPP.q.shift();opvDraw();return}
+  OPP.acc+=Math.min(100,ts-OPP.last);OPP.last=ts;const step=1000/OPV.fps;let adv=false;
+  while(OPP.acc>=step){if(!OPP.q.length){if(OPP.flushDone){launchTitle();return}OPP.acc=0;break}OPP.cur.close();OPP.cur=OPP.q.shift();OPP.acc-=step;adv=true}
+  if(adv)opvDraw();
+}
+function opvFallback(){if(LAUNCH.anim!=='v')return;opvStop();opaReset();LAUNCH.anim='s';opaLoad(0);opaLoad(1);if(LAUNCH.screen==='cut')render()}
 function launchSchedule(){
   clearTimeout(LAUNCH.timer);LAUNCH.timer=null;
   if(LAUNCH.anim){
-    if(!OPA.raf)OPA.raf=requestAnimationFrame(opaTick);
-    LAUNCH.timer=setTimeout(()=>{if(!OPA.started&&LAUNCH.screen==='cut')launchTitle()},12000);
+    const P=LAUNCH.anim==='v'?OPP:OPA;
+    if(!P.raf)P.raf=requestAnimationFrame(LAUNCH.anim==='v'?opvTick:opaTick);
+    LAUNCH.timer=setTimeout(()=>{if(!P.started&&LAUNCH.screen==='cut')launchTitle()},12000);
     return;
   }
   const video=document.getElementById('opening-video');
@@ -2650,7 +2703,7 @@ function launchSchedule(){
   video.muted=true;video.defaultMuted=true;video.playsInline=true;video.setAttribute('webkit-playsinline','');
   if(document.hidden){video.pause();return}
   // 영상 자동 재생이 막힌 기기(아이폰·아이패드 저전력 모드 등)에서는 같은 오프닝을 움직이는 이미지(WebP)로 바로 틀어요
-  const blocked=()=>{if(LAUNCH.user){video.controls=true;return}if(LAUNCH.screen==='cut'&&video.isConnected&&!LAUNCH.anim){opaReset();LAUNCH.anim=true;opaLoad(0);opaLoad(1);render()}};
+  const blocked=()=>{if(LAUNCH.user){video.controls=true;return}if(LAUNCH.screen==='cut'&&video.isConnected&&!LAUNCH.anim){if(opvOK()){opvReset();LAUNCH.anim='v';opvStart()}else{opaReset();LAUNCH.anim='s';opaLoad(0);opaLoad(1)}render()}};
   const pr=video.play();if(pr&&pr.catch)pr.catch(blocked);
   if(!LAUNCH.user)LAUNCH.timer=setTimeout(()=>{if(video.isConnected&&video.paused&&!video.ended&&!document.hidden)blocked()},2500);
 }
