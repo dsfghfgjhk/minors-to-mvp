@@ -11,7 +11,9 @@ SITE='2군에서 MVP까지'
 REPO='https://github.com/dsfghfgjhk/minors-to-mvp'
 IG='https://www.instagram.com/minors2mvp/'
 def rd(p):return open(os.path.join(ROOT,p),encoding='utf-8').read()
-def wr(p,s):open(os.path.join(ROOT,p),'w',encoding='utf-8').write(s)
+def wr(p,s):
+  if p.endswith('.html') and not p.startswith('google'):s=add_redir(s)
+  open(os.path.join(ROOT,p),'w',encoding='utf-8').write(s)
 guide=rd('guide.html')
 STYLE=re.search(r'<style>(.*?)</style>',guide,re.S).group(1)
 STYLE+="""
@@ -31,6 +33,10 @@ PAGES=[('about.html','서비스 소개','서비스 소개','2군에서 MVP까지
        ('terms.html','이용약관','이용약관','2군에서 MVP까지를 이용할 때 지켜야 할 약속과 안내예요.'),
        ('contact.html','문의','문의','버그 제보, 기능 제안, 랭킹 기록 삭제 요청 등 문의하는 방법이에요.'),
        ('sitemap.html','사이트맵','사이트맵','2군에서 MVP까지의 모든 페이지를 한눈에 볼 수 있어요.')]
+REDIR="<script>if(/\\.github\\.io$/.test(location.hostname)){location.replace('"+BASE+"'+location.pathname.replace(/^\\/minors-to-mvp-?(?=\\/|$)/,'')+location.search+location.hash)}</script>"
+def add_redir(s):
+  s=re.sub(r'<script>if\(/\\\.github.*?</script>\n?','',s,flags=re.S)
+  return s.replace('<meta charset="utf-8">','<meta charset="utf-8">\n'+REDIR,1)
 def url(f):return BASE+'/'+('' if f in('','index.html') else f)
 def nav(cur):
   items=[('./','게임')]+[(f,m) for f,m,_,_ in PAGES if f not in('privacy.html','terms.html')]
