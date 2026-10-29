@@ -1,5 +1,5 @@
 const fs=require('fs'),vm=require('vm');
-const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8');const script=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].find(m=>!m[1].includes('application/ld+json')&&m[2].trim())[2];
+const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8');const script=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].find(m=>m[2].includes('const HAS_DOM='))[2];
 vm.runInNewContext(script+`;
 const roll=bbSurfacePath([0,0,.037,50],[0,0,10]),last=roll.at(-1),distance=last[3]-50;
 if(distance<25||distance>40||last[0]<5)throw Error('grass roll stops too quickly or never slows');

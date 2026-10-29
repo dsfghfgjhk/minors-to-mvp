@@ -1,5 +1,5 @@
 const fs=require('fs'),vm=require('vm');const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8');
-const src=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].find(m=>!m[1].includes('application/ld+json')&&m[2].trim())[2];
+const src=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].find(m=>m[2].includes('const HAS_DOM='))[2];
 vm.runInNewContext(src+`;
 C.cands=makeCands(C.pos);newCareer();let foul=0,caught=0;
 for(const ev of [50,75,100,140,180])for(const la of [-20,0,15,35,60,80])for(const sp of [-150,-90,-65,-46,46,65,90,150]){

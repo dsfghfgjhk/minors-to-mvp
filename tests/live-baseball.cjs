@@ -1,6 +1,6 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8');
-const js=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].find(m=>!m[1].includes('application/ld+json')&&m[2].trim())[2];
+const js=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].find(m=>m[2].includes('const HAS_DOM='))[2];
 const ctx=vm.createContext({console,Math});vm.runInContext(js,ctx);
 vm.runInContext(`
 C.pos='SS';C.cands=makeCands('SS');newCareer();S.stats.spd=50;

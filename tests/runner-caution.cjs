@@ -1,6 +1,6 @@
 const fs=require('fs'),vm=require('vm');
 const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8');
-const source=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].find(m=>!m[1].includes('application/ld+json')&&m[2].trim())[2];
+const source=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].find(m=>m[2].includes('const HAS_DOM='))[2];
 vm.runInNewContext(source+`;
 C.cands=makeCands(C.pos);newCareer();S.stats.spd=50;
 // Cancelling an advance while still on the base must also cancel the saved route.

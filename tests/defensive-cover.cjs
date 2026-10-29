@@ -1,6 +1,6 @@
 const fs=require('fs'),vm=require('vm');
 const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8');
-const source=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].find(m=>!m[1].includes('application/ld+json')&&m[2].trim())[2];
+const source=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].find(m=>m[2].includes('const HAS_DOM='))[2];
 vm.runInNewContext(source+`;
 C.cands=makeCands(C.pos);newCareer();let toss=0,cover=0,backup=0;
 for(const f of IFK)for(const at of [[18.5,20],[12,23],[5,34],[-10,32]]){

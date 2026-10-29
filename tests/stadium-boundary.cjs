@@ -1,5 +1,5 @@
 const fs=require('fs'),vm=require('vm');const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8');
-const src=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].find(m=>!m[1].includes('application/ld+json')&&m[2].trim())[2];
+const src=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].find(m=>m[2].includes('const HAS_DOM='))[2];
 vm.runInNewContext(src+`;
 // Formerly retired the batter after the ball entered the first row near the foul pole.
 const former=bbResolve(180,60,45.01,50);if(former.k!=='F'||former.fly.hr)throw Error('foul in stands becomes out or homerun');

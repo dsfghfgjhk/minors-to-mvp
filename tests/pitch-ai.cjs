@@ -1,5 +1,5 @@
 const vm=require('vm'),fs=require('fs'),assert=require('assert');let seed=42;const math=Object.create(Math);math.random=()=>{seed=(1664525*seed+1013904223)>>>0;return seed/4294967296};const ctx=vm.createContext({console,Math:math});const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8');
-const js=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].find(m=>!m[1].includes('application/ld+json')&&m[2].trim())[2];
+const js=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].find(m=>m[2].includes('const HAS_DOM='))[2];
 vm.runInContext(js,ctx);
 vm.runInContext(`
 C.pos='SP';C.cands=makeCands('SP');newCareer();

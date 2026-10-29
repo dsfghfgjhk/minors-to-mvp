@@ -1,7 +1,7 @@
 const fs=require('fs'),vm=require('vm');let seed=891;
 const math=Object.create(Math);math.random=()=>((seed=Math.imul(seed,1664525)+1013904223>>>0)/4294967296);
 const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8');
-const src=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].find(m=>!m[1].includes('application/ld+json')&&m[2].trim())[2];
+const src=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].find(m=>m[2].includes('const HAS_DOM='))[2];
 vm.runInNewContext(src+`;
 const pitch={type:'직구',vk:140,u:0,v:0,inZ:true},stats={pow:65,con:65};
 for(const left of [false,true]){

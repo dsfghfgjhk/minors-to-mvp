@@ -24,7 +24,7 @@ const {chromium}=require('playwright');
      const progress=r?bbRunnerProgress(r,Math.min(t,r.retireAt??play.thirdAt??t)):0;
      const expected=!!r&&!(r.to===4&&progress>=4)&&!(r.out&&t>r.retireAt+.18);
      if(fig.visible!==expected)errors.push({mode,on,outs,shot,t,actor:i+1,visible:fig.visible,expected});
-     if(expected){const [x,z]=p3BasePt(progress);if(Math.hypot(fig.position.x+x,fig.position.z-z)>.001)errors.push({mode,on,t,actor:i+1,error:'actor does not follow this runner'})}
+     if(expected){const [x,z]=bbRunnerRenderPoint(r,t,play);if(Math.hypot(fig.position.x+x,fig.position.z-z)>.001)errors.push({mode,on,t,actor:i+1,error:'actor does not follow this runner'})}
     }
    }
   }

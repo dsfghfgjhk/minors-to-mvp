@@ -1,6 +1,6 @@
 const fs=require('fs'),vm=require('vm');
 const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8');
-const source=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].find(m=>!m[1].includes('application/ld+json')&&m[2].trim())[2];
+const source=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].find(m=>m[2].includes('const HAS_DOM='))[2];
 vm.runInNewContext(source+`;
 C.cands=makeCands(C.pos);newCareer();
 for(const [on,expected,runs]of [['','1',0],['1','12',0],['2','12',0],['3','13',0],['12','123',0],['13','123',0],['23','123',0],['123','123',1]]){const pa={on};if(pgWalk(pa)!==runs||pa.on!==expected)throw Error('walk force chain: '+on)}

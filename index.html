@@ -2989,7 +2989,7 @@ function bbRunnerFlyRead(r,bb,play,caution){
   const lead=r.readCatch?Math.min(2.3,Math.max(.2,(play.catchAt-.45)*r.speed/4)):Math.min(5.5,Math.max(.3,(play.catchAt-.45)*r.speed/4));
   const out=bbRunnerLeg(r,r.from+lead/27.4,.18,'run');
   if(r.readCatch){
-    r.retouchAt=bbRunnerLeg(r,r.from,Math.max(out,.38));r.decision='return';
+    bbRunnerLeg(r,r.from+.06,Math.max(out,.38));r.decision='hold';
   }
 }
 function bbForceActive(r,t){return !!r.forceBase&&t>=r.forceAt&&t<(r.forceUntil??Infinity)}
@@ -3078,6 +3078,8 @@ function bbPlan(G,bb){
   const pickup=pos3(play.at),first=pos3(BASEP[1]),second=pos3(BASEP[2]),home=pos3(BASEP[0]);
   if(caught){
     eventOut(batter,play.catchAt,0,false);
+    // 포구를 기다리는 선행 주자를 추월하거나 같은 베이스에 멈추지 않는다.
+    batter.to=.94;
     // 포구 가능성을 낮게 봤더라도 실제 포구를 보면 즉시 귀루한다.
     if(before>=2)for(const r of runners.filter(r=>!r.bat)){r.to=Math.min(4,r.from+1);r.start=.18}
     if(before<2)for(const r of runners.filter(r=>!r.bat)){
@@ -3138,6 +3140,13 @@ function bbPlan(G,bb){
         // 실제 공을 본 뒤 추가 진루를 결정하며, 목적지만 몰래 바꾸지 않는다.
         if(r.legs?.length)r.legs.pop();bbRunnerSetDestination(r,4,start);
       }
+    }
+    const firstRunner=runners.find(r=>r.from===1);
+    if(firstRunner?.readCatch){
+      // 앞 주자가 포구 여부를 기다릴 때 타자는 1루 직전에서 기다린다.
+      const destination=batter.to;batter.speed=Math.min(batter.speed,firstRunner.speed);batter.legs=[];
+      const held=bbRunnerLeg(batter,.94,batter.start,'run');
+      bbRunnerLeg(batter,destination,Math.max(held,bb.fly.t+.68),'run');batter.decision='follow';
     }
     for(const r of runners)bbRunnerEnforceForce(r);
     // 수비가 공을 확보하면 모든 주자가 추가 진루의 여유와 뒤 주자 간격을 다시 판단한다.
@@ -3651,10 +3660,10 @@ function p3Player(o){
   return g;
 }
 /* ---- 자세: 관절 각도(라디안)와 손 목표(IK) ---- */
-const PJ=['hips','spine','chest','head','thL','knL','ftL','thR','knR','ftR','shL','elL','shR','elR'],Z3=[0,0,0];
+const PJ=['hips','spine','chest','head','thL','knL','ftL','thR','knR','ftR','shL','elL','shR','elR','wrL','wrR'],Z3=[0,0,0];
 function jointOf(u,k){switch(k){case'hips':return u.hips;case'spine':return u.spine;case'chest':return u.chest;case'head':return u.head;case'thL':return u.LL.th;case'knL':return u.LL.kn;case'ftL':return u.LL.ft;
-  case'thR':return u.LR.th;case'knR':return u.LR.kn;case'ftR':return u.LR.ft;case'shL':return u.AL.sh;case'elL':return u.AL.el;case'shR':return u.AR.sh;default:return u.AR.el}}
-const MIRK={footL:'footR',footR:'footL',thL:'thR',thR:'thL',knL:'knR',knR:'knL',ftL:'ftR',ftR:'ftL',shL:'shR',shR:'shL',elL:'elR',elR:'elL',hL:'hR',hR:'hL',pL:'pR',pR:'pL'};
+  case'thR':return u.LR.th;case'knR':return u.LR.kn;case'ftR':return u.LR.ft;case'shL':return u.AL.sh;case'elL':return u.AL.el;case'shR':return u.AR.sh;case'wrL':return u.AL.hd;case'wrR':return u.AR.hd;default:return u.AR.el}}
+const MIRK={wrL:'wrR',wrR:'wrL',footL:'footR',footR:'footL',thL:'thR',thR:'thL',knL:'knR',knR:'knL',ftL:'ftR',ftR:'ftL',shL:'shR',shR:'shL',elL:'elR',elR:'elL',hL:'hR',hR:'hL',pL:'pR',pR:'pL'};
 function mirPose(P){const o={_m:1};for(const k in P){const v=P[k],k2=MIRK[k]||k;
   if(['hL','hR','knob','bdir','pL','pR','footL','footR'].includes(k))o[k2]=[-v[0],v[1],v[2]];else if(Array.isArray(v))o[k2]=[v[0],-v[1],-v[2]];else if(k==='bx')o[k]=-v;else o[k2]=v}return o}
 let _ia,_ib,_ic,_in,_iq,DN,_iw,_bq,_bu,_bh,_cw;   // three.js가 늦게 불러와져서 3D를 처음 만들 때 채워요
@@ -3726,11 +3735,20 @@ const P_CROUCH={spine:[.28,0,0],head:[-.2,0,0],thL:[-1.5,0,.5],knL:[2.35,0,0],ft
 const P_UMP={spine:[.58,0,0],head:[-.45,0,0],thL:[-1.05,0,.34],knL:[1.65,0,0],ftL:[-.6,0,0],thR:[-1.05,0,-.34],knR:[1.65,0,0],ftR:[-.6,0,0],shL:[-.55,0,.3],elL:[-.65,0,0],shR:[-.55,0,-.3],elR:[-.65,0,0]};
 const P_UMPK={...P_UMP,spine:[.15,0,0],head:[-.1,0,0],shR:[-2.5,0,-.35],elR:[-1.5,0,0],shL:[.1,0,.2],elL:[-.3,0,0]};
 const P_SCOOP={spine:[1.05,0,0],head:[-.75,0,0],thL:[-.95,0,.32],knL:[1.45,0,0],ftL:[-.5,0,0],thR:[-.85,0,-.32],knR:[1.4,0,0],ftR:[-.55,0,0],hL:[.08,.22,.62],hR:[-.06,.3,.58],pL:[.4,-1,.2],pR:[-.4,-1,.2]};
-function runPose(ph,amt=1){const s=Math.sin(ph),c=Math.cos(ph),kn=x=>.18+1.05*Math.pow(Math.max(0,x),1.3);
-  return{hips:[0,.1*s*amt,0],spine:[.23*amt,-.1*s*amt,.025*c*amt],chest:[.035,-.08*s*amt,-.025*c*amt],head:[-.22*amt,.12*s*amt,0],
-    thL:[-(.68*s+.1)*amt,0,.04],knL:[kn(c)*amt+.06,0,0],ftL:[-.25*Math.max(0,s)*amt,0,0],
-    thR:[-(-.68*s+.1)*amt,0,-.04],knR:[kn(-c)*amt+.06,0,0],ftR:[-.25*Math.max(0,-s)*amt,0,0],
-    shL:[.62*s*amt,0,.16],elL:[-1.5*amt-.2,0,0],shR:[-.62*s*amt,0,-.16],elR:[-1.5*amt-.2,0,0]}}
+// 한 주기 안에 디딤 → 발차기 → 회수 → 다음 디딤을 명시한 발 목표.
+function runPose(ph,amt=1,accel=0,brake=0){
+  const stride=.55+.45*amt,phase=((ph/(2*Math.PI))%1+1)%1;
+  const foot=(q,x)=>{q=(q+1)%1;const span=.463*stride;
+    if(q<.42)return[x,.05,span*(1-2*q/.42)];
+    const u=(q-.42)/.58,e=u*u*(3-2*u);return[x,.05+(.12+.12*amt)*Math.sin(Math.PI*u),-span+2*span*e];
+  };
+  const s=Math.sin(ph),c=Math.cos(ph),lean=.12+.12*amt+.09*accel-.12*brake;
+  return{hy:.79+.012*Math.cos(ph*2),hips:[.015,.09*s,.02*c],spine:[lean,-.07*s,.02*c],
+    chest:[.018,-.10*s,-.02*c],head:[-lean*.75,.08*s,0],
+    footL:foot(phase,.105),footR:foot(phase+.5,-.105),
+    thL:[0,0,.02],knL:[.25,0,0],ftL:[0,0,0],thR:[0,0,-.02],knR:[.25,0,0],ftR:[0,0,0],
+    shL:[.72*s*amt,0,.1],elL:[-1.35-.12*c,0,0],shR:[-.72*s*amt,0,-.1],elR:[-1.35+.12*c,0,0],wrL:[.08,.9,0],wrR:[.08,-.9,0]};
+}
 /* 투구: 세트 → 키킹 → 스트라이드 → 레이백 → 릴리스 → 팔로스루 → 수비 자세 (우투 기준, +z=홈 쪽) */
 const PITK=[
  {t:0,hy:.89,bz:0,hips:[0,-.15,0],spine:[.06,0,0],head:[-.05,.15,0],footL:[.15,.07,.06],footR:[-.15,.07,-.05],hL:[.03,1.3,.24],hR:[-.04,1.3,.24]},
@@ -3821,19 +3839,42 @@ function p3CatchPose(p,ball,k){
 }
 function p3Idle(p){
   const u=p.userData,base=u.o.ump?P_UMP:u.o.crouch?P_CROUCH:P_STAND,breath=Math.sin((P3.clock||0)/1100+u.ph);p3Pose(p,{...base,chest:[.006*breath,0,0],dy:.0025*breath},p3Ease(10));
-  u.body.rotation.z+=(0-u.body.rotation.z)*p3Ease(10);u.runLast=null;
+  u.body.rotation.z+=(0-u.body.rotation.z)*p3Ease(10);u.runLast=null;u.runSpeed=0;u.runState='idle';
 }
-function p3Run(p,ph,amt){
+function p3Run(p,ph,amt,context={}){
   const u=p.userData,dt=clamp(P3.dt||1/60,.004,.05),last=u.runLast;
   const distance=last?Math.hypot(p.position.x-last.x,p.position.z-last.z):0;
+  const speed=distance<4?Math.min(9,distance/dt):0,ratio=clamp(speed/7,0,1),stride=.55+.45*ratio;
   u.runPhase=u.runPhase??ph;
-  if(distance<4)u.runPhase+=distance*2.35;
+  if(distance<4)u.runPhase+=distance*2.85/stride;
   u.runLast={x:p.position.x,z:p.position.z};
-  const target=last?clamp(distance/dt/7,.2,1):amt;
-  u.runAmount=(u.runAmount??amt)+(target-(u.runAmount??amt))*p3Ease(12);
-  p3Pose(p,runPose(u.runPhase,clamp(u.runAmount,.2,1)),p3Ease(24));
+  const old=u.runSpeed||0,accel=clamp((speed-old)/dt/8,-1,1);
+  u.runSpeed=old+(speed-old)*p3Ease(9);
+  u.runAmount=(u.runAmount??amt)+(ratio-(u.runAmount??amt))*p3Ease(12);
+  u.runState=context.brake?'brake':Math.abs(u.turnLean||0)>.07?'turn':accel>.3?'start':'sprint';
+  p3Pose(p,runPose(u.runPhase,clamp(u.runAmount,0,1),Math.max(0,accel),context.brake?1:Math.max(0,-accel)),p3Ease(24));
   u.body.rotation.z+=((u.turnLean||0)-u.body.rotation.z)*p3Ease(12);
 }
+// 수비수는 출발과 도착 때 짧게 가감속한다. 송구 도착 시각은 유지한다.
+function p3MoveFraction(k){
+  const a=.12,v=1/(1-a);k=clamp(k,0,1);
+  return k<a?.5*v*k*k/a:k>1-a?1-.5*v*(1-k)*(1-k)/a:v*(k-a/2);
+}
+function bbSlideNeeded(play,r){
+  if(r.bat||r.out||r.to===r.from||r.to===4&&r.from===0)return false;
+  const arrival=bbRunArrival(r);
+  return play.throws.some(tr=>tr.base===r.to&&Math.abs(tr.t0+tr.dur-arrival)<.65);
+}
+function bbRunnerRenderPoint(r,t,play){
+  const time=Math.min(t,r.retireAt??play?.thirdAt??t),progress=bbRunnerProgress(r,time),point=p3BasePt(progress);
+  // 타자 주자는 안전한 1루에서 멈추지 않고 파울 쪽으로 짧게 주루한다.
+  if(r.bat&&!r.out&&r.to===1&&!play?.thirdAt&&t>bbRunArrival(r)){
+    const extra=2.2*(1-Math.exp(-(t-bbRunArrival(r))*r.speed/2.2));
+    point[0]+=extra/Math.SQRT2;point[1]+=extra/Math.SQRT2;
+  }
+  return point;
+}
+
 function p3BuildActors(){
   p3Vec();const sc=P3.sc,A=P3.A;
   A.pitcher=p3Player({glove:true});A.pitcher.position.set(0,.25,18.44);A.pitcher.rotation.y=Math.PI;sc.add(A.pitcher);
@@ -4003,17 +4044,17 @@ function p3LiveDefense(B,t,dt){
   for(const key of FKEYS)way[key]=[{t:0,x:FPOS[key][0],z:FPOS[key][1]}];
   way[p.fielder].push({t:p.catchAt,x:p.at[0],z:p.at[1]});
   for(const support of p.support||[])way[support.key].push({t:support.arrive,x:support.x,z:support.z});
-  for(const tr of p.throws)way[tr.receiver].push({t:tr.t0+tr.dur,x:tr.to[0],z:tr.to[2]});
+  for(const tr of p.throws){if(tr.carry)way[tr.by].push({t:tr.t0,x:tr.from[0],z:tr.from[2]});way[tr.receiver].push({t:tr.t0+tr.dur,x:tr.to[0],z:tr.to[2],carry:tr.carry})}
   for(const key of FKEYS){const fig=key==='P'?A.pitcher:key==='C'?A.catcher:A.f[key];if(!fig)continue;
     const points=way[key].sort((a,b)=>a.t-b.t);let from=points[0],to=null;
     for(let i=1;i<points.length;i++){if(t<points[i].t){to=points[i];break}from=points[i]}
-    const k=to?clamp((t-from.t)/Math.max(.001,to.t-from.t),0,1):1,x=to?from.x+(to.x-from.x)*k:from.x,z=to?from.z+(to.z-from.z)*k:from.z;
+    const fraction=to?clamp((t-from.t)/Math.max(.001,to.t-from.t),0,1):1,k=to?.carry?fraction:p3MoveFraction(fraction),x=to?from.x+(to.x-from.x)*k:from.x,z=to?from.z+(to.z-from.z)*k:from.z;
     fig.visible=true;fig.position.set(-x,key==='P'&&t<.25?.25*(1-t/.25):0,z);
     const throwing=p.throws.find(tr=>!tr.carry&&tr.by===key&&t>=tr.t0-.22&&t<=tr.t0+.22);
     const receiving=p.throws.find(tr=>tr.receiver===key&&t>=tr.t0&&t<=tr.t0+tr.dur+.25);
     const tagging=p.events.find(e=>e.kind==='out'&&!e.force&&e.base>0&&Math.abs(e.t-t)<.3&&p.throws.some(tr=>tr.receiver===key&&tr.base===e.base));
     if(throwing){p3Face(fig,Math.atan2(-(throwing.to[0]-x),throwing.to[2]-z));p3Pose(fig,throwing.toss?{...P_STAND,spine:[.25,0,0],shR:[-.2-1.2*clamp((t-throwing.t0+.22)/.44,0,1),0,-.15],elR:[-.4,0,0],shL:[-.3,0,.2],elL:[-.8,0,0]}:kfPose(THRK,clamp((t-throwing.t0+.22)/.44,0,1)),p3Ease(26))}
-    else if(to&&Math.hypot(to.x-x,to.z-z)>.2){p3Face(fig,Math.atan2(-(to.x-x),to.z-z));p3Run(fig,t*11,.85)}
+    else if(to&&Math.hypot(to.x-x,to.z-z)>.2){p3Face(fig,Math.atan2(-(to.x-x),to.z-z));p3Run(fig,t*11,.85,{brake:to.t-t<.3})}
     else if(tagging)p3Pose(fig,P_SCOOP,1-Math.exp(-dt*15));
     else if(receiving)p3CatchPose(fig,A.ball.position,1-Math.exp(-dt*12));
     else if(key===p.fielder&&t<p.catchAt+.25){if(['FO','LO'].includes(p.k))p3CatchPose(fig,A.ball.position,1-Math.exp(-dt*12));else p3Pose(fig,P_SCOOP,1-Math.exp(-dt*12))}
@@ -4121,12 +4162,13 @@ function p3Frame(G,now,dt){
       A.runners.forEach(fig=>fig.visible=false);
       if(A.batter.visible&&t>.35){A.batter.userData.batPivot.visible=false}
       B.runners.forEach(r=>{const fig=r.bat?A.batter:A.runners[r.from-1];if(!fig)return;
-        const sp=r.speed||6.4, f=Math.min(r.to,r.from+Math.max(0,t-(r.bat?.35:.1))*sp/27.4), lim=B.play?bbRunnerProgress(r,Math.min(t,r.retireAt??B.play.thirdAt??t)):f, [x,z]=p3BasePt(lim);
+        const sp=r.speed||6.4, f=Math.min(r.to,r.from+Math.max(0,t-(r.bat?.35:.1))*sp/27.4), lim=B.play?bbRunnerProgress(r,Math.min(t,r.retireAt??B.play.thirdAt??t)):f, [x,z]=B.play?bbRunnerRenderPoint(r,t,B.play):p3BasePt(lim);
         fig.visible=!(r.to===4&&lim>=4)&&!(r.out&&t>(r.retireAt!=null?r.retireAt+.18:B.dur-.6));fig.position.set(-x,0,z);
         const next=B.play?bbRunnerProgress(r,Math.min(t+.04,r.retireAt??B.play.thirdAt??(t+.04))):Math.min(r.to,lim+.05);
-        if(Math.abs(next-lim)>.00001){const [nx,nz]=p3BasePt(next);p3Face(fig,Math.atan2(-(nx-x),nz-z));if(B.play&&!r.bat&&r.to>r.from&&bbRunArrival(r)-t<.48&&bbRunArrival(r)-t>-.1){
+        const [nx,nz]=B.play?bbRunnerRenderPoint(r,t+.04,B.play):p3BasePt(next);
+        if(Math.hypot(nx-x,nz-z)>.00001){p3Face(fig,Math.atan2(-(nx-x),nz-z));if(B.play&&bbSlideNeeded(B.play,r)&&bbRunArrival(r)-t<.48&&bbRunArrival(r)-t>-.1){
           p3Pose(fig,{hy:.3,hips:[0,0,0],spine:[-.55,0,0],head:[.3,0,0],thL:[-1.3,0,.12],knL:[.2,0,0],thR:[-1.1,0,-.15],knR:[.5,0,0],hL:[.24,.38,-.1],hR:[-.24,.38,-.1]},p3Ease(22));
-        }else p3Run(fig,t*11*(sp/6.4),1)}else p3Idle(fig)});
+        }else p3Run(fig,t*11*(sp/6.4),1,{brake:bbRunArrival(r)-t<.35})}else p3Idle(fig)});
     }
   }
   // 불꽃

@@ -1,6 +1,6 @@
 const fs=require('fs'),vm=require('vm');
 const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8');
-const source=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].find(m=>!m[1].includes('application/ld+json')&&m[2].trim())[2];
+const source=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].find(m=>m[2].includes('const HAS_DOM='))[2];
 vm.runInNewContext(source+`;
 function actor(){return{rotation:{y:0},position:{x:0,z:0},userData:{body:{rotation:{z:0}},o:{},ph:0}}}
 function face(fps){const p=actor();P3.dt=1/fps;for(let i=0;i<fps;i++)p3Face(p,Math.PI/2);return p.rotation.y}

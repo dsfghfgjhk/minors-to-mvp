@@ -1,6 +1,6 @@
 const fs=require('fs'),vm=require('vm');
 const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8');
-const source=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].find(m=>!m[1].includes('application/ld+json')&&m[2].trim())[2];
+const source=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].find(m=>m[2].includes('const HAS_DOM='))[2];
 vm.runInNewContext(source+`;
 C.cands=makeCands(C.pos);newCareer();S.stats.spd=50;
 const g={mode:'bat',pa:{on:'12',out:1}},bb=bbResolve(51.847449123160914,13.072872245684266,-37.746229922398925,50),p=bbPlan(g,bb);
