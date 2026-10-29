@@ -8,8 +8,19 @@ To regenerate the action frames, serve the repository and run `tools/render_open
 
 The website autoplays the muted movie before the title menu. Clicking or tapping the movie skips to the title; normal completion does the same.
 
-`opening.webp` is the same movie as an animated WebP (960 × 540, 24 fps). Devices that block video autoplay, such as iPhones and iPads in Low Power Mode, play this image instead so the opening still starts without a tap. Regenerate it after changing the movie:
+`frames/00.webp` … `frames/27.webp` hold the same movie as 768 × 432 still frames, 16 per sheet in a 4 × 4 grid. Devices that block video autoplay, such as iPhones and iPads in Low Power Mode, draw these sheets on a canvas at 24 fps instead, so the opening still starts without a tap. Playback waits for a sheet that has not arrived yet instead of skipping frames, and frees sheets that have already played. Regenerate them after changing the movie:
 
 ```sh
-ffmpeg -i assets/opening/opening.mp4 -vf "fps=24,scale=960:-2:flags=lanczos" -c:v libwebp_anim -lossless 0 -q:v 80 -cr_threshold 0 -cr_size 16 -compression_level 6 -loop 0 -an assets/opening/opening.webp
+mkdir -p /tmp/op && ffmpeg -i assets/opening/opening.mp4 -vf "scale=768:432:flags=lanczos" /tmp/op/%04d.png
+python3 - <<'PY'
+from PIL import Image
+import glob
+fs=sorted(glob.glob('/tmp/op/*.png'))
+for i in range(0,len(fs),16):
+    sh=Image.new('RGB',(768*4,432*4),(6,17,13))
+    for k,f in enumerate(fs[i:i+16]):sh.paste(Image.open(f).convert('RGB'),((k%4)*768,(k//4)*432))
+    sh.save('assets/opening/frames/%02d.webp'%(i//16),quality=74,method=6)
+PY
 ```
+
+If the frame count changes, update `OPF.n` and `OPF.sheets` in `index.html`.
