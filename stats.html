@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>플레이어 현황 | 2군에서 MVP까지</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* 개발자용 플레이어 현황판 — 검색에 안 잡히고 게임 어디에도 링크하지 않아요 */
+:root{
+  --turf1:#123a2a;--turf2:#16422f;--chalk:#fcfcfb;--line:#e6e4dc;--ink:#191f28;--ink2:#4e5968;--ink3:#8b95a1;
+  --led:#ffc83d;--s1:#2a78d6;--s2:#eb6834;
+  --f-body:'IBM Plex Sans KR','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;--f-num:'Do Hyeon','IBM Plex Sans KR',sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{min-height:100dvh;font-family:var(--f-body);color:var(--ink);
+  background:var(--turf1) repeating-linear-gradient(180deg,var(--turf1) 0 120px,var(--turf2) 120px 240px);
+  padding:max(20px,env(safe-area-inset-top)) 16px max(28px,env(safe-area-inset-bottom))}
+.wrap{max-width:1040px;margin:0 auto}
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;color:#f3f1e8;margin:4px 2px 18px}
+h1{font-family:var(--f-num);font-weight:400;font-size:34px;margin:0;letter-spacing:.5px}
+h1 b{color:var(--led);font-weight:400}
+.meta{display:flex;align-items:center;gap:10px;font-size:13px;color:#c9d6cd}
+.live{display:inline-flex;align-items:center;gap:6px}
+.live i{width:8px;height:8px;border-radius:50%;background:#3ddc84;box-shadow:0 0 0 0 rgba(61,220,132,.6);animation:pulse 2s infinite}
+.live.off i{background:#e34948;animation:none}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(61,220,132,0)}100%{box-shadow:0 0 0 0 rgba(61,220,132,0)}}
+button{font:inherit;font-size:13px;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.2);color:#f3f1e8;border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{background:rgba(0,0,0,.35)}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
+.tile{background:var(--chalk);border-radius:14px;padding:16px 18px 14px;box-shadow:0 2px 0 rgba(0,0,0,.18)}
+.tile small{display:block;font-size:13px;color:var(--ink2);font-weight:500}
+.tile .n{font-family:var(--f-num);font-size:46px;line-height:1.1;margin-top:6px;font-variant-numeric:tabular-nums}
+.tile .sub{font-size:12px;color:var(--ink3);margin-top:2px}
+.tile.hl{background:#11291f;color:#f3f1e8}
+.tile.hl small{color:#c9d6cd}.tile.hl .sub{color:#9fb3a7}.tile.hl .n{color:var(--led)}
+.card{background:var(--chalk);border-radius:14px;padding:16px 18px;margin-bottom:12px;box-shadow:0 2px 0 rgba(0,0,0,.18);position:relative}
+.card h2{font-size:15px;margin:0 0 2px;font-weight:700}
+.card p.d{font-size:12px;color:var(--ink3);margin:0 0 10px}
+.legend{display:flex;gap:16px;font-size:12px;color:var(--ink2);margin:0 0 6px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.grid2{display:grid;grid-template-columns:1.4fr 1fr;gap:12px}
+svg{display:block;width:100%;height:auto;overflow:visible}
+svg text{font-family:var(--f-body);font-size:11px;fill:var(--ink3)}
+svg .lbl{fill:var(--ink2);font-weight:500}
+svg .bar{transition:opacity .15s}
+svg .hit{fill:transparent;cursor:default}
+.tip{position:absolute;pointer-events:none;background:#191f28;color:#fff;font-size:12px;line-height:1.5;padding:7px 10px;border-radius:8px;white-space:nowrap;transform:translate(-50%,-110%);opacity:0;transition:opacity .1s;z-index:5}
+.tip b{font-weight:700}
+.tip i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px}
+details{margin-top:8px;font-size:12px;color:var(--ink2)}
+summary{cursor:pointer;color:var(--ink3)}
+table{border-collapse:collapse;width:100%;margin-top:6px;font-variant-numeric:tabular-nums}
+th,td{text-align:right;padding:4px 8px;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+.pos{display:grid;grid-template-columns:62px 1fr 36px;align-items:center;gap:8px;font-size:12px;margin:5px 0}
+.pos .t{height:14px;border-radius:0 4px 4px 0;background:var(--s1)}
+.pos .v{text-align:right;color:var(--ink2);font-variant-numeric:tabular-nums}
+.note{color:#c9d6cd;font-size:12px;line-height:1.6;margin:6px 2px}
+.err{background:#fde8e8;color:#8a1c1c;border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:12px;display:none}
+@media (max-width:760px){.tiles{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.tile .n{font-size:38px}h1{font-size:28px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>플레이어 <b>현황</b></h1>
+    <div class="meta"><span class="live" id="live"><i></i><span id="upd">불러오는 중…</span></span><button id="re" type="button">새로고침</button></div>
+  </header>
+  <div class="err" id="err"></div>
+  <section class="tiles" aria-label="요약">
+    <div class="tile hl"><small>오늘 만든 선수</small><div class="n" id="t-s">–</div><div class="sub" id="t-s2">&nbsp;</div></div>
+    <div class="tile"><small>오늘 은퇴한 선수</small><div class="n" id="t-c">–</div><div class="sub">랭킹에 올라간 기록</div></div>
+    <div class="tile"><small>지금까지 만든 선수</small><div class="n" id="t-sa">–</div><div class="sub">10월 29일 밤부터 집계</div></div>
+    <div class="tile"><small>지금까지 은퇴한 선수</small><div class="n" id="t-ca">–</div><div class="sub">랭킹 전체 기간</div></div>
+  </section>
+  <section class="card" id="c-day">
+    <h2>최근 14일 일별</h2><p class="d">날짜별 새로 만든 선수와 은퇴한 선수 수예요.</p>
+    <div class="legend"><span><i style="background:var(--s1)"></i>만든 선수</span><span><i style="background:var(--s2)"></i>은퇴한 선수</span></div>
+    <div id="g-day"></div><div class="tip" id="tip-day"></div>
+    <details><summary>표로 보기</summary><table id="tb-day"></table></details>
+  </section>
+  <div class="grid2">
+    <section class="card" id="c-hr">
+      <h2>오늘 시간대별 만든 선수</h2><p class="d">한국 시간 기준, 한 시간 단위예요.</p>
+      <div id="g-hr"></div><div class="tip" id="tip-hr"></div>
+    </section>
+    <section class="card">
+      <h2>오늘 만든 선수 포지션</h2><p class="d">어떤 포지션으로 많이 시작했는지 보여 줘요.</p>
+      <div id="g-pos"></div>
+    </section>
+  </div>
+  <p class="note">1분마다 자동으로 새로 불러와요. 선수 생성 수는 2026년 10월 29일 밤 10시쯤부터 세기 시작했어요. 이 페이지는 검색에 안 잡히고 게임 안에는 링크가 없어요.</p>
+</div>
+<script>
+const CFG={url:'https://xdoumdgrsbnmktpcvgxd.supabase.co',key:'sb_publishable_QCL89LDJdRqOf6FOYoRvtw_62zXa0yL'};
+const H={apikey:CFG.key};
+const POS={SP:'선발투수',RP:'구원투수',C:'포수','1B':'1루수','2B':'2루수','3B':'3루수',SS:'유격수',LF:'좌익수',CF:'중견수',RF:'우익수'};
+const kday=(off=0)=>new Date(Date.now()+9*3600e3-off*864e5).toISOString().slice(0,10);
+const $=id=>document.getElementById(id);
+const fmt=n=>n==null?'–':n.toLocaleString('ko-KR');
+async function count(table,q=''){
+  const r=await fetch(`${CFG.url}/rest/v1/${table}?select=id${q}&limit=1`,{headers:{...H,Prefer:'count=exact'}});
+  if(!r.ok)throw new Error(table+' '+r.status);
+  const cr=r.headers.get('content-range')||'';const n=+(cr.split('/')[1]);return isNaN(n)?0:n;
+}
+async function rows(table,q){
+  const out=[];for(let off=0;off<20000;off+=1000){
+    const r=await fetch(`${CFG.url}/rest/v1/${table}?${q}&limit=1000&offset=${off}`,{headers:H});
+    if(!r.ok)throw new Error(table+' '+r.status);const b=await r.json();out.push(...b);if(b.length<1000)break;
+  }return out;
+}
+function tipOn(tip,card,x,y,html){tip.innerHTML=html;const w=tip.offsetWidth;x=Math.min(Math.max(x,w/2+6),card.width-w/2-6);tip.style.left=x+'px';tip.style.top=y+'px';tip.style.opacity=1}
+function tipOff(tip){tip.style.opacity=0}
+const nice=m=>{if(m<=5)return 5;const p=Math.pow(10,Math.floor(Math.log10(m)));for(const k of[1,2,2.5,5,10])if(k*p>=m)return k*p};
+function bars(el,tip,cats,series,{h=240,fmtCat=c=>c,labelEvery=1,alignEnd=false}={}){
+  const W=el.clientWidth||600,pl=34,pr=6,pt=14,pb=26,iw=W-pl-pr,ih=h-pt-pb;
+  const max=nice(Math.max(1,...series.flatMap(s=>s.v)));const n=cats.length,ns=series.length;
+  const gw=iw/n,gap=2,bw=Math.max(2,Math.min(26,(gw*.72-gap*(ns-1))/ns));
+  const y=v=>pt+ih-v/max*ih;let s=`<svg viewBox="0 0 ${W} ${h}" role="img">`;
+  for(let i=0;i<=4;i++){const v=max*i/4,yy=y(v);s+=`<line x1="${pl}" x2="${W-pr}" y1="${yy}" y2="${yy}" stroke="${i?'#efede6':'#cfcbbf'}" stroke-width="1"/><text x="${pl-6}" y="${yy+4}" text-anchor="end">${fmt(v)}</text>`}
+  cats.forEach((c,i)=>{const gx=pl+gw*i+gw/2,x0=gx-(bw*ns+gap*(ns-1))/2;
+    series.forEach((se,k)=>{const v=se.v[i],x=x0+k*(bw+gap),yy=y(v),hh=pt+ih-yy;
+      if(v>0)s+=`<path class="bar" d="M${x},${pt+ih}V${yy+Math.min(4,hh)}q0,-4 4,-4h${bw-8}q4,0 4,4V${pt+ih}Z" fill="${se.c}"/>`});
+    if(alignEnd?(n-1-i)%labelEvery===0:(i%labelEvery===0||i===n-1))s+=`<text x="${gx}" y="${h-8}" text-anchor="middle">${fmtCat(c)}</text>`;
+    s+=`<rect class="hit" data-i="${i}" x="${pl+gw*i}" y="${pt}" width="${gw}" height="${ih}"/>`});
+  el.innerHTML=s+'</svg>';
+  el.querySelectorAll('.hit').forEach(r=>{const i=+r.dataset.i;
+    const show=()=>{const card=el.closest('.card').getBoundingClientRect(),b=r.getBoundingClientRect();
+      tipOn(tip,card,b.left-card.left+b.width/2,b.top-card.top+8,`<b>${fmtCat(cats[i],true)}</b><br>`+series.map(se=>`<i style="background:${se.c}"></i>${se.n} ${fmt(se.v[i])}명`).join('<br>'));
+      r.dataset.on=1;highlight(el,i,series)};
+    r.addEventListener('mouseenter',show);r.addEventListener('touchstart',show,{passive:true});
+    r.addEventListener('mouseleave',()=>{tipOff(tip);el.querySelectorAll('.bar').forEach(p=>p.style.opacity=1)})});
+}
+function highlight(el,i,series){const cats=el.querySelectorAll('.hit').length;let idx=0;
+  // 막대는 그려진 순서대로(값이 0이면 없음) 있어서, 같은 묶음만 진하게 보이도록 x 위치로 고릅니다
+  const hit=el.querySelector(`.hit[data-i="${i}"]`),x1=+hit.getAttribute('x'),x2=x1+ +hit.getAttribute('width');
+  el.querySelectorAll('.bar').forEach(p=>{const m=/M([\d.]+)/.exec(p.getAttribute('d'));const x=+m[1];p.style.opacity=(x>=x1&&x<x2)?1:.35})}
+let last=null;
+async function load(){
+  const today=kday();
+  try{
+    const days=[...Array(14)].map((_,i)=>kday(13-i));
+    const [sAll,cAll,sDay,cDay,todayRows]=await Promise.all([
+      count('starts'),count('careers'),
+      Promise.all(days.map(d=>count('starts','&day=eq.'+d))),
+      Promise.all(days.map(d=>count('careers','&day=eq.'+d))),
+      rows('starts','select=ts,pos&day=eq.'+today+'&order=ts.asc')]);
+    const sT=sDay[13],cT=cDay[13];
+    $('t-s').textContent=fmt(sT);$('t-c').textContent=fmt(cT);$('t-sa').textContent=fmt(sAll);$('t-ca').textContent=fmt(cAll);
+    const hrNow=new Date(Date.now()+9*3600e3).getUTCHours(),lastHr=todayRows.filter(r=>Date.now()-r.ts<3600e3).length;
+    $('t-s2').textContent=`최근 1시간 ${fmt(lastHr)}명`;
+    const md=d=>{const[,m,dd]=d.split('-');return `${+m}/${+dd}`};
+    bars($('g-day'),$('tip-day'),days,[{n:'만든 선수',c:'#2a78d6',v:sDay},{n:'은퇴한 선수',c:'#eb6834',v:cDay}],{fmtCat:(c,long)=>long?`${md(c)}${c===today?' (오늘)':''}`:md(c),labelEvery:innerWidth<560?2:1,alignEnd:true});
+    $('tb-day').innerHTML='<tr><th>날짜</th><th>만든 선수</th><th>은퇴한 선수</th></tr>'+days.slice().reverse().map((d,i)=>`<tr><td>${md(d)}${d===today?' (오늘)':''}</td><td>${fmt(sDay[13-i])}</td><td>${fmt(cDay[13-i])}</td></tr>`).join('');
+    const hr=Array(24).fill(0);todayRows.forEach(r=>{hr[new Date(r.ts+9*3600e3).getUTCHours()]++});
+    bars($('g-hr'),$('tip-hr'),[...Array(24).keys()],[{n:'만든 선수',c:'#2a78d6',v:hr}],{h:200,fmtCat:(c,long)=>long?`${c}시~${c+1}시`:String(c),labelEvery:3});
+    const pc={};todayRows.forEach(r=>{const k=r.pos||'?';pc[k]=(pc[k]||0)+1});
+    const pl=Object.entries(pc).sort((a,b)=>b[1]-a[1]),pm=Math.max(1,...pl.map(x=>x[1]));
+    $('g-pos').innerHTML=pl.length?pl.map(([k,v])=>`<div class="pos"><span>${POS[k]||k}</span><div class="t" style="width:${Math.max(2,v/pm*100)}%"></div><span class="v">${fmt(v)}</span></div>`).join(''):'<p class="d">아직 오늘 만든 선수가 없어요.</p>';
+    const t=new Date();$('upd').textContent=`${t.getHours()}:${String(t.getMinutes()).padStart(2,'0')} 기준 · 실시간`;$('live').classList.remove('off');$('err').style.display='none';last=Date.now();
+  }catch(e){$('live').classList.add('off');$('upd').textContent='불러오기 실패';$('err').textContent='랭킹 서버에서 숫자를 못 가져왔어요. 잠시 뒤 새로고침해 주세요. ('+e.message+')';$('err').style.display='block'}
+}
+$('re').onclick=load;load();setInterval(()=>{if(!document.hidden)load()},60e3);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&last&&Date.now()-last>60e3)load()});
+let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(load,300)});
+</script>
+</body>
+</html>
