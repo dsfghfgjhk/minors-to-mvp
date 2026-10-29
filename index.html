@@ -2042,6 +2042,11 @@ function rkRecord(){
     team,one:Object.keys(cnt).length===1&&pro.length>=3,abroad:S.hist.some(h=>h.org==='US'||h.org==='JP'),ava:{skin:S.avatar.skin,hair:S.avatar.hair},col:TC[team]||'#1f4fa3',num:+S.num||0,mine:1};
 }
 function rkHead(){const h={apikey:RANK_CFG.key,'Content-Type':'application/json'};if(!/^sb_/.test(RANK_CFG.key))h.Authorization='Bearer '+RANK_CFG.key;return h}   // 새 publishable 키(sb_…)는 apikey 헤더에만
+// 선수를 새로 만들 때마다 날짜·포지션만 남겨요(이름 같은 개인 정보는 안 보내요). 하루 선수 생성 수를 세는 용도예요.
+function rkStart(){
+  if(!RK_ON()||!HAS_DOM)return;
+  try{fetch(RANK_CFG.url+'/rest/v1/starts',{method:'POST',headers:{...rkHead(),Prefer:'return=minimal'},body:JSON.stringify({day:rkDay(),ts:Date.now(),pos:S.pos||null}),keepalive:true}).catch(()=>{})}catch(e){}
+}
 async function rkSubmit(rec){
   if(!RK_ON()||!HAS_DOM)return;
   try{const {mine,sent,...row}=rec;const r=await fetch(RANK_CFG.url+'/rest/v1/careers',{method:'POST',headers:{...rkHead(),Prefer:'return=minimal'},body:JSON.stringify(row)});
@@ -4507,7 +4512,7 @@ function act(a,v){
   else if(a==='c-focus'){const i=C.focus.indexOf(v);if(i>=0)C.focus.splice(i,1);else{if(C.focus.length>=2)C.focus.shift();C.focus.push(v)}}
   else if(a==='c-make')C.confirm=true;
   else if(a==='c-noconfirm')C.confirm=false;
-  else if(a==='c-start'){C.confirm=false;newCareer();ui.tab='home';top=true}
+  else if(a==='c-start'){C.confirm=false;newCareer();rkStart();ui.tab='home';top=true}
   else if(a==='tab'){ui.tab=v;top=true}
   else if(a==='go-season'){ui.tab='season';top=true}
   else if(a==='go-player'){ui.tab='player';top=true}

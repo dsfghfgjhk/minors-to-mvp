@@ -21,13 +21,17 @@ jobs:
           curl -sSf -D head.txt -H "apikey: $KEY" -H "Prefer: count=exact" \
             "$URL?select=name,pos,ovr,mvp,aw,war,ava,col,team,day&day=eq.$DAY&order=mvp.desc,aw.desc,ovr.desc,war.desc,ts.asc&limit=3" -o top.json
           COUNT=$(grep -i '^content-range' head.txt | sed 's#.*/##' | tr -d '\r ')
+          # 오늘 새로 만든 선수 수 (starts 표). 표가 없거나 실패해도 위 TOP 3 저장은 계속해요.
+          SCODE=$(curl -sS -D shead.txt -o /dev/null -w '%{http_code}' -H "apikey: $KEY" -H "Prefer: count=exact" "${URL%/careers}/starts?select=id&day=eq.$DAY&limit=1" || true)
+          STARTS=$(grep -i '^content-range' shead.txt 2>/dev/null | sed 's#.*/##' | tr -d '\r ')
+          echo "starts http=$SCODE count=$STARTS"
           mkdir -p out/data/hof
-          python3 - "$DAY" "${COUNT:-0}" <<'PY'
+          python3 - "$DAY" "${COUNT:-0}" "${STARTS:-}" <<'PY'
           import json,sys
-          day,count=sys.argv[1],sys.argv[2]
+          day,count,starts=sys.argv[1],sys.argv[2],sys.argv[3]
           top=json.load(open('top.json'))
-          json.dump({'day':day,'count':int(count) if count.isdigit() else len(top),'top':top},open('out/data/hof/latest.json','w'),ensure_ascii=False,indent=1)
-          print(day,count,[r.get('name') for r in top])
+          json.dump({'day':day,'count':int(count) if count.isdigit() else len(top),'starts':int(starts) if starts.isdigit() else None,'top':top},open('out/data/hof/latest.json','w'),ensure_ascii=False,indent=1)
+          print(day,count,starts,[r.get('name') for r in top])
           PY
       - name: hof-data 브랜치에 저장
         run: |
