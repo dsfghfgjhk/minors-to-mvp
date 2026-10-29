@@ -4114,9 +4114,12 @@ function p3Frame(G,now,dt){
       else{f1.rotation.y=Math.atan2(-B.fAt[0]-f1.position.x,B.fAt[1]-f1.position.z);p3Pose(f1,{...P_STAND,spine:[.35,0,0],head:[-.1,0,0],thL:[-.8,0,.1],knL:[.4,0,0],ftL:[.35,0,0],thR:[.25,0,-.12],knR:[.1,0,0],hL:[.15,1.25,.75],hR:[-.1,1.05,.4]},1-Math.exp(-dt*10))}}
     if(B.play){p3LiveDefense(B,t,dt);A.mitt.visible=false;}
     // 주자
-    if(!B.foul){let ri=0;
+    if(!B.foul){
+      // 주자는 출발 베이스에 연결된 동일 모델을 계속 사용한다.
+      // 이전 베이스에 남은 모델은 이번 타구에 사용하기 전에 모두 숨긴다.
+      A.runners.forEach(fig=>fig.visible=false);
       if(A.batter.visible&&t>.35){A.batter.userData.batPivot.visible=false}
-      B.runners.forEach(r=>{const fig=r.bat?A.batter:A.runners[ri++];if(!fig)return;
+      B.runners.forEach(r=>{const fig=r.bat?A.batter:A.runners[r.from-1];if(!fig)return;
         const sp=r.speed||6.4, f=Math.min(r.to,r.from+Math.max(0,t-(r.bat?.35:.1))*sp/27.4), lim=B.play?bbRunnerProgress(r,Math.min(t,r.retireAt??B.play.thirdAt??t)):f, [x,z]=p3BasePt(lim);
         fig.visible=!(r.to===4&&lim>=4)&&!(r.out&&t>(r.retireAt!=null?r.retireAt+.18:B.dur-.6));fig.position.set(-x,0,z);
         const next=B.play?bbRunnerProgress(r,Math.min(t+.04,r.retireAt??B.play.thirdAt??(t+.04))):Math.min(r.to,lim+.05);
