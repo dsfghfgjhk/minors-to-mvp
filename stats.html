@@ -117,10 +117,12 @@ async function rows(table,q){
 }
 function tipOn(tip,card,x,y,html){tip.innerHTML=html;const w=tip.offsetWidth;x=Math.min(Math.max(x,w/2+6),card.width-w/2-6);tip.style.left=x+'px';tip.style.top=y+'px';tip.style.opacity=1}
 function tipOff(tip){tip.style.opacity=0}
-const nice=m=>{if(m<=5)return 5;const p=Math.pow(10,Math.floor(Math.log10(m)));for(const k of[1,2,2.5,5,10])if(k*p>=m)return k*p};
+// 세로축 최댓값: 가장 큰 막대보다 10% 이상 여유를 두고, 눈금 4칸이 딱 떨어지는 숫자로 (예: 2,492 → 3,000)
+const nice=m=>{const raw=m*1.12/4;if(raw<=1)return 4;const p=Math.pow(10,Math.floor(Math.log10(raw)));
+  for(const k of p>=10?[1,1.5,2,2.5,3,4,5,6,7.5,8,10]:[1,2,3,4,5,6,8,10])if(k*p>=raw)return k*p*4};
 function bars(el,tip,cats,series,{h=240,fmtCat=c=>c,labelEvery=1,alignEnd=false}={}){
-  const W=el.clientWidth||600,pl=34,pr=6,pt=14,pb=26,iw=W-pl-pr,ih=h-pt-pb;
   const max=nice(Math.max(1,...series.flatMap(s=>s.v)));const n=cats.length,ns=series.length;
+  const W=el.clientWidth||600,pl=Math.max(34,fmt(max).length*7+12),pr=6,pt=14,pb=26,iw=W-pl-pr,ih=h-pt-pb;
   const gw=iw/n,gap=2,bw=Math.max(2,Math.min(26,(gw*.72-gap*(ns-1))/ns));
   const y=v=>pt+ih-v/max*ih;let s=`<svg viewBox="0 0 ${W} ${h}" role="img">`;
   for(let i=0;i<=4;i++){const v=max*i/4,yy=y(v);s+=`<line x1="${pl}" x2="${W-pr}" y1="${yy}" y2="${yy}" stroke="${i?'#efede6':'#cfcbbf'}" stroke-width="1"/><text x="${pl-6}" y="${yy+4}" text-anchor="end">${fmt(v)}</text>`}
