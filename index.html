@@ -55,6 +55,9 @@ img{max-width:100%}
 @media(max-width:350px){.fld-left{width:100px}.fld-stick{width:94px;height:94px}.fld-actions{width:166px}.p3btm.field-controls{gap:6px;padding-left:8px;padding-right:8px}}
 @media(max-height:500px){.fld-left{width:132px}.fld-stick{width:94px;height:94px}.fld-actions{width:228px;grid-template-columns:138px 1fr;align-items:center;gap:5px;padding:7px}.fld-bases{grid-row:1/3;transform:scale(.78);transform-origin:left center;width:176px;height:130px;margin:-10px -38px -10px 0}.fld-bases button{width:56px;height:48px}.fld-bases .fb1,.fld-bases .fb3{top:40px}.fld-bases .fb2,.fld-bases .fb4{left:60px}.fld-dive{font-size:11px;min-height:34px}.fld-actions small{font-size:9px}.fld-hint{font-size:11px;max-width:64vw}.field-controls{padding-bottom:6px!important}}
 
+
+.pg-key,.pg-keyhelp{display:none}
+@media(hover:hover) and (pointer:fine){.pg-key{display:inline-block;margin-left:8px;padding:1px 5px;border:1px solid currentColor;border-radius:4px;font:700 11px/1.5 system-ui;opacity:.8}.pg-types .pg-key{font-size:9px;margin-left:4px;padding:0 3px}.pg-keyhelp{display:block;margin:8px 0 0;font-size:11px;line-height:1.65;color:#d5e4da}.p3tap-guide .pg-key{vertical-align:middle}}
 </style>
 <title>2군에서 MVP까지 | 야구선수 키우기 게임</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -3538,6 +3541,7 @@ function pgAfterPit(G,res){
   G.st='aim';if(G.sel.u==null){G.sel.u=0;G.sel.v=0}
 }
 function pgCont(G){
+  pgClearKeys();
   const oldMode=G.mode;
   if(G.top){if(G.pitDone[G.inn]||G.fieldDone?.[G.inn])pgAfterTop(G)}else pgAfterBot(G);
   if(!G.done)pgRun(G);
@@ -3566,6 +3570,7 @@ function pgFinishPending(G){
   if(P3.bb)P3.bb.pending=null;P3.bb=null;PG.rv=null;
 }
 function pgAuto(G){
+  pgClearKeys();
   pgFinishPending(G);
   PG.an=null;PG.next=0;
   for(let g=0;g<300&&!G.done;g++){
@@ -4705,11 +4710,11 @@ function pgSwing(aim,event){
 function pgMeterPos(now){const mp=900+Math.max(0,pst(S.play,'ctl')-40)*8;return(1-Math.cos(2*Math.PI*((now-PG.m0)%mp)/mp))/2}
 /* 꾹 누르는 동안 힘이 차올랐다 빠졌다 해요. 원하는 만큼 찼을 때 손을 떼면 던져요 */
 function pgPow(now){const p=((now-PG.charge)%1300)/1300;return p<.5?p*2:2-p*2}
-function pgCharge(){const G=S&&S.play;if(!G||G.mode!=='pit'||G.st!=='aim'||PG.an||PG.charge)return;SND.init();PG.charge=performance.now();const b=document.querySelector('[data-pg=throw]');if(b)b.classList.add('hold')}
-function pgRelease(){if(!PG.charge)return;const pw=pgPow(performance.now());PG.charge=0;pgThrowNow(pw)}
+function pgCharge(source='pointer'){const G=S&&S.play;if(!G||G.mode!=='pit'||G.st!=='aim'||PG.an||PG.charge)return;SND.init();PG.charge=performance.now();PG.pitchChargeSource=source;const b=HAS_DOM?document.querySelector('[data-pg=throw]'):null;if(b)b.classList.add('hold')}
+function pgRelease(){if(!PG.charge)return;const pw=pgPow(performance.now());PG.charge=0;PG.pitchChargeSource=null;pgThrowNow(pw)}
 function pgThrowNow(pw){
   const G=S&&S.play;if(!G||G.mode!=='pit'||G.st!=='aim'||G.sel.u==null)return;SND.init();
-  const now=performance.now();pgThrow(G,pw==null?.8:pw);G.st='anim';PG.an={k:'wind',t0:now,dur:760};pgHud();
+  const now=performance.now();pgThrow(G,pw==null?.8:pw);G.st='anim';PG.pitKeys={};PG.aimLast=0;PG.an={k:'wind',t0:now,dur:760};pgHud();
 }
 /* 투수 조준판: 투수 시점(오른쪽이 3루 쪽 = 우타자 자리) */
 const MW=176,MH=150,MS=80, mpx=u=>MW/2-zx(u)*MS, mpy=v=>MH-zy(v)*MS;
@@ -4727,10 +4732,85 @@ function pgMapSet(e){
   const G=S&&S.play,el=document.getElementById('p3map');if(!G||!el||G.mode!=='pit'||G.st!=='aim')return;
   const r=el.getBoundingClientRect(),px=(e.clientX-r.left)/r.width*MW,py=(e.clientY-r.top)/r.height*MH;
   G.sel.u=clamp(-(px-MW/2)/MS/ZW,-9,9);G.sel.v=clamp((ZC-(MH-py)/MS)/ZH,-6,4.1);
-  const t=document.getElementById('p3tgt'),w=document.getElementById('p3warn'),dz=bodyHit(G.sel,!!G.lu[G.bi].lh),c=dz?'#f87171':'#4ade80';
-  if(t){t.setAttribute('transform',`translate(${mpx(G.sel.u).toFixed(1)} ${mpy(G.sel.v).toFixed(1)})`);t.querySelectorAll('circle').forEach((n,i)=>n.setAttribute(i?'fill':'stroke',c))}
-  if(w)w.textContent=dz?'몸쪽! 맞으면 데드볼':'';
+  pgPitchAimHUD(G);
 }
+/* 직접 플레이 키보드: 숫자 키는 투수에게 구종, 야수에게 송구 베이스다. */
+const PG_MOVE_KEYS=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD'];
+function pgPitchAimHUD(G){
+  if(!HAS_DOM)return;
+  const target=document.getElementById('p3tgt'),warn=document.getElementById('p3warn'),danger=bodyHit(G.sel,!!G.lu[G.bi].lh),color=danger?'#f87171':'#4ade80';
+  if(target){target.setAttribute('transform',`translate(${mpx(G.sel.u).toFixed(1)} ${mpy(G.sel.v).toFixed(1)})`);target.querySelectorAll('circle').forEach((n,i)=>n.setAttribute(i?'fill':'stroke',color))}
+  if(warn)warn.textContent=danger?'몸쪽! 맞으면 데드볼':'';
+}
+function pgPitchAimStep(G,dt){
+  if(G.mode!=='pit'||G.st!=='aim'||PG.an)return false;
+  const keys=PG.pitKeys||{},x=(keys.ArrowRight||keys.KeyD?1:0)-(keys.ArrowLeft||keys.KeyA?1:0),y=(keys.ArrowDown||keys.KeyS?1:0)-(keys.ArrowUp||keys.KeyW?1:0);
+  if(!x&&!y)return false;
+  const step=clamp(dt,0,.05)*((keys.ShiftLeft||keys.ShiftRight) ? .7 : 2.8)/Math.max(1,Math.hypot(x,y));
+  // 조준판의 화면 오른쪽은 u 감소, 위쪽은 v 감소와 같다.
+  G.sel.u=clamp((G.sel.u??0)-x*step,-9,9);G.sel.v=clamp((G.sel.v??0)+y*step,-6,4.1);pgPitchAimHUD(G);return true;
+}
+function pgPitchType(G,index){
+  if(G.mode!=='pit'||G.st!=='aim'||PG.an||PG.charge||!G.ars[index])return false;
+  G.sel.type=G.ars[index];pgHud();save();return true;
+}
+function pgPitchCancel(){
+  PG.charge=0;PG.pitchChargeSource=null;
+  if(!HAS_DOM)return;
+  document.querySelector('[data-pg=throw]')?.classList.remove('hold');
+  const bar=document.getElementById('pg-pwr'),label=document.getElementById('pg-pwrv');
+  if(bar)bar.style.width='0%';if(label)label.textContent='꾹 누르면 힘이 차요';
+}
+function pgClearKeys(){
+  PG.pitKeys={};PG.fieldKeys={};PG.fieldJoy=null;PG.mapDrag=false;PG.aimLast=0;pgPitchCancel();pgFieldCancel(S?.play);
+}
+function pgKeyboardDown(e){
+  const G=S?.play,target=e.target;
+  if(!G||S.phase!=='play'||['INPUT','TEXTAREA','SELECT'].includes(target?.tagName)||target?.isContentEditable||e.isComposing||e.ctrlKey||e.altKey||e.metaKey)return false;
+  const code=e.code||({Enter:'Enter',' ':'Space',Escape:'Escape'}[e.key]||e.key);
+  if(code==='Enter'||code==='NumpadEnter'){
+    const action=target?.closest?.('[data-a]')?.dataset?.a||target?.dataset?.a;
+    if(['pg-auto','pg-snd'].includes(action))return false;
+    if(e.repeat||PG.an||PG.rv||G.livePending)return true;
+    if(P3.fail&&!G.done)act('pg-auto');else if(G.st==='intro')act('pg-start');else if(G.st==='between')act('pg-next');else if(G.st==='over')act('pg-done');else return false;
+    return true;
+  }
+  if(code==='Escape'){pgClearKeys();return true}
+  if(code==='KeyM'){if(!e.repeat)act('pg-snd');return true}
+  if(G.mode==='pit'){
+    if(PG_MOVE_KEYS.includes(code)||['ShiftLeft','ShiftRight'].includes(code)){
+      if(G.st==='aim'&&!PG.an)(PG.pitKeys||(PG.pitKeys={}))[code]=true;return true;
+    }
+    const digit=/^(?:Digit|Numpad)([1-9])$/.exec(code);
+    if(digit){if(!e.repeat)pgPitchType(G,+digit[1]-1);return true}
+    if(code==='KeyQ'||code==='KeyE'){
+      if(!e.repeat){const index=G.ars.indexOf(G.sel.type),next=(index+(code==='KeyE'?1:G.ars.length-1))%G.ars.length;pgPitchType(G,next)}return true;
+    }
+    if(code==='KeyR'){
+      if(!e.repeat&&G.st==='aim'&&!PG.an){G.sel.u=G.sel.v=0;pgPitchAimHUD(G)}return true;
+    }
+    if(code==='Space'){if(!e.repeat&&G.st==='aim'&&!PG.an)pgCharge('keyboard');return true}
+  }
+  if(G.mode==='field'&&G.st==='fielding'){
+    if(PG_MOVE_KEYS.includes(code)){(PG.fieldKeys||(PG.fieldKeys={}))[code]=true;G.field.moveTo=null;return true}
+    const digit=/^(?:Digit|Numpad)([1-4])$/.exec(code);
+    if(digit){if(!e.repeat)pgFieldHold(G,+digit[1],'key:'+code);return true}
+    if(code==='Space'){if(!e.repeat)pgFieldHold(G,G.field.base,'key:'+code);return true}
+    if(code==='KeyJ'){if(!e.repeat)pgFieldDive(G);return true}
+  }
+  if(G.mode==='bat'&&code==='Space'){if(!e.repeat)pgSwing(null);return true}
+  return false;
+}
+function pgKeyboardUp(e){
+  const code=e.code||e.key;let handled=false;
+  if(PG.pitKeys)delete PG.pitKeys[code];if(PG.fieldKeys)delete PG.fieldKeys[code];
+  if(PG.fieldHold?.source==='key:'+code){pgFieldCancel(S?.play);handled=true}
+  if(code==='Space'&&PG.charge&&PG.pitchChargeSource==='keyboard'){
+    if(S?.phase==='play'&&S.play?.mode==='pit'&&S.play.st==='aim')pgRelease();else pgPitchCancel();handled=true;
+  }
+  return handled;
+}
+
 /* 타자 조작은 비행을 천천히 보여 주되, 궤적과 타구 물리에 쓰는 실제 시간은 보존한다. */
 const BAT_PITCH_TIME_SCALE=1.45;
 function pgDisplayPitchMs(G,c){return c.ms*(G.mode==='bat'?BAT_PITCH_TIME_SCALE:1)}
@@ -4758,6 +4838,7 @@ function p3RevealT(B,bb){
 }
 function pgReveal(){const r=PG.rv;if(!r)return;PG.rv=null;pgFlash(r.txt,r.cls,r.sub);if(r.hit)SND.cheer(false);P3.board='';pgHud()}
 function pgStep(G,now){
+  const aimLast=PG.aimLast||now;PG.aimLast=now;pgPitchAimStep(G,(now-aimLast)/1000);
   if(G.mode==='field'){
     const last=PG.fieldLast||now;PG.fieldLast=now;
     const keys=PG.fieldKeys||{},joy=PG.fieldJoy;
@@ -4809,7 +4890,7 @@ function pgInit(){
       r.domElement.addEventListener('pointerdown',p3Down);r.domElement.addEventListener('contextmenu',e=>e.preventDefault())}catch(e){P3.r=null;ok=false}}
     if(!ok||!P3.r){h.innerHTML='<div class="p3load">이 기기에서는 3D 화면을 불러오지 못했어요.<br>위의 <b>자동 진행</b>으로 경기를 마칠 수 있어요.</div>';P3.fail=true;pgHud();return}
     h.innerHTML='';h.appendChild(P3.r.domElement);P3.w=0;P3.last=0;P3.dressed=null;P3.board='';P3.bb=null;P3.view='';
-    const G=S.play;pgFinishPending(G);PG.an=null;PG.rv=null;PG.sw=null;PG.swAt=0;PG.hover=null;p3ResetField(G);
+    const G=S.play;pgFinishPending(G);pgClearKeys();PG.an=null;PG.rv=null;PG.sw=null;PG.swAt=0;PG.hover=null;p3ResetField(G);
     PG.fieldLast=0;PG.fieldKeys={};PG.fieldJoy=null;PG.fieldHold=null;
     if(G.mode==='field'&&G.field?.phase==='charging')pgFieldCancel(G);
     if(G.mode==='bat'&&G.st==='pitching')PG.next=performance.now()+900;
@@ -4842,22 +4923,22 @@ function pgCtlHTML(G){
   if(G.st==='over'){
     if(busy)return'';
     const N=S.prog&&S.prog.nat, med=G.kind==='nat'&&N?N.medals:null, head=G.kind==='reg'?(G.win?'승리':'패배'):G.win?(med?med[0]:'우승'):(med?med[1]:'준우승');
-    return`<div class="p3card over ${G.win?'w':'l'}"><div class="stampx">${esc(head)}${G.win?'!':''}</div><div class="fs">${esc(G.me)} ${G.my} : ${G.op} ${esc(G.opp)}</div>${pgLineHTML(G)}<p>${esc(msLine(pgMs(G))||'출전 기록 없음')}</p>${G.fs?.chances?`<p>수비 ${G.fs.chances}회 · 포구 아웃 ${G.fs.putouts} · 보살 ${G.fs.assists} · 실책 ${G.fs.errors}</p>`:''}<button class="btn play" data-a="pg-done">결과 확인</button></div>`;
+    return`<div class="p3card over ${G.win?'w':'l'}"><div class="stampx">${esc(head)}${G.win?'!':''}</div><div class="fs">${esc(G.me)} ${G.my} : ${G.op} ${esc(G.opp)}</div>${pgLineHTML(G)}<p>${esc(msLine(pgMs(G))||'출전 기록 없음')}</p>${G.fs?.chances?`<p>수비 ${G.fs.chances}회 · 포구 아웃 ${G.fs.putouts} · 보살 ${G.fs.assists} · 실책 ${G.fs.errors}</p>`:''}<button class="btn play" data-a="pg-done">결과 확인<kbd class="pg-key">Enter</kbd></button></div>`;
   }
   if(busy&&G.st!=='pitching'&&G.st!=='aim')return'';
-  if(G.st==='intro')return`<div class="p3card"><span class="k">${G.mode==='field'?'야수 수비':G.mode==='bat'?'타석':'마운드'} · ${G.inn}회${G.top?'초':'말'}</span><p>${esc(G.intro||'')}</p><button class="btn play" data-a="pg-start">${G.mode==='field'?'수비 위치로':G.mode==='bat'?'타석에 들어서기':'마운드에 오르기'}</button></div>`;
-  if(G.st==='between')return`<div class="p3card"><p>${esc(G.msg)}</p>${pgLineHTML(G)}<button class="btn" data-a="pg-next">다음</button></div>`;
+  if(G.st==='intro')return`<div class="p3card"><span class="k">${G.mode==='field'?'야수 수비':G.mode==='bat'?'타석':'마운드'} · ${G.inn}회${G.top?'초':'말'}</span><p>${esc(G.intro||'')}</p><button class="btn play" data-a="pg-start">${G.mode==='field'?'수비 위치로':G.mode==='bat'?'타석에 들어서기':'마운드에 오르기'}<kbd class="pg-key">Enter</kbd></button></div>`;
+  if(G.st==='between')return`<div class="p3card"><p>${esc(G.msg)}</p>${pgLineHTML(G)}<button class="btn" data-a="pg-next">다음<kbd class="pg-key">Enter</kbd></button></div>`;
   if(G.mode==='field')return pgFieldControls(G);
   if(G.mode==='bat'){const pw=Math.round(P3.bpow*100);
     return`<p class="p3hint">공이 홈플레이트에 도착할 때 화면 어디든 누르세요. 위치 조준은 필요 없어요. 볼에 손대면 헛스윙하거나 약한 타구가 나오기 쉬워요.</p>
     <div class="spow"><span>짧게</span><input type="range" id="p3pow" min="0" max="100" value="${pw}" aria-label="스윙 세기"><span>풀스윙</span><b id="p3powv">${powLab(P3.bpow)}</b></div>
     <p class="p3hint">짧게: 컨택 유리 · 풀스윙: 장타 증가, 헛스윙·범타 위험 증가</p>
-    <div class="p3tap-guide"><span class="p3tap-dot"></span>화면 어디든 터치 / 클릭해서 타격</div>`}
-  const types=`<div class="pg-types" role="group" aria-label="구종">${G.ars.map(t=>`<button class="${G.sel.type===t?'on':''}" data-a="pg-type" data-v="${t}" ${G.st==='anim'?'disabled':''}>${t}<small>최고 ${Math.round(pgVk(G,t,1))}km</small></button>`).join('')}</div>`;
-  const map=`<div class="amap" id="p3map" role="img" aria-label="던질 곳 조준판. 누르거나 끌어서 위치를 정해요">${pgMapSVG(G)}</div>`;
+    <div class="p3tap-guide"><span class="p3tap-dot"></span>화면 어디든 터치 / 클릭해서 타격<kbd class="pg-key">Space</kbd></div>`}
+  const types=`<div class="pg-types" role="group" aria-label="구종">${G.ars.map((t,i)=>`<button class="${G.sel.type===t?'on':''}" data-a="pg-type" data-v="${t}" ${G.st==='anim'?'disabled':''}>${t}<kbd class="pg-key">${i+1}</kbd><small>최고 ${Math.round(pgVk(G,t,1))}km</small></button>`).join('')}</div>`;
+  const map=`<div class="amap" id="p3map" role="img" aria-label="던질 곳 조준판. 방향키·WASD 또는 누르거나 끌어서 위치를 정해요">${pgMapSVG(G)}</div>`;
   const right=G.st==='anim'?`<button class="btn play pg-big" disabled>투구 중</button>`
     :`<div class="pwr" aria-hidden="true"><i id="pg-pwr"></i><b id="pg-pwrv">꾹 누르면 힘이 차요</b></div><button class="btn play pg-big" data-pg="throw">꾹 눌러 던지기</button>`;
-  return`<div class="pitw">${types}<div class="pitr">${map}<div class="pitc">${right}</div></div><details class="pit-help"><summary>조작 안내</summary><p class="p3hint">조준판에서 던질 위치를 고르고, 버튼을 꾹 눌렀다 떼세요. 세게 던질수록 빠르지만 제구가 흔들려요. 몸에 맞으면 데드볼이에요.</p></details></div>`;
+  return`<div class="pitw">${types}<div class="pitr">${map}<div class="pitc">${right}</div></div><p class="pg-keyhelp">WASD·방향키 조준 · Shift 미세 조준<br>1~${G.ars.length} 구종 · Q/E 순환 · R 중앙<br>Space 꾹 눌렀다 떼기 · Enter 다음</p><details class="pit-help"><summary>조작 안내</summary><p class="p3hint">조준판에서 던질 위치를 고르고, 버튼을 꾹 눌렀다 떼세요. 세게 던질수록 빠르지만 제구가 흔들려요. 몸에 맞으면 데드볼이에요.</p></details></div>`;
 }
 const powLab=p=>p<.34?'맞히기':p<.67?'보통':'풀스윙';
 function pgHud(){
@@ -4983,15 +5064,7 @@ if(HAS_DOM){
   document.addEventListener('visibilitychange',()=>{if(LAUNCH.screen==='cut'){document.querySelector('.launch')?.classList.toggle('launch-paused',document.hidden);launchSchedule()}});
   document.addEventListener('keydown',e=>{
     if(LAUNCH.screen){if(e.key==='Escape'||(LAUNCH.screen==='cut'&&(e.key==='Enter'||e.code==='Space'))){e.preventDefault();LAUNCH.screen==='cut'?launchTitle():launchEnter()}return}
-    if(S?.phase==='play'&&S.play?.mode==='field'&&S.play.st==='fielding'&&!['INPUT','TEXTAREA'].includes(e.target?.tagName)){
-      const G=S.play,code=e.code;
-      if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD'].includes(code)){e.preventDefault();(PG.fieldKeys||(PG.fieldKeys={}))[code]=true;G.field.moveTo=null;return}
-      if(/^Digit[1-4]$/.test(code)){e.preventDefault();if(!e.repeat)pgFieldHold(G,+code.slice(-1),'key:'+code);return}
-      if(code==='Space'){e.preventDefault();if(!e.repeat)pgFieldHold(G,G.field.base,'key:'+code);return}
-      if(code==='KeyJ'){e.preventDefault();if(!e.repeat)pgFieldDive(G);return}
-      if(e.key==='Escape'){pgFieldCancel(G);return}
-    }
-    if(S&&S.phase==='play'&&S.play&&S.play.mode==='pit'&&(e.code==='Space'||e.key===' ')){const t=e.target;if(t&&(t.tagName==='BUTTON'&&t.dataset.a||t.tagName==='INPUT'))return;e.preventDefault();if(e.repeat)return;pgCharge();return}
+    if(pgKeyboardDown(e)){e.preventDefault();return}
     if(e.key==='Escape'&&ui.sheet){ui.sheet=null;render()}});
   document.addEventListener('pointerdown',e=>{
     if(e.target.closest('#fld-stick')){e.preventDefault();if(S?.play?.st==='fielding'){e.target.closest('#fld-stick').setPointerCapture(e.pointerId);pgFieldJoy(e)}return}
@@ -5000,12 +5073,12 @@ if(HAS_DOM){
     if(e.target.closest('#p3map')){e.preventDefault();PG.mapDrag=true;pgMapSet(e);return}
     const b=e.target.closest('[data-pg]');if(!b||b.disabled)return;e.preventDefault();if(b.dataset.pg==='throw')pgCharge()});
   document.addEventListener('pointermove',e=>{if(PG.mapDrag)pgMapSet(e);if(PG.fieldJoy?.id===e.pointerId){e.preventDefault();pgFieldJoy(e)}});
-  const up=e=>{if(PG.mapDrag){PG.mapDrag=false}if(PG.charge)pgRelease();if(PG.fieldJoy?.id===e.pointerId)PG.fieldJoy=null;
+  const up=e=>{if(PG.mapDrag){PG.mapDrag=false}if(PG.charge&&PG.pitchChargeSource!=='keyboard')pgRelease();if(PG.fieldJoy?.id===e.pointerId)PG.fieldJoy=null;
     if(PG.fieldHold?.source==='pointer:'+e.pointerId)pgFieldCancel(S?.play)};
   document.addEventListener('pointerup',up);document.addEventListener('pointercancel',up);
-  document.addEventListener('keyup',e=>{if(PG.fieldKeys)PG.fieldKeys[e.code]=false;if(PG.fieldHold?.source==='key:'+e.code){e.preventDefault();pgFieldCancel(S?.play)}if((e.code==='Space'||e.key===' ')&&PG.charge)pgRelease()});
+  document.addEventListener('keyup',e=>{if(pgKeyboardUp(e))e.preventDefault()});
   document.addEventListener('contextmenu',e=>{if(e.target.closest('[data-pg="field-base"]'))e.preventDefault()});
-  const fieldBlur=()=>{PG.fieldKeys={};PG.fieldJoy=null;PG.fieldHold=null;if(S?.play?.mode==='field'){pgFieldCancel(S.play);save()}};
+  const fieldBlur=()=>{pgClearKeys();if(S?.play)save()};
   window.addEventListener('blur',fieldBlur);document.addEventListener('visibilitychange',()=>{if(document.hidden)fieldBlur()});
   const start=data=>{if(data&&data.S){S=migrate(data.S);fixState();if(data.C)Object.assign(C,data.C)}else load();if(location.hash==='#rank'){ui.rank={tab:'rank',day:'all',cat:'all'};LAUNCH.screen=null}render()};
   window.claude?.hot?.snapshot?.(()=>({S,C:{...C}}));
