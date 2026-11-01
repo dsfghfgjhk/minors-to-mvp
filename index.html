@@ -4656,6 +4656,33 @@ function p3FieldVisuals(){
   const ring=(r,c)=>{const m=new THREE.Mesh(new THREE.RingGeometry(r,r+.12,64),mat(c));m.rotation.x=-Math.PI/2;m.position.y=.065;group.add(m);return m};
   P3.fieldRing=ring(.7,0xffd35a);P3.fieldTarget=ring(1.25,0x6ee7b7);P3.fieldVis=group;P3.sc.add(group);
 }
+/* 포구 전에는 선수 뒤, 송구 뒤에는 공과 도착 베이스를 함께 잡는다. 좌표는 렌더 공간이다. */
+function p3FieldCameraShot(F,ball,aspect){
+  const sign=F.key==='C'?-1:1,h=52,v=44;
+  const tr=F.throws.at(-1);
+  if(!tr)return{mode:'player',pos:[-F.x,4.6,F.z+8.5*sign],look:[-F.x,1.2,F.z-11*sign],h,v};
+  const base=BASEP[tr.base%4],points=[[ball.x,ball.y,ball.z],[-base[0],.2,base[1]],[-tr.to[0],1.15,tr.to[2]]];
+  // 태그·포스 아웃 판정을 볼 수 있도록 베이스 근처의 주자도 화면에 넣는다.
+  for(const r of F.runners){
+    if(r.out&&F.t>(r.retireAt||0)+.3)continue;
+    const [x,z]=bbRunnerRenderPoint(r,Math.max(0,F.t));
+    if(Math.hypot(x-base[0],z-base[1])<14)points.push([-x,1,z]);
+  }
+  const lo=[0,1,2].map(i=>Math.min(...points.map(p=>p[i]))),hi=[0,1,2].map(i=>Math.max(...points.map(p=>p[i])));
+  const center=lo.map((x,i)=>(x+hi[i])/2),radius=Math.max(4,Math.hypot(...hi.map((x,i)=>(x-lo[i])/2))+2);
+  const vfov=Math.max(v,2*Math.atan(Math.tan(h*Math.PI/360)/Math.max(.1,aspect))*180/Math.PI);
+  const hfov=2*Math.atan(Math.tan(vfov*Math.PI/360)*Math.max(.1,aspect));
+  const half=Math.min(vfov*Math.PI/360,hfov/2),distance=Math.max(17,radius*1.18/Math.sin(half));
+  // 하단 조작 버튼보다 위에 플레이를 배치하고 수비 중 카메라 방향은 유지한다.
+  return{mode:'throw',base:tr.base,points,pos:[center[0],center[1]+distance*.58,center[2]+distance*.82*sign],look:[center[0],center[1]-distance*.065,center[2]],h,v};
+}
+function p3FieldCameraFrame(F,ball,dt){
+  const shot=p3FieldCameraShot(F,ball,P3.cam.aspect),V=P3.fieldCamera||(P3.fieldCamera={pos:new THREE.Vector3(...shot.pos),look:new THREE.Vector3(...shot.look)});
+  const k=1-Math.exp(-clamp(dt,0,.05)*(shot.mode==='throw'?9:6));
+  V.pos.lerp(new THREE.Vector3(...shot.pos),k);V.look.lerp(new THREE.Vector3(...shot.look),k);V.mode=shot.mode;V.base=shot.base;
+  P3.cam.position.copy(V.pos);P3.cam.lookAt(V.look);const fov=p3Fov(shot.h,shot.v);if(Math.abs(P3.cam.fov-fov)>.01){P3.cam.fov=fov;P3.cam.updateProjectionMatrix()}
+}
+
 function p3FieldFrame(G,now,dt){
   const F=G.field,A=P3.A;if(!F)return;p3FieldVisuals();
   if(P3.dressed!=='field'+G.bi){p3Dress(G);const actor=p3FieldActor(F.key);p3Color(actor,p3Kit(true,G.mc[1]),S.avatar.skin,S.num);actor.userData.lh=/^좌투/.test(S.hand);const gloves=actor.userData.gloves;if(gloves){gloves.L.visible=!actor.userData.lh;gloves.R.visible=actor.userData.lh}P3.dressed='field'+G.bi;}
@@ -4710,9 +4737,7 @@ function p3FieldFrame(G,now,dt){
   const target=F.chaseTarget||F.target;
   P3.fieldTarget.visible=F.phase==='track'&&time>=0;P3.fieldTarget.position.set(-target[0],.07,target[1]);P3.fieldTarget.scale.setScalar(.85+.12*Math.sin(time*7));
   if(F.phase==='track'&&time>=0){p3Trail(A.ball.position);p3Rib()}
-  const sign=F.key==='C'?-1:1,V=P3.fieldCamera||(P3.fieldCamera={pos:new THREE.Vector3(-F.x,4.6,F.z+8.5*sign),look:new THREE.Vector3(-F.x,1,F.z-11*sign)});
-  V.pos.lerp(new THREE.Vector3(-F.x,4.6,F.z+8.5*sign),1-Math.exp(-dt*6));V.look.lerp(new THREE.Vector3(-F.x,1.2,F.z-11*sign),1-Math.exp(-dt*6));
-  P3.cam.position.copy(V.pos);P3.cam.lookAt(V.look);const fov=p3Fov(52,44);if(Math.abs(P3.cam.fov-fov)>.01){P3.cam.fov=fov;P3.cam.updateProjectionMatrix()}
+  p3FieldCameraFrame(F,A.ball.position,dt);
 }
 function p3FieldClick(G,e){
   const F=G.field;if(!F||G.st!=='fielding'||!['track','held'].includes(F.phase))return;
