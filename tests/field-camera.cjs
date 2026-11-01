@@ -8,13 +8,13 @@ for(const key of ['C','1B','2B','3B','SS','LF','CF','RF'])for(const base of [1,2
  const [x,z]=FPOS[key],target=BASEP[base%4],tr={base,from:[x,1.15,z],to:[target[0]+1.8,1.15,target[1]],t0:1,dur:2};
  const F={key,x,z,t:1+k*2,phase:'throw',throws:[tr],runners:[]},ball={x:-(x+(tr.to[0]-x)*k),y:1.15+3*k*(1-k),z:z+(tr.to[2]-z)*k};
  const before=JSON.stringify(F),shot=p3FieldCameraShot(F,ball,aspect);assert.equal(JSON.stringify(F),before,'camera changed simulation');assert.equal(shot.mode,'throw');assert.equal(shot.base,base);
- for(const point of shot.points){const [sx,sy,depth]=project(point,shot,aspect);assert(depth>0);assert(Math.abs(sx)<.87&&sy>-.5&&sy<.9,'ball or base outside useful viewport '+JSON.stringify({key,base,aspect,k,sx,sy}))}
+ assert.equal(shot.pos[0],-F.x);assert.equal(shot.pos[1],4.6);assert.equal(shot.pos[2],F.z+8.5*(key==='C'?-1:1));assert.equal(shot.look[0],-target[0]);assert.equal(shot.look[2],target[1]);
  shots++;
 }
 const F={key:'SS',x:-12,z:30,t:0,throws:[],runners:[]},ball={x:12,y:1,z:30};
 const before=p3FieldCameraShot(F,ball,1);assert.equal(before.mode,'player');assert.equal(before.pos[2],38.5);
 F.throws.push({base:2,from:[-12,1,30],to:[0,1,38.75],t0:1,dur:1});
-F.t=1.5;assert.equal(p3FieldCameraShot(F,ball,1).base,2);F.throws.push({base:1,from:[0,1,38.75],to:[19.37,1,19.37],t0:2.38,dur:1});F.t=2;assert.equal(p3FieldCameraShot(F,ball,1).base,1,'camera did not follow the relay');
+F.t=1.5;assert.equal(p3FieldCameraShot(F,ball,1).base,2);F.throws.push({base:1,from:[0,1,38.75],to:[19.37,1,19.37],t0:2.38,dur:1});F.t=2;assert.equal(p3FieldCameraShot(F,ball,1).base,2);F.t=2.4;assert.equal(p3FieldCameraShot(F,ball,1).base,1,'camera did not follow the relay');
 F.phase='result';F.t=4;assert.equal(p3FieldCameraShot(F,ball,1).base,1,'camera returned before the out/safe result');
 console.log({framingCases:shots,portraitAndLandscape:true,trackingBeforeThrow:true,relay:true,resultHold:true,simulationUnchanged:true});
 `,{console,Math,assert});

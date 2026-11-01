@@ -85,4 +85,4 @@ Tab과 Enter를 이용한 버튼 조작도 지원합니다. `node tests/game-key
 
 저장 방식과 서버 필터는 [RANKING.md](RANKING.md)를 참고하세요. `node tests/character-journey.cjs`와 `tools/verify_journey_browser.cjs`로 기록 누적, 동명이인·100위 밖 검색, 오프라인 복구, 복사와 공유 링크를 검사합니다.
 
-수비 카메라는 포구 전에는 조작 선수를 따라가고, 송구를 시작하면 공·도착 베이스·근처 주자를 함께 비춥니다. 병살 중계는 다음 송구 베이스까지 이어서 추적하며 판정이 끝날 때까지 도착 지점을 유지합니다. `node tests/field-camera.cjs`와 `tools/verify_field_camera_browser.cjs`로 가로·세로 화면의 구도와 실제 3D 송구 추적을 확인합니다.
+수비 카메라는 조작 선수 뒤의 3인칭 위치를 유지합니다. 송구 시 도착 베이스 쪽으로 시선만 회전하고, 병살 중계 선수가 공을 놓는 순간 다음 베이스 방향으로 돌아봅니다. `node tests/field-camera.cjs`로 위치 유지와 중계 시선 전환을 확인합니다.

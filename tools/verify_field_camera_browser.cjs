@@ -21,11 +21,11 @@ for(const [width,height] of [[1440,900],[390,844],[844,390]]){
    }
    P3.r.render(P3.sc,P3.cam);const movement=initial.distanceTo(P3.cam.position);return{movement,relay,checks,base:P3.fieldCamera.base,mode:P3.fieldCamera.mode};
   });
-  assert(result.movement>3,'camera remained at fielder');assert.equal(result.mode,'throw');assert(result.checks.length>0);
-  for(const frame of result.checks)for(const key of ['target','ball']){const [x,y,z]=frame[key];assert(Math.abs(x)<.98&&y>-.6&&y<.98&&z<1,'play left camera view '+JSON.stringify({width,pos,base,frame,key}))}
+  assert(result.movement<.01,'camera left the controlled fielder');assert.equal(result.mode,'throw');assert(result.checks.length>0);
+  const last=result.checks.at(-1);assert(Math.abs(last.target[0])<.3&&Math.abs(last.target[1])<.3,'camera did not face receiving base');
   if(pos==='SS'&&base===2){assert(result.relay,'double-play relay did not occur');assert.equal(result.base,1,'camera did not pan to first for the relay')}
   if((width===1440&&pos==='SS'&&base===2)||(width===390&&pos==='CF'))await page.screenshot({path:`/tmp/mvp-browser/field-camera-${width}.png`});
-  checks.push({width,height,pos,base,movingCamera:true,ballAndBaseVisible:true,relay:result.relay});
+  checks.push({width,height,pos,base,thirdPersonPositionHeld:true,facesReceivingBase:true,relay:result.relay});
  }
 }
 await browser.close();console.log(JSON.stringify({checks,errors},null,2));assert.equal(errors.length,0);
