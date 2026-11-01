@@ -2814,6 +2814,8 @@ const zx=u=>u*ZW, zy=v=>ZC-v*ZH;
 const FPOS={P:[0,18.4],C:[0,-1.1],'1B':[16.5,25],'2B':[8,37.5],SS:[-8,37.5],'3B':[-16.5,25],LF:[-29,80],CF:[0,94],RF:[29,80]};
 const FKEYS=['P','C','1B','2B','SS','3B','LF','CF','RF'], IFK=['1B','2B','SS','3B','P'], OFK=['LF','CF','RF'];
 const BASEP=[[0,0],[19.4,19.4],[0,38.8],[-19.4,19.4]];
+// 타구 판단·포구·주자의 포구 예상에 동일한 수비 도달 속도를 사용한다.
+const bbFieldSpeed=key=>OFK.includes(key)?6.4:5.8;
 function fenceR(d){return 98+24*Math.cos(2*clamp(d,-45,45)*Math.PI/180)}
 function gauss(){let u=0,v=0;while(!u)u=R();while(!v)v=R();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
 function myPitches(){const st=S.style||'';return /변화구/.test(st)?['직구','커브','스위퍼','포크']:/컨트롤/.test(st)?['직구','투심','체인지업','커터']:['직구','슬라이더','스플리터','싱커']}
@@ -2860,7 +2862,7 @@ function bbFoulCatch(flight){
     // 한 번 펜스·관중석 경계를 넘으면 이후에도 포구 아웃으로 되살리지 않는다.
     if(!bbInsidePlayingArea(x,z))return null;
     if(t<.35||y<.3||y>2.3||!bbInsidePlayingArea(x,z,.65))continue;
-    for(const key of FKEYS){const [fx,fz]=FPOS[key],speed=OFK.includes(key)?6.8:6;
+    for(const key of FKEYS){const [fx,fz]=FPOS[key],speed=bbFieldSpeed(key);
       if(.4+Math.max(0,Math.hypot(x-fx,z-fz)-.65)/speed<=t)return{fielder:key,t,at:[x,z]};
     }
   }
@@ -2883,7 +2885,7 @@ function bbResolve(ev,la,sp,spd,height=.95){
   const f=bbFly(ev,la,sp,false,height);out.fly=f;
   if(f.hr){out.k='HR';return out}
   const L=[f.x,f.z],T=f.t;let best=null;
-  if(!f.wall&&bbInsidePlayingArea(f.x,f.z,.25))for(const k of [...IFK,...OFK]){const [fx,fz]=FPOS[k],d=Math.hypot(L[0]-fx,L[1]-fz),v=OFK.includes(k)?6.8:6,tr=(la<20?.6:.45)+Math.max(0,d-1.2)/v+(f.dist>fenceR(sp)-5?.4:0);
+  if(!f.wall&&bbInsidePlayingArea(f.x,f.z,.25))for(const k of [...IFK,...OFK]){const [fx,fz]=FPOS[k],d=Math.hypot(L[0]-fx,L[1]-fz),v=bbFieldSpeed(k),tr=(la<20?.68:.58)+Math.max(0,d-1.2)/v+(f.dist>fenceR(sp)-5?.4:0);
     if(!best||tr<best.tr)best={k,tr}}
   if(best&&best.tr<=T*(la<20?.9:1)){out.k=la<18?'LO':'FO';out.fielder=best.k;out.at=L;out.tf=T;return out}
   let bo=null;for(const k of OFK){const d=Math.hypot(L[0]-FPOS[k][0],L[1]-FPOS[k][1]);if(!bo||d<bo.d)bo={k,d}}out.fielder=bo.k;
@@ -2985,16 +2987,17 @@ function pgAiPitch(G){
   const vk=G.pit.v+PTY[type].dv+ri(-2,1);
   return{type,u,v,vk,inZ:Math.abs(u)<=1.62&&Math.abs(v)<=1.62,ms:pgFlightMs(vk),lh:G.pit.lh};
 }
-function pgWindows(){const con=S.stats.con,pf=42+Math.max(0,con-40)*.5,gd=pf+40+Math.max(0,con-40)*.4;return{pf,gd,fl:gd+60}}
+function pgWindows(){const con=S.stats.con,pf=48+Math.max(0,con-40)*.55,gd=pf+44+Math.max(0,con-40)*.4;return{pf,gd,fl:gd+60}}
 // 간소화한 이동 배트–공 충돌: m/s 단위 상대 속도, 접촉면 법선, 유효 반발계수.
 // 타이밍은 배트 회전 각도와 공 중심 대비 맞는 높이를 함께 바꾼다.
 function bbBatContact(c,dt,power,stats,left){
   const P=clamp(power,0,1),con=clamp(stats.con||50,20,99),strength=clamp(stats.pow||50,20,99);
-  const sweet=Math.exp(-Math.pow(dt/(60+con*.3),2));
-  const theta=clamp(-dt*.0028,-1.22,1.22),hand=left?1:-1;
-  const radius=.07,scatter=(.009+.012*P)*(1.2-con*.006);
-  const offset=clamp(.002+(P-.5)*.006-dt*.00017+(c.v||0)*.004+(c.inZ===false?Math.sign(c.v||c.u||1)*.03:0)+gauss()*scatter,-radius*.94,radius*.94);
-  const attack=(7+P*4)*Math.PI/180,tilt=clamp(attack+Math.asin(offset/radius),-1.15,1.15);
+  const sweet=Math.exp(-Math.pow(dt/(68+con*.4),2));
+  // 몸쪽은 당겨 치고 바깥쪽은 밀어 치도록 코스도 충돌면 방향에 반영한다.
+  const hand=left?1:-1,theta=clamp(-dt*.0028+hand*(c.u||0)*.12,-1.22,1.22);
+  const radius=.07,scatter=(.007+.016*P*P)*(1.2-con*.006);
+  const offset=clamp(.002+(P-.5)*.006-dt*.0001+(c.v||0)*.004+(c.inZ===false?Math.sign(c.v||c.u||1)*.03:0)+gauss()*scatter,-radius*.94,radius*.94);
+  const attack=(8+P)*Math.PI/180,tilt=clamp(attack+Math.asin(offset/radius),-1.15,1.15);
   const nx=hand*Math.sin(theta)*Math.cos(tilt),ny=Math.sin(tilt),nz=Math.cos(theta)*Math.cos(tilt);
   let vx=0,vy=-2.5,vz=-Math.max(65,c.vk||135)/3.6;
   if(c.path?.length>1){
@@ -3003,7 +3006,8 @@ function bbBatContact(c,dt,power,stats,left){
     if(step>0){vx=-(b[1]-a[1])/step;vy=(b[2]-a[2])/step;vz=(b[3]-a[3])/step}
   }
   const centered=Math.sqrt(1-Math.pow(offset/radius,2));
-  const batSpeed=(22+.1*(strength-40))*(.9+.24*P)*(.65+.35*sweet);
+  // 중간 세기에도 타구 에너지가 충분히 전달되며 풀스윙은 더 큰 접촉 오차를 감수한다.
+  const batSpeed=(23+.11*(strength-40))*(.94+.20*P+.04*4*P*(1-P))*(.65+.35*sweet);
   const restitution=(.18+.06*sweet)*centered,approach=vx*nx+vy*ny+vz*nz;
   const impulse=(1+restitution)*Math.max(0,batSpeed-approach);
   vx+=impulse*nx;vy+=impulse*ny;vz+=impulse*nz;
@@ -3068,12 +3072,12 @@ function bbGround(ev,la,sp,height=.95){
 }
 function bbPickup(path,after=0){
   for(const point of path){const [t,x,y,z]=point;if(t<Math.max(.18,after)||y>1.6)continue;
-    for(const f of [...IFK,...OFK]){const [fx,fz]=FPOS[f],reach=.25+Math.max(0,Math.hypot(fx-x,fz-z)-.65)/(OFK.includes(f)?6.8:6);
+    for(const f of [...IFK,...OFK]){const [fx,fz]=FPOS[f],reach=.25+Math.max(0,Math.hypot(fx-x,fz-z)-.65)/bbFieldSpeed(f);
       if(reach<=t)return{f,t,x,z,bounced:point[4]};
     }
   }
   const last=path.at(-1);let best=null;
-  for(const f of [...IFK,...OFK]){const [fx,fz]=FPOS[f],t=.25+Math.hypot(fx-last[1],fz-last[3])/6.5;if(!best||t<best.t)best={f,t}}
+  for(const f of [...IFK,...OFK]){const [fx,fz]=FPOS[f],t=.25+Math.hypot(fx-last[1],fz-last[3])/bbFieldSpeed(f);if(!best||t<best.t)best={f,t}}
   return{...best,t:Math.max(best.t,last[0]),x:last[1],z:last[3],bounced:true};
 }
 function bbLegPosition(leg,t,speed){
@@ -3104,7 +3108,7 @@ function bbRunnerFlyRead(r,bb,play,caution){
   const flight=bb.fly;if(!flight)return;
   // 예상 낙구점과 수비 범위로 판단하며 확정된 안타·아웃 결과는 읽지 않는다.
   let reach=Infinity;
-  for(const key of [...IFK,...OFK]){const pos=FPOS[key],distance=Math.hypot(pos[0]-flight.x,pos[1]-flight.z);reach=Math.min(reach,.45+Math.max(0,distance-1.2)/(OFK.includes(key)?6.8:6))}
+  for(const key of [...IFK,...OFK]){const pos=FPOS[key],distance=Math.hypot(pos[0]-flight.x,pos[1]-flight.z);reach=Math.min(reach,(bb.la<20?.68:.58)+Math.max(0,distance-1.2)/bbFieldSpeed(key))}
   r.readCatch=reach<flight.t*(bb.la<20?.9:1)-.12+caution*.03;
   const lead=r.readCatch?Math.min(2.3,Math.max(.2,(play.catchAt-.45)*r.speed/4)):Math.min(5.5,Math.max(.3,(play.catchAt-.45)*r.speed/4));
   const out=bbRunnerLeg(r,r.from+lead/27.4,.18,'run');
@@ -3413,8 +3417,8 @@ function pgThrow(G,pw){
 }
 function pgAIBall(G,c,bt,q,mid,corner){
   const Q=clamp(Math.pow(R(),1.25-bt.c*.55)+(mid?.14:0)-(corner?.1:0)-q*.18,0,1);
-  const ev=clamp((146+bt.p*44+(G.kO-1)*40)*(.7+.3*Q)+rnd(-7,7),45,188);
-  const la=clamp(10+gauss()*24+bt.p*5-c.v*6+((PTY[c.type]||{}).la||0),-40,75), sp=gauss()*20+(bt.lh?8:-8);
+  const ev=clamp((152+bt.p*44+(G.kO-1)*40)*(.7+.3*Q)+rnd(-7,7),45,188);
+  const la=clamp(10+gauss()*22+bt.p*5-c.v*6+((PTY[c.type]||{}).la||0),-40,75), sp=gauss()*20+(bt.lh?8:-8);
   return bbResolve(ev,la,sp,50);
 }
 // 타자는 구종/실제 도착점 대신 지연된 공 관측과 이전 투구 경험으로 예측한다.
@@ -3481,9 +3485,9 @@ function pgResolvePit(G){
   if(!r.decision)k=c.inZ?'CS':'B';
   else{
     const timing=Math.abs(r.contactAt-(r.t0+c.ms)),error=Math.hypot((r.aim.u-c.u)*ZW,(r.aim.v-c.v)*ZH);
-    const window=85+bt.c*70,reach=.13+bt.c*.14;
+    const window=90+bt.c*75,reach=.14+bt.c*.15;
     const quality=clamp(1-timing/window,0,1)*clamp(1-error/reach,0,1);
-    if(timing>window||error>reach||R()>clamp(.25+quality*.75-q*.12,.05,.98))k='SW';
+    if(timing>window||error>reach||R()>clamp(.32+quality*.68-q*.10,.05,.98))k='SW';
     else if(quality<.32||R()<.2)k='F';
     else{G.lastBB=pgAIBall(G,c,bt,q+(1-quality)*1.4,mid,corner);k=G.lastBB.k}
   }
