@@ -18,16 +18,27 @@ for(const[width,height,pos]of[[1440,900,'SS'],[390,844,'CF'],[844,390,'3B'],[320
  if(point.x>0&&point.x<width&&point.y>150&&point.y<height-250){await page.mouse.click(point.x,point.y);assert(await page.evaluate(()=>S.play.field.moveTo||S.play.field.held))}
  await page.evaluate(()=>{cancelAnimationFrame(PG.raf);PG.raf=0;const g=S.play,f=g.field;for(let n=0;n<1200&&!f.held;n++){f.moveTo=(f.chaseTarget||f.target).slice();pgFieldUpdate(g,.02,{})}pgHud()});
  assert(await page.evaluate(()=>S.play.field.held),'manual movement failed to collect own ball '+JSON.stringify(await page.evaluate(()=>({key:S.play.field.key,time:S.play.field.t,phase:S.play.field.phase,player:[S.play.field.x,S.play.field.z],target:S.play.field.chaseTarget||S.play.field.target}))));assert.equal(await page.evaluate(()=>S.play.field.phase),'held');
- await page.locator('[data-a=fld-base][data-v="1"]').click();
- // Cancelling a charge must not release a throw.
- let throwBox=await page.locator('[data-pg=field-throw]').boundingBox();await page.mouse.move(throwBox.x+10,throwBox.y+10);await page.mouse.down();assert.equal(await page.evaluate(()=>S.play.field.phase),'charging');await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.mouse.up();assert.equal(await page.evaluate(()=>S.play.field.throws.length),0);
- throwBox=await page.locator('[data-pg=field-throw]').boundingBox();await page.mouse.move(throwBox.x+10,throwBox.y+10);await page.mouse.down();await page.evaluate(()=>{const f=S.play.field;f.t=f.chargeAt+.54;pgFieldHudFrame(S.play)});await page.screenshot({path:`/tmp/mvp-browser/field-meter-${width}.png`});await page.mouse.up();assert.equal(await page.evaluate(()=>S.play.field.throws[0].quality),1);
+ assert.equal(await page.locator('.fld-meter,[data-pg=field-throw]').count(),0,'obsolete throw controls remain');
+ await page.locator('[data-pg=field-base][data-v="1"]').click();assert.equal(await page.evaluate(()=>S.play.field.throws.length),0,'short tap fired a throw');
+ // Cancelling a base hold must not release a throw.
+ let baseButton=page.locator('[data-pg=field-base][data-v="1"]'),throwBox=await baseButton.boundingBox();
+ await page.mouse.move(throwBox.x+10,throwBox.y+10);await page.mouse.down();assert.equal(await page.evaluate(()=>PG.fieldHold.base),1);
+ await page.evaluate(()=>{pgFieldUpdate(S.play,.05);window.dispatchEvent(new Event('blur'))});await page.mouse.up();assert.equal(await page.evaluate(()=>S.play.field.throws.length),0);
+ // Hold a base (or its keyboard key): firing happens before release, without an accuracy meter.
+ const sourceButton=await baseButton.elementHandle();
+ if(width===1440)await page.keyboard.down('Digit1');else{throwBox=await baseButton.boundingBox();await page.mouse.move(throwBox.x+10,throwBox.y+10);await page.mouse.down()}
+ await page.evaluate(()=>pgHud());assert(await sourceButton.evaluate(e=>e.isConnected),'HUD replaced an actively held button');
+ await page.evaluate(()=>{for(let n=0;n<8;n++)pgFieldUpdate(S.play,.04);pgFieldHudFrame(S.play)});
+ assert.equal(await page.evaluate(()=>S.play.field.phase),'throw');assert.equal(await page.evaluate(()=>S.play.field.throws[0].base),1);
+ await page.screenshot({path:`/tmp/mvp-browser/field-hold-${width}.png`});
+ if(width===1440)await page.keyboard.up('Digit1');else await page.mouse.up();
+ assert.equal(await page.evaluate(()=>S.play.field.throws.filter(t=>!t.relay).length),1,'one hold fired more than one throw');
  // Restore in-flight defense, then apply its result exactly once.
  await page.reload();await page.locator('.cut-skip').click();await page.locator('.launch-primary').click();await page.waitForSelector('#pg3c canvas');assert.equal(await page.evaluate(()=>S.play.mode),'field');
  await page.evaluate(()=>{cancelAnimationFrame(PG.raf);PG.raf=0;pgFieldQuick(S.play);save();pgHud()});assert.equal(await page.evaluate(()=>S.play.st),'between');
  await page.locator('[data-a=pg-next]').click();assert.equal(await page.evaluate(()=>S.play.mode),'bat');assert(await page.evaluate(()=>P3.A.batter.visible&&P3.A.batter.userData.batPivot.visible),'bat actor was not restored');
  await page.locator('[data-a=pg-auto]').click();assert(await page.evaluate(()=>S.play.done));
- checks.push({width,height,pos,movement:true,throwMeter:true,cancel:true,reload:true,battingTransition:true});await page.close();
+ checks.push({width,height,pos,movement:true,baseHold:true,cancel:true,reload:true,battingTransition:true});await page.close();
 }
 await browser.close();console.log(JSON.stringify({checks,errors},null,2));if(errors.length)process.exitCode=1;
 })().catch(e=>{console.error(e);process.exit(1)});

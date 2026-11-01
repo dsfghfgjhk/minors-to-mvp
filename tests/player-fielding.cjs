@@ -26,7 +26,7 @@ assert(air>=36&&dp>5,'missing fly catches or double plays');
 // A middle infielder can step on second with the ball and throw to first for a double play.
 {const g=game('2B','1',0);pgFieldStart(g);const f=g.field;f.phase='held';f.held=true;f.caughtAt=f.t=1;f.x=BASEP[2][0];f.z=BASEP[2][1];
  pgFieldUpdate(g,.01);assert(f.runners.find(r=>r.from===1).out);assert.equal(f.base,1);assert.equal(f.phase,'held');
- pgFieldThrow(g,.5);while(!f.applied)pgFieldUpdate(g,.04);assert.equal(f.events.filter(e=>e.kind==='out').length,2);
+ pgFieldThrow(g,1);while(!f.applied)pgFieldUpdate(g,.04);assert.equal(f.events.filter(e=>e.kind==='out').length,2);
 }
 // Keyboard and joystick movement operate in screen coordinates and stop with acceleration damping.
 {const g=game(),f=g.field;pgFieldStart(g);f.t=.05;const x=f.x,z=f.z;
@@ -34,19 +34,40 @@ assert(air>=36&&dp>5,'missing fly catches or double plays');
  const speed=Math.hypot(f.vx,f.vz);for(let n=0;n<8;n++)pgFieldUpdate(g,.016,{});assert(Math.hypot(f.vx,f.vz)<speed);
 }
 // The player can preload a base but cannot send a throw before catching the ball.
-{const g=game();pgFieldStart(g);assert.equal(pgFieldCharge(g),false);assert.equal(pgFieldThrow(g,.5),false);pgFieldSelect(g,3);assert.equal(g.field.base,3)}
-// Two throws from the same collected ground ball: good timing can get the out, a wild throw cannot.
+{const g=game();pgFieldStart(g);assert.equal(pgFieldThrow(g,1),false);assert(pgFieldHold(g,3,'pointer:7'));for(let n=0;n<10;n++)pgFieldUpdate(g,.04);assert.equal(g.field.throws.length,0);pgFieldCancel(g);assert.equal(PG.fieldHold,null)}
+// Two throws from the same collected ground ball: accurate throwing can get the out, a wild throw cannot.
 let good,bad;
 {const g=game('SS','',0);pgFieldStart(g);for(let i=0;i<300&&!g.field.held;i++)pgFieldUpdate(g,.02,{auto:true});
  // auto can throw immediately; restore the held checkpoint before judging an identical throw.
  const f=g.field;f.phase='held';f.throws=[];f.base=1;f.t=f.caughtAt;const snap=JSON.stringify(S);
- pgFieldCharge(g);f.t+=.54;pgFieldThrow(g,.5);while(!f.applied)pgFieldUpdate(g,.04);good=f.events.filter(e=>e.kind==='out').length;
- S=JSON.parse(snap);const g2=S.play,f2=g2.field;pgFieldCharge(g2);f2.t+=.54;pgFieldThrow(g2,0);while(!f2.applied)pgFieldUpdate(g2,.04);bad=f2.events.filter(e=>e.kind==='out').length;
+ f.t+=.28;pgFieldThrow(g,1);while(!f.applied)pgFieldUpdate(g,.04);good=f.events.filter(e=>e.kind==='out').length;
+ S=JSON.parse(snap);const g2=S.play,f2=g2.field;f2.t+=.28;pgFieldThrow(g2,0);while(!f2.applied)pgFieldUpdate(g2,.04);bad=f2.events.filter(e=>e.kind==='out').length;
  assert(good>bad&&f2.error&&g2.fs.errors===1,'wild throws have no consequence');
 }
+// Holding a base before the catch queues one throw, without any release timing.
+{const g=game('SS','1',0);pgFieldStart(g);const f=g.field;assert(pgFieldHold(g,2,'pointer:1'));
+ for(let n=0;n<800&&f.phase!=='throw';n++){f.moveTo=(f.chaseTarget||f.target).slice();pgFieldUpdate(g,.02)}
+ assert(f.held);assert.equal(f.phase,'throw');assert.equal(f.throws[0].base,2);assert.equal(PG.fieldHold,null);
+ for(let n=0;n<10;n++)pgFieldUpdate(g,.02);assert.equal(f.throws.filter(t=>!t.relay).length,1);
+}
+// A short tap, cancellation and a paused hold cannot accidentally dispatch a throw.
+{const g=game('SS','',0);pgFieldStart(g);const f=g.field;f.phase='held';f.held=true;f.caughtAt=f.t=1;
+ pgFieldHold(g,1,'pointer:1');for(let n=0;n<5;n++)pgFieldUpdate(g,.04);assert.equal(f.throws.length,0);
+ pgFieldCancel(g);for(let n=0;n<6;n++)pgFieldUpdate(g,.04);assert.equal(f.throws.length,0);
+ pgFieldHold(g,3,'pointer:2');assert.equal(pgFieldHold(g,1,'pointer:9'),false);pgFieldSelect(g,1);assert.equal(f.base,3);pgFieldCancel(g);
+ pgFieldHold(g,1,'key:Digit1');for(let n=0;n<8;n++)pgFieldUpdate(g,.04);assert.equal(f.throws.length,1);assert.equal(f.throws[0].base,1);
+}
+// Throw quality depends on player ratings, not how long a base was held.
+{const g=game('SS','',0);pgFieldStart(g);g.field.phase='held';g.field.held=true;g.field.caughtAt=g.field.t=1;const snap=JSON.stringify(S);let quality=null;
+ for(const duration of [.3,.7,1.4]){S=JSON.parse(snap);const gg=S.play,f=gg.field;setSeed(765);pgFieldHold(gg,1,'pointer:1');f.t+=duration;pgFieldUpdate(gg,0);assert.equal(f.throws.length,1);if(quality==null)quality=f.throws[0].quality;else assert.equal(f.throws[0].quality,quality)}
+ const errors=[];for(const ability of [30,95]){S=JSON.parse(snap);const gg=S.play,f=gg.field;S.stats.arm=S.stats.fld=ability;setSeed(512);let bad=0;
+  for(let n=0;n<400;n++){f.phase='held';f.throws=[];f.error=false;pgFieldThrow(gg);if(f.throws[0].miss>2.3)bad++}errors.push(bad);
+ }assert(errors[0]>errors[1]&&errors[1]<12,'player throwing ratings have no effect');
+}
+
 // A non-force throw to an occupied base never retires the safe runner standing there.
 {const g=game('SS','2',0);pgFieldStart(g);const f=g.field;
- for(let i=0;i<300&&!f.held;i++)pgFieldUpdate(g,.02,{auto:true});f.phase='held';f.throws=[];f.base=2;pgFieldThrow(g,.5);while(!f.applied)pgFieldUpdate(g,.04);
+ for(let i=0;i<300&&!f.held;i++)pgFieldUpdate(g,.02,{auto:true});f.phase='held';f.throws=[];f.base=2;pgFieldThrow(g,1);while(!f.applied)pgFieldUpdate(g,.04);
  assert(!f.events.some(e=>e.from===2),'standing runner falsely tagged out');
 }
 // A missed fly becomes a live hit; catching the bounce later is never a fly out.
@@ -65,9 +86,9 @@ let good,bad;
  const f=g.field,r=f.runners.find(r=>r.from===3);assert(f.caughtAir);assert(r.retouchAt>=f.caughtAt);assert(!pgFieldForce(f,r,f.t));
  if(r.to===4)assert(r.legs.at(-1).start>=r.retouchAt);
 }
-// Frame clocks and meter charge survive a save; finishing after restore applies once.
+// Legacy saved meter charges remain loadable and automatic completion applies once.
 {const g=game('RF','3',1);pgFieldStart(g);for(let i=0;i<400&&!g.field.held;i++)pgFieldUpdate(g,.02,{auto:true});
- const f=g.field;f.phase='held';f.throws=[];pgFieldCharge(g);save();const at=f.t;S=null;load();
+ const f=g.field;f.phase='charging';f.chargeAt=f.t;f.throws=[];save();const at=f.t;S=null;load();
  assert(S?.play?.field);assert.equal(S.play.field.t,at);pgFieldQuick(S.play);assert(S.play.field.applied);
  const final=JSON.stringify(S);pgFieldFinish(S.play);assert.equal(JSON.stringify(S),final);
 }
@@ -85,4 +106,4 @@ let good,bad;
  }
 }
 console.log({plays,airCatches:air,doublePlays:dp,goodThrowOuts:good,wildThrowOuts:bad,movement:'passed',tagups:'passed',droppedFly:'passed',saveRecovery:'passed'});
-`,{console,Math:math,assert,localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)}});
+`,{console,Math:math,assert,setSeed:n=>seed=n,localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)}});

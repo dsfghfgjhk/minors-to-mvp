@@ -38,21 +38,22 @@ body{margin:0;font:14px/1.5 system-ui,-apple-system,sans-serif}
 img{max-width:100%}
 [hidden]{display:none!important}
 
-/* 야수 직접 수비: 중앙 시야를 비우는 양쪽 조작부 */
+/* 야수 수비: 이동과 베이스 길게 누르기 송구 */
 .p3btm.field-controls{max-width:none;display:flex;justify-content:space-between;align-items:flex-end;gap:12px;padding:12px max(12px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px));pointer-events:none}
 .field-controls .fld-left,.field-controls .fld-actions{pointer-events:auto}
 .fld-hint{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);width:max-content;max-width:92vw;margin-bottom:8px;padding:8px 12px;border:1px solid #6ee7b744;background:#061b17d9;border-radius:10px;text-align:center;font-size:12px;line-height:1.4;color:#e8fff2;pointer-events:none!important}
 .fld-left{width:160px;display:grid;justify-items:center;gap:7px}.fld-left small,.fld-actions small{font-size:10px;color:#c3d9ce;text-align:center;text-shadow:0 1px 3px #000}
 .fld-stick{position:relative;width:128px;height:128px;border-radius:50%;border:2px solid #b5d8c880;background:radial-gradient(circle,#204536a6,#061a14b3);touch-action:none;cursor:grab;display:grid;place-items:center}
 .fld-stick i{position:absolute;top:5px;font-size:11px;color:#d6ebdd;font-style:normal}.fld-stick b{display:block;width:56px;height:56px;border-radius:50%;background:#d8eee2aa;border:2px solid #effff4;box-shadow:0 3px 10px #0005;pointer-events:none}
-.fld-actions{width:196px;display:grid;gap:6px;padding:10px;background:#061610bd;border:1px solid #9bbbac55;border-radius:16px;touch-action:none}
-.fld-bases{width:150px;height:100px;position:relative;justify-self:center}.fld-bases button{position:absolute;width:48px;height:42px;background:#112f24;color:#e8fff2;border:1px solid #8eafa0;border-radius:10px;cursor:pointer;font-size:14px;font-weight:800;touch-action:manipulation}
-.fld-bases .on{background:#ffd35a;color:#17241a;border-color:#ffe999;box-shadow:0 0 0 2px #ffd35a33}.fld-bases .fb1{right:0;top:28px}.fld-bases .fb2{left:51px;top:0}.fld-bases .fb3{left:0;top:28px}.fld-bases .fb4{left:51px;bottom:0}
-.fld-meter{position:relative;height:18px;border:1px solid #bdd8c2;border-radius:6px;background:linear-gradient(90deg,#b43a3a,#e1af47 30%,#e1af47 70%,#b43a3a);overflow:hidden}.fld-meter i{position:absolute;top:0;bottom:0;left:42%;width:16%;background:#44dc8b}.fld-meter b{position:absolute;top:0;bottom:0;left:0;width:3px;background:white;box-shadow:0 0 4px #000;transform:translateX(-50%)}
-.fld-throw,.fld-dive{appearance:none;border:1px solid #d4e9d2;border-radius:9px;min-height:43px;background:#ffd35a;color:#0c2118;font-size:14px;font-weight:800;touch-action:none;cursor:pointer}.fld-dive{min-height:34px;background:#173b2d;color:#e4f8e9;border-color:#82a58e}.fld-throw:disabled,.fld-dive:disabled{opacity:.45;cursor:default}
-@media(max-width:520px){.fld-left{width:118px}.fld-stick{width:108px;height:108px}.fld-actions{width:166px;padding:8px;gap:5px}.fld-bases{transform:scale(.9);height:94px}.fld-left small,.fld-actions small{font-size:9px}.fld-hint{font-size:11px}.fld-throw{min-height:42px;font-size:13px}}
-@media(max-width:350px){.fld-left{width:100px}.fld-stick{width:94px;height:94px}.fld-actions{width:158px}.p3btm.field-controls{gap:6px;padding-left:8px;padding-right:8px}}
-@media(max-height:500px){.fld-left{width:132px}.fld-stick{width:94px;height:94px}.fld-actions{width:200px;grid-template-columns:95px 1fr;gap:5px;padding:7px}.fld-bases{grid-row:1/5;transform:scale(.66);transform-origin:left center;width:150px;margin-right:-50px}.fld-meter{height:16px}.fld-throw{font-size:12px;min-height:38px}.fld-dive{font-size:11px;min-height:30px}.fld-actions small{display:none}.fld-hint{font-size:11px;max-width:64vw}.field-controls{padding-bottom:6px!important}}
+.fld-actions{width:204px;display:grid;gap:7px;padding:10px;background:#061610bd;border:1px solid #9bbbac55;border-radius:16px;touch-action:none}
+.fld-bases{width:176px;height:130px;position:relative;justify-self:center}.fld-bases button{position:absolute;width:56px;height:48px;background:#112f24;color:#e8fff2;border:1px solid #8eafa0;border-radius:10px;cursor:pointer;font-size:15px;font-weight:800;touch-action:none;-webkit-touch-callout:none;user-select:none;overflow:hidden}
+.fld-bases button span{position:relative;z-index:1;pointer-events:none}.fld-bases button::before{content:'';position:absolute;inset:0;background:#ffffff66;transform:scaleX(var(--hold,0));transform-origin:left;pointer-events:none}
+.fld-bases .on{background:#ffd35a;color:#17241a;border-color:#ffe999}.fld-bases .holding{box-shadow:0 0 0 2px #ffe999aa}.fld-bases button:disabled{opacity:.45;cursor:default}
+.fld-bases .fb1{right:0;top:40px}.fld-bases .fb2{left:60px;top:0}.fld-bases .fb3{left:0;top:40px}.fld-bases .fb4{left:60px;bottom:0}
+.fld-dive{appearance:none;border:1px solid #82a58e;border-radius:9px;min-height:34px;background:#173b2d;color:#e4f8e9;font-size:14px;font-weight:800;touch-action:none;cursor:pointer}.fld-dive:disabled{opacity:.45;cursor:default}
+@media(max-width:520px){.fld-left{width:118px}.fld-stick{width:108px;height:108px}.fld-actions{width:174px;padding:8px;gap:6px}.fld-bases{width:150px;height:116px}.fld-bases button{width:50px;height:46px;font-size:14px}.fld-bases .fb1,.fld-bases .fb3{top:34px}.fld-bases .fb2,.fld-bases .fb4{left:50px}.fld-left small,.fld-actions small{font-size:9px}.fld-hint{font-size:11px}}
+@media(max-width:350px){.fld-left{width:100px}.fld-stick{width:94px;height:94px}.fld-actions{width:166px}.p3btm.field-controls{gap:6px;padding-left:8px;padding-right:8px}}
+@media(max-height:500px){.fld-left{width:132px}.fld-stick{width:94px;height:94px}.fld-actions{width:228px;grid-template-columns:138px 1fr;align-items:center;gap:5px;padding:7px}.fld-bases{grid-row:1/3;transform:scale(.78);transform-origin:left center;width:176px;height:130px;margin:-10px -38px -10px 0}.fld-bases button{width:56px;height:48px}.fld-bases .fb1,.fld-bases .fb3{top:40px}.fld-bases .fb2,.fld-bases .fb4{left:60px}.fld-dive{font-size:11px;min-height:34px}.fld-actions small{font-size:9px}.fld-hint{font-size:11px;max-width:64vw}.field-controls{padding-bottom:6px!important}}
 
 </style>
 <title>2군에서 MVP까지 | 야구선수 키우기 게임</title>
@@ -2216,6 +2217,11 @@ function fixState(){
     const G=S.play;
     if(!Array.isArray(G.fieldInn))G.fieldInn=G.batInn.filter(i=>i>G.inn);
     G.fieldDone=G.fieldDone||{};G.fs=G.fs||{chances:0,putouts:0,assists:0,errors:0};
+    if(G.mode==='field'){
+      PG.fieldHold=null;
+      if(G.field?.phase==='charging'){G.field.phase='held';delete G.field.chargeAt}
+      if(G.intro)G.intro=G.intro.replace('이동해서 공을 잡은 뒤 베이스를 고르고 송구 게이지를 초록 구간에서 놓으세요.','원하는 베이스 버튼을 꾹 누르면 공을 잡은 뒤 그 베이스로 송구해요.');
+    }
   }
 }
 function load(){try{acceptSave(JSON.parse(localStorage.getItem(KEY)||'null'))}catch(e){}}
@@ -3619,13 +3625,13 @@ function pgFieldMake(G){
 function pgSetField(G,i){
   G.mode='field';G.cur=null;G.lastBB=null;G.fieldDone=G.fieldDone||{};G.fs=G.fs||{chances:0,putouts:0,assists:0,errors:0};
   const of=OFK.includes(S.pos);G.pa={i,on:pick(of?['','1','2','3','12']:['','1','1','12']),out:ri(0,2),b:0,s:0,runs:0};
-  G.field=pgFieldMake(G);G.st='intro';PG.fieldLast=0;PG.fieldKeys={};PG.fieldJoy=null;
+  G.field=pgFieldMake(G);G.st='intro';PG.fieldLast=0;PG.fieldKeys={};PG.fieldJoy=null;PG.fieldHold=null;
   P3.fieldCamera=null;
-  G.intro=`${i}회초 ${G.pa.out}사 ${onTxt(G.pa.on)}. ${S.name}의 ${SUBPOS[S.pos].n} 수비 차례예요. 타구는 내 수비 구역으로 옵니다. 이동해서 공을 잡은 뒤 베이스를 고르고 송구 게이지를 초록 구간에서 놓으세요.`;
+  G.intro=`${i}회초 ${G.pa.out}사 ${onTxt(G.pa.on)}. ${S.name}의 ${SUBPOS[S.pos].n} 수비 차례예요. 타구는 내 수비 구역으로 옵니다. 원하는 베이스 버튼을 꾹 누르면 공을 잡은 뒤 그 베이스로 송구해요.`;
 }
 function pgFieldStart(G){
   const F=G.field;if(!F||F.phase!=='ready')return;
-  F.phase='track';G.st='fielding';G.fs.chances++;PG.an=null;PG.fieldLast=0;PG.fieldKeys={};PG.fieldJoy=null;save();pgHud();
+  F.phase='track';G.st='fielding';G.fs.chances++;PG.an=null;PG.fieldLast=0;PG.fieldKeys={};PG.fieldJoy=null;PG.fieldHold=null;save();pgHud();
 }
 function pgFieldForce(F,r,t){return r.bat||!!r.forceBase&&t<(r.forceUntil??Infinity)}
 function pgFieldOut(G,r,t,base,force,kind='throw'){
@@ -3660,35 +3666,37 @@ function pgFieldCatch(G){
     }
     if(G.pa.out>=3||!F.runners.some(r=>!r.bat&&r.to>r.from)){F.endAt=F.t+.9;F.phase='result'}
   }
-  SND.pop();pgFlash(air?'잡았다!':'포구 완료','good',F.phase==='held'?'베이스 선택 → 꾹 눌러 송구':'아웃');save();pgHud();return true;
+  SND.pop();pgFlash(air?'잡았다!':'포구 완료','good',F.phase==='held'?'던질 베이스 버튼을 꾹 누르세요':'아웃');save();pgHud();return true;
 }
-function pgFieldMeter(F){return(1-Math.cos(Math.PI*Math.max(0,F.t-F.chargeAt)/1.08))/2}
-function pgFieldBand(){return clamp(.075+((S.stats.arm||50)-40)*.001,.07,.135)}
+const FIELD_HOLD_SECONDS=.28;
 function pgFieldSelect(G,base){
   if(!G?.field||![1,2,3,4].includes(base)||['charging','throw','result'].includes(G.field.phase))return;
+  if(PG.fieldHold&&PG.fieldHold.base!==base)return;
   G.field.base=base;pgHud();
 }
-function pgFieldCharge(G){
-  const F=G?.field;if(!F||F.phase!=='held'||F.getupUntil>F.t)return false;
-  F.phase='charging';F.chargeAt=F.t;return true;
+function pgFieldHold(G,base,source){
+  const F=G?.field;if(G?.mode!=='field'||G.st!=='fielding'||!F||F.applied||!['track','held'].includes(F.phase)||![1,2,3,4].includes(base))return false;
+  if(PG.fieldHold&&PG.fieldHold.source!==source)return false;
+  F.base=base;PG.fieldHold={base,source,start:F.t};return true;
 }
-function pgFieldCancel(G){const F=G?.field;if(F?.phase==='charging'){F.phase='held';delete F.chargeAt;pgHud()}}
-function pgFieldThrow(G,position){
+function pgFieldCancel(G){PG.fieldHold=null;const F=G?.field;if(F?.phase==='charging'){F.phase='held';delete F.chargeAt;pgHud()}}
+function pgFieldThrow(G,accuracy){
   const F=G?.field;if(!F||!['held','charging'].includes(F.phase))return false;
   const base=F.base,pt=BASEP[base%4],distance=Math.hypot(pt[0]-F.x,pt[1]-F.z);
-  F.meter=position==null?pgFieldMeter(F):clamp(position,0,1);
-  const error=Math.max(0,Math.abs(F.meter-.5)-pgFieldBand()),miss=error*(9+distance*.045),quality=error===0?1:clamp(1-error*2.5,.05,1);
-  const dx=pt[0]-F.x,dz=pt[1]-F.z,side=F.meter<.5?-1:1;
+  // 송구 정확도는 누른 시간이 아니라 송구·수비 능력으로 결정한다.
+  const arm=S.stats.arm||50,fld=S.stats.fld||50,wildChance=clamp(.055-(arm-40)*.0006-(fld-40)*.0003,.005,.09);
+  const quality=accuracy==null?(R()<wildChance?rnd(.25,.5):rnd(.9,1)):clamp(accuracy,0,1);
+  const error=(1-quality)*.5,miss=error*(9+distance*.045),dx=pt[0]-F.x,dz=pt[1]-F.z,side=R()<.5?-1:1;
   const to=[pt[0]+dz/Math.max(1,distance)*miss*side,1.15,pt[1]-dx/Math.max(1,distance)*miss*side];
   const receiver=F.cover[base],ready=.2+Math.hypot(FPOS[receiver][0]-pt[0],FPOS[receiver][1]-pt[1])/6.5;
   const speed=clamp(18+((S.stats.arm||50)-40)*.12,16,25)*(quality>.7?1:.87),dur=Math.max(.12,Math.hypot(to[0]-F.x,to[2]-F.z)/speed);
   const recovery=miss>1?Math.max(0,miss-.75)*2/6.5:0;
   const tr={base,by:F.key,receiver,from:[F.x,1.15,F.z],to,t0:Math.max(F.t+.24,ready-dur),dur,miss,quality,ready,recovery,done:false};
-  F.throws.push(tr);F.phase='throw';F.releaseAt=tr.t0;F.vx=F.vz=0;F.moveTo=null;
+  F.throws.push(tr);F.phase='throw';F.releaseAt=tr.t0;F.vx=F.vz=0;F.moveTo=null;PG.fieldHold=null;
   if(miss>2.3&&!F.error){F.error=true;G.fs.errors++}
   // 포스가 아닌 주자는 송구가 먼저 오면 마지막 안전한 베이스로 돌아간다.
   for(const r of F.runners)if(!r.bat&&!r.out&&r.to===base&&!pgFieldForce(F,r,F.t)&&tr.t0+dur+.2<bbRunArrival(r))bbRunnerRetreat(r,F.t+.15,r.from);
-  pgFlash(error===0?'정확한 송구!':miss>2.3?'송구가 빗나갔어요':'송구! ',error===0?'good':miss>2.3?'bad':'',base===4?'홈':base+'루');SND.whoosh();save();pgHud();return true;
+  pgFlash(miss>2.3?'송구가 빗나갔어요':'송구!',miss>2.3?'bad':'good',base===4?'홈':base+'루');SND.whoosh();save();pgHud();return true;
 }
 function pgFieldResolveThrow(G,tr){
   const F=G.field,arrive=Math.max(tr.t0+tr.dur,tr.ready)+(tr.recovery||0);
@@ -3730,7 +3738,7 @@ function pgFieldFinish(G){
     const x=R(),k=n>=25?'K':x<.72?pick(['GO','FO','K']):x<.81?'BB':x<.95?'1B':'2B';pgApply(G,k,null,true);
   }
   G.a[G.inn-1]=G.pa.runs;G.fieldDone[G.inn]=true;G.st='between';G.msg=`${text} ${G.inn}회초 수비가 끝났어요. ${G.me} ${G.my} : ${G.op} ${G.opp}.`;
-  PG.fieldKeys={};PG.fieldJoy=null;PG.an=null;save();pgHud();
+  PG.fieldKeys={};PG.fieldJoy=null;PG.fieldHold=null;PG.an=null;save();pgHud();
 }
 function pgFieldUpdate(G,dt,input={}){
   const F=G.field;if(!F||G.st!=='fielding'||F.applied)return;
@@ -3757,12 +3765,15 @@ function pgFieldUpdate(G,dt,input={}){
       const pt=BASEP[base%4],r=F.runners.find(r=>!r.out&&r.to===base&&pgFieldForce(F,r,F.t)&&F.t+.04<bbRunArrival(r));
       if(r&&Math.hypot(F.x-pt[0],F.z-pt[1])<.85){
         pgFieldOut(G,r,F.t,base,true,'step');
+        if(PG.fieldHold?.base===base)PG.fieldHold=null;
         if(base>1&&G.pa.out<3&&!F.runners.find(r=>r.bat)?.out)F.base=1;
         else{F.phase='result';F.endAt=G.pa.out>=3?F.t+.9:Math.max(F.t+.9,...F.runners.filter(r=>!r.out).map(bbRunArrival))}
         break;
       }
     }
-    if(F.phase==='held'&&(input.auto||F.t-F.caughtAt>8))pgFieldThrow(G,input.auto?.5:.74);
+    const hold=PG.fieldHold;
+    if(F.phase==='held'&&hold&&F.t-hold.start>=FIELD_HOLD_SECONDS&&!(F.getupUntil>F.t)){F.base=hold.base;pgFieldThrow(G)}
+    else if(F.phase==='held'&&(input.auto||F.t-F.caughtAt>8))pgFieldThrow(G,input.auto?1:undefined);
   }
   for(const tr of F.throws.slice()){
     if(!tr.done&&F.t>=tr.t0+tr.dur)pgFieldResolveThrow(G,tr);
@@ -3771,6 +3782,7 @@ function pgFieldUpdate(G,dt,input={}){
   if(F.phase==='result'&&F.t>=F.endAt)pgFieldFinish(G);
 }
 function pgFieldQuick(G){
+  PG.fieldHold=null;
   if(G.st==='intro')pgFieldStart(G);
   if(G.field?.phase==='charging')pgFieldCancel(G);
   for(let n=0;n<1400&&G.st==='fielding';n++)pgFieldUpdate(G,.04,{auto:true});
@@ -3782,11 +3794,19 @@ function pgFieldDive(G){
 }
 function pgFieldHudFrame(G){
   if(!HAS_DOM||G.mode!=='field')return;const F=G.field;if(!F)return;
-  const needle=document.getElementById('fld-needle'),zone=document.getElementById('fld-zone'),hint=document.getElementById('fld-hint'),knob=document.getElementById('fld-knob');
-  if(needle)needle.style.left=(100*(F.phase==='charging'?pgFieldMeter(F):F.meter??0))+'%';
-  if(zone){zone.style.left=(50-pgFieldBand()*100)+'%';zone.style.width=pgFieldBand()*200+'%'}
+  const hold=PG.fieldHold,hint=document.getElementById('fld-hint'),knob=document.getElementById('fld-knob');
+  for(const btn of document.querySelectorAll('[data-pg="field-base"]')){
+    const base=+btn.dataset.v,holding=hold?.base===base;
+    btn.classList.toggle('on',F.base===base);btn.classList.toggle('holding',holding);btn.setAttribute('aria-pressed',String(F.base===base));
+    btn.style.setProperty('--hold',holding?String(clamp((F.t-hold.start)/FIELD_HOLD_SECONDS,0,1)):'0');
+    btn.disabled=!['track','held'].includes(F.phase);
+  }
+  const dive=document.querySelector('[data-a="fld-dive"]');if(dive)dive.disabled=F.phase!=='track'||F.getupUntil>F.t;
   if(knob){const j=PG.fieldJoy||{x:0,z:0};knob.style.transform=`translate(${j.x*30}px,${j.z*30}px)`}
-  if(hint){const target=F.chaseTarget||F.target,sign=F.key==='C'?-1:1,dx=(target[0]-F.x)*sign,dz=(target[1]-F.z)*sign;hint.textContent=F.phase==='track'?`타구 ${Math.hypot(dx,dz).toFixed(1)}m · ${Math.abs(dx)<1?'':dx>0?'왼쪽 ': '오른쪽 '}${dz>1?'뒤로':dz< -1?'앞으로':'포구 지점'}`:F.phase==='held'?(F.getupUntil>F.t?'일어나서 송구 자세를 잡고 있어요':'베이스 선택 → 송구 버튼을 꾹 눌렀다 초록에서 놓기'):F.phase==='charging'?'초록 구간에서 놓으세요':F.phase==='throw'?'송구를 끝까지 지켜보세요':F.text||'플레이 결과를 확인하고 있어요'}
+  if(hint){const target=F.chaseTarget||F.target,sign=F.key==='C'?-1:1,dx=(target[0]-F.x)*sign,dz=(target[1]-F.z)*sign;
+    const base=hold?.base===4?'홈':hold?.base+'루';
+    hint.textContent=F.phase==='track'?`타구 ${Math.hypot(dx,dz).toFixed(1)}m · ${Math.abs(dx)<1?'':dx>0?'왼쪽 ': '오른쪽 '}${dz>1?'뒤로':dz< -1?'앞으로':'포구 지점'}${hold?' · '+base+' 송구 대기':''}`:F.phase==='held'?(F.getupUntil>F.t?'일어나서 송구 자세를 잡고 있어요':hold?base+'로 송구 준비 중':'던질 베이스 버튼을 꾹 누르세요'):F.phase==='throw'?'송구를 끝까지 지켜보세요':F.text||'플레이 결과를 확인하고 있어요';
+  }
 }
 
 /* ================= 큰 경기 직접 플레이: 3D 화면 (three.js) ================= */
@@ -4535,14 +4555,14 @@ function p3FieldClick(G,e){
   const v=new THREE.Vector3();if(ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,1,0),0),v))F.moveTo=[clamp(-v.x,-92,92),clamp(v.z,-5,115)];
 }
 function pgFieldControls(G){
-  const F=G.field,canThrow=['held','charging'].includes(F.phase),active=['track','held'].includes(F.phase),btn=(b,label)=>`<button data-a="fld-base" data-v="${b}" class="fb${b} ${F.base===b?'on':''}" aria-pressed="${F.base===b}">${label}</button>`;
+  const F=G.field,btn=(b,label)=>`<button data-a="fld-base" data-pg="field-base" data-v="${b}" class="fb${b} ${F.base===b?'on':''}" aria-label="${label} 꾹 눌러 송구" aria-pressed="${F.base===b}"><span>${label}</span></button>`;
   return`<div class="fld-hint" id="fld-hint">초록 원을 향해 이동하세요</div>
     <div class="fld-left"><div class="fld-stick" id="fld-stick" role="group" aria-label="이동 조이스틱"><i>이동</i><b id="fld-knob"></b></div><small>WASD / 방향키 · 화면 클릭 이동</small></div>
-    <div class="fld-actions"><div class="fld-bases" role="group" aria-label="송구할 베이스">${btn(1,'1루')}${btn(2,'2루')}${btn(3,'3루')}${btn(4,'홈')}</div>
-    <div class="fld-meter" aria-label="송구 정확도 게이지"><i id="fld-zone"></i><b id="fld-needle"></b></div>
-    <button class="fld-throw" data-pg="field-throw" ${canThrow?'':'disabled'}>${canThrow?'꾹 눌러 송구':'포구 후 송구'}</button>
-    <button class="fld-dive" data-a="fld-dive" ${F.phase==='track'?'':'disabled'}>다이빙 · J</button><small>1·2·3·4 베이스 / Space 송구</small></div>`;
+    <div class="fld-actions"><div class="fld-bases" role="group" aria-label="원하는 베이스 버튼을 꾹 눌러 송구">${btn(1,'1루')}${btn(2,'2루')}${btn(3,'3루')}${btn(4,'홈')}</div>
+    <small>던질 베이스를 꾹 누르세요<br>키보드 1·2·3·4(홈) 길게 누르기</small>
+    <button class="fld-dive" data-a="fld-dive" ${F.phase==='track'?'':'disabled'}>다이빙 · J</button></div>`;
 }
+
 function pgFieldJoy(e){
   const el=document.getElementById('fld-stick');if(!el)return;const r=el.getBoundingClientRect(),x=(e.clientX-r.left-r.width/2)/(r.width*.36),z=(e.clientY-r.top-r.height/2)/(r.height*.36),m=Math.max(1,Math.hypot(x,z));
   PG.fieldJoy={id:e.pointerId,x:x/m,z:z/m};if(S?.play?.field)S.play.field.moveTo=null;
@@ -4790,7 +4810,7 @@ function pgInit(){
     if(!ok||!P3.r){h.innerHTML='<div class="p3load">이 기기에서는 3D 화면을 불러오지 못했어요.<br>위의 <b>자동 진행</b>으로 경기를 마칠 수 있어요.</div>';P3.fail=true;pgHud();return}
     h.innerHTML='';h.appendChild(P3.r.domElement);P3.w=0;P3.last=0;P3.dressed=null;P3.board='';P3.bb=null;P3.view='';
     const G=S.play;pgFinishPending(G);PG.an=null;PG.rv=null;PG.sw=null;PG.swAt=0;PG.hover=null;p3ResetField(G);
-    PG.fieldLast=0;PG.fieldKeys={};PG.fieldJoy=null;
+    PG.fieldLast=0;PG.fieldKeys={};PG.fieldJoy=null;PG.fieldHold=null;
     if(G.mode==='field'&&G.field?.phase==='charging')pgFieldCancel(G);
     if(G.mode==='bat'&&G.st==='pitching')PG.next=performance.now()+900;
     if(G.mode==='pit'&&G.st==='anim'){if(G.cur)PG.an={k:'wind',t0:performance.now(),dur:760};else G.st='aim'}
@@ -4845,11 +4865,12 @@ function pgHud(){
   const b=document.getElementById('p3bug'),c=document.getElementById('pg-ctl'),t=document.getElementById('p3btns');
   if(b)b.innerHTML=pgBugHTML(G);
   if(PG.rv){if(c)c.innerHTML='<p class="p3hint" style="text-align:center;font-size:14px">타구를 끝까지 지켜보세요…</p>'}
-  else{if(b)b.innerHTML=pgBugHTML(G);if(c)c.innerHTML=pgCtlHTML(G)}
+  else{if(b)b.innerHTML=pgBugHTML(G);if(c&&!(G.mode==='field'&&G.st==='fielding'&&c.querySelector('.fld-actions')))c.innerHTML=pgCtlHTML(G)}
   const side=!!c?.querySelector('.pitw');
   c?.classList.toggle('p3side',side);document.getElementById('pg3')?.classList.toggle('pitch-side',side);
   const field=G.mode==='field'&&G.st==='fielding';c?.classList.toggle('field-controls',field);document.getElementById('pg3')?.classList.toggle('field-mode',field);
   if(t)t.innerHTML=`<button class="${P3.snd?'on':''}" data-a="pg-snd" aria-pressed="${P3.snd}">소리</button>${G.done?'':'<button data-a="pg-auto">자동 진행</button>'}`;
+  if(field)pgFieldHudFrame(G);
 }
 function pgFlash(t,cls,sub){if(!HAS_DOM)return;const el=document.getElementById('pg-fl');if(!el)return;el.className='p3fl';void el.offsetWidth;el.querySelector('b').textContent=t;el.querySelector('small').textContent=sub||'';el.className='p3fl on '+(cls||'')}
 
@@ -4965,8 +4986,8 @@ if(HAS_DOM){
     if(S?.phase==='play'&&S.play?.mode==='field'&&S.play.st==='fielding'&&!['INPUT','TEXTAREA'].includes(e.target?.tagName)){
       const G=S.play,code=e.code;
       if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD'].includes(code)){e.preventDefault();(PG.fieldKeys||(PG.fieldKeys={}))[code]=true;G.field.moveTo=null;return}
-      if(/^Digit[1-4]$/.test(code)){e.preventDefault();pgFieldSelect(G,+code.slice(-1));return}
-      if(code==='Space'){e.preventDefault();if(!e.repeat)pgFieldCharge(G);return}
+      if(/^Digit[1-4]$/.test(code)){e.preventDefault();if(!e.repeat)pgFieldHold(G,+code.slice(-1),'key:'+code);return}
+      if(code==='Space'){e.preventDefault();if(!e.repeat)pgFieldHold(G,G.field.base,'key:'+code);return}
       if(code==='KeyJ'){e.preventDefault();if(!e.repeat)pgFieldDive(G);return}
       if(e.key==='Escape'){pgFieldCancel(G);return}
     }
@@ -4974,16 +4995,17 @@ if(HAS_DOM){
     if(e.key==='Escape'&&ui.sheet){ui.sheet=null;render()}});
   document.addEventListener('pointerdown',e=>{
     if(e.target.closest('#fld-stick')){e.preventDefault();if(S?.play?.st==='fielding'){e.target.closest('#fld-stick').setPointerCapture(e.pointerId);pgFieldJoy(e)}return}
-    const fieldThrow=e.target.closest('[data-pg="field-throw"]');
-    if(fieldThrow&&!fieldThrow.disabled){e.preventDefault();if(pgFieldCharge(S?.play)){PG.fieldChargePointer=e.pointerId;fieldThrow.setPointerCapture(e.pointerId)}return}
+    const fieldBase=e.target.closest('[data-pg="field-base"]');
+    if(fieldBase&&!fieldBase.disabled){e.preventDefault();if(e.button>0)return;if(pgFieldHold(S?.play,+fieldBase.dataset.v,'pointer:'+e.pointerId))fieldBase.setPointerCapture(e.pointerId);return}
     if(e.target.closest('#p3map')){e.preventDefault();PG.mapDrag=true;pgMapSet(e);return}
     const b=e.target.closest('[data-pg]');if(!b||b.disabled)return;e.preventDefault();if(b.dataset.pg==='throw')pgCharge()});
   document.addEventListener('pointermove',e=>{if(PG.mapDrag)pgMapSet(e);if(PG.fieldJoy?.id===e.pointerId){e.preventDefault();pgFieldJoy(e)}});
   const up=e=>{if(PG.mapDrag){PG.mapDrag=false}if(PG.charge)pgRelease();if(PG.fieldJoy?.id===e.pointerId)PG.fieldJoy=null;
-    if(PG.fieldChargePointer===e.pointerId){PG.fieldChargePointer=null;if(e.type==='pointercancel')pgFieldCancel(S?.play);else if(S?.play?.field?.phase==='charging')pgFieldThrow(S.play)}};
+    if(PG.fieldHold?.source==='pointer:'+e.pointerId)pgFieldCancel(S?.play)};
   document.addEventListener('pointerup',up);document.addEventListener('pointercancel',up);
-  document.addEventListener('keyup',e=>{if(PG.fieldKeys)PG.fieldKeys[e.code]=false;if(e.code==='Space'&&S?.play?.mode==='field'&&S.play.field?.phase==='charging'){e.preventDefault();pgFieldThrow(S.play);return}if((e.code==='Space'||e.key===' ')&&PG.charge)pgRelease()});
-  const fieldBlur=()=>{PG.fieldKeys={};PG.fieldJoy=null;PG.fieldChargePointer=null;if(S?.play?.mode==='field'){pgFieldCancel(S.play);save()}};
+  document.addEventListener('keyup',e=>{if(PG.fieldKeys)PG.fieldKeys[e.code]=false;if(PG.fieldHold?.source==='key:'+e.code){e.preventDefault();pgFieldCancel(S?.play)}if((e.code==='Space'||e.key===' ')&&PG.charge)pgRelease()});
+  document.addEventListener('contextmenu',e=>{if(e.target.closest('[data-pg="field-base"]'))e.preventDefault()});
+  const fieldBlur=()=>{PG.fieldKeys={};PG.fieldJoy=null;PG.fieldHold=null;if(S?.play?.mode==='field'){pgFieldCancel(S.play);save()}};
   window.addEventListener('blur',fieldBlur);document.addEventListener('visibilitychange',()=>{if(document.hidden)fieldBlur()});
   const start=data=>{if(data&&data.S){S=migrate(data.S);fixState();if(data.C)Object.assign(C,data.C)}else load();if(location.hash==='#rank'){ui.rank={tab:'rank',day:'all',cat:'all'};LAUNCH.screen=null}render()};
   window.claude?.hot?.snapshot?.(()=>({S,C:{...C}}));
