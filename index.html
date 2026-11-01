@@ -58,6 +58,14 @@ img{max-width:100%}
 
 .pg-key,.pg-keyhelp{display:none}
 @media(hover:hover) and (pointer:fine){.pg-key{display:inline-block;margin-left:8px;padding:1px 5px;border:1px solid currentColor;border-radius:4px;font:700 11px/1.5 system-ui;opacity:.8}.pg-types .pg-key{font-size:9px;margin-left:4px;padding:0 3px}.pg-keyhelp{display:block;margin:8px 0 0;font-size:11px;line-height:1.65;color:#d5e4da}.p3tap-guide .pg-key{vertical-align:middle}}
+
+.rk-tabs{flex-wrap:wrap}.rk-tabs button{flex:1;white-space:nowrap;padding-inline:10px}
+.jr-search{display:flex;gap:8px;align-items:stretch}.jr-search .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.jr-search input{flex:1;min-width:0}.jr-search button{width:auto;min-width:68px;margin:0}
+.jr-card{width:100%;text-align:left;background:var(--card);color:var(--ink);font:inherit;cursor:pointer}.jr-code{overflow-wrap:anywhere;font-size:11px;color:var(--ink2)}
+.rk .jr-profile .pcard{display:grid;grid-template-columns:58px minmax(0,1fr) 54px;gap:10px;padding:0;border:0}.rk .jr-profile .pcard .ava{width:58px;height:58px}.jr-profile h2{font-size:20px;overflow-wrap:anywhere}.jr-profile .ovrbox{width:54px}.rk .rk-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}.jr-profile{margin-top:16px}.jr-copy{display:flex;flex-wrap:wrap;gap:8px}.jr-copy button{flex:1;min-width:130px}.jr-profile textarea{min-height:260px;width:100%;font-size:13px;line-height:1.65}
+.jr-season{padding:14px 0;border-bottom:1px solid var(--line)}.jr-season:last-child{border:0}.jr-season small{display:block;margin-top:4px;color:var(--ink2)}.jr-season p{font-size:13px;line-height:1.7;margin:5px 0}
+.jr-timeline{padding-left:18px;margin:0}.jr-timeline li{padding:10px 0 10px 6px}.jr-timeline small{color:var(--ink2)}.jr-timeline p{margin:4px 0;font-size:14px;line-height:1.6;overflow-wrap:anywhere}
+@media(max-width:450px){.rk .rk-tabs{display:grid;grid-template-columns:1fr 1fr}.jr-copy{display:grid}.jr-card{padding-inline:10px}.jr-card .rk-av{flex-shrink:0}}
 </style>
 <title>2군에서 MVP까지 | 야구선수 키우기 게임</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -1346,7 +1354,7 @@ function teamLabel(){if(S.org==='HS'||S.org==='UNIV'||S.org==='ARMY')return S.te
 
 /* ================= news ================= */
 function cmts(kind,n=2){const pool=CM[kind]||CM.join;return shuffle(pool.slice()).slice(0,n).map(t=>({u:pick(USERS),t,l:ri(4,980)}))}
-function addNews(h,kind,n){S.news.unshift({y:S.year,src:pick(SRC),h,c:cmts(kind,n??2)});S.news=S.news.slice(0,40)}
+function addNews(h,kind,n){jrNews(h,kind);S.news.unshift({y:S.year,src:pick(SRC),h,c:cmts(kind,n??2)});S.news=S.news.slice(0,40)}
 
 /* ================= create ================= */
 function makeCands(pos){
@@ -1369,8 +1377,10 @@ function newCareer(){
     fame:0,maxOvr:45,mvp:0,rookie:{},flags:{},seen:{},prevStats:{...c.stats},prevOvr:45,
     hist:[],tro:[],ts:{},trank:{},news:[],off:null,tp:null,nat:null,last:null,prog:null,natRes:null,phase:'app',real:1};
   S.ts[S.team]=.6;
+  jrInit();
   ensureRole();
   addNews(`${S.team} 새내기 ${S.name}, ${ro(SUBPOS[S.pos].n)} 첫 시즌 준비`,'draft',1);
+  jrCapture();
 }
 function ensureRole(){
   if(S.role)return;
@@ -1537,6 +1547,7 @@ function chooseTP(i){
   const d=tpDef(S.tp.id), op=d.opts()[i], msgs=d.msgs(), who=WHO[d.who], whoN=who.n(), whoR=who.r();
   const ch=op.eff()||[];
   S.morale=clamp(S.morale,20,100);S.fame=clamp(S.fame,0,100);
+  jrNews(`${whoN}: ${op.t}${ch.length?' · '+ch.join(', '):''}`,'choice');
   S.tp.done=true;S.tp.res={title:tpTitle(d),choice:op.t,re:op.re,msgs,effs:ch,whoN,whoR,av:d.who};
   if(!S.role&&(!S.off||S.off.decided))ensureRole();
 }
@@ -1680,6 +1691,7 @@ function applyOffer(of){
     const leaving=from!==S.team;
     react={...react,from,to:S.team,src:pick(SRC),toast:`${jo(S.team,'과','와')} 계약했어요`,
       c:[...(leaving&&fromOrg!=='HS'&&fromOrg!=='UNIV'?cmts('leave',1).map(x=>({...x,from:true})):[]),...cmts(of.kind==='draft'?'draft':'join',2)]};
+    jrNews(react.h,of.kind);
     S.news.unshift({y:S.year,src:react.src,h:react.h,c:react.c.slice(0,3)});
     ui.sheet={type:'react',d:react};
   }
@@ -2019,7 +2031,7 @@ function finishSeason(){
   if(top&&tot.war>=5&&!aw.length)addNews(`${S.name}, WAR ${tot.war.toFixed(1)}로 커리어 하이 시즌`,'big');
   if(top&&tot.G>30&&tot.war<0)addNews(`부진에 빠진 ${S.name}, 반등 가능할까`,'slump');
   if(callup)addNews(`${S.team} 2군의 ${S.name}, 내년 1군 경쟁 후보로 급부상`,'join',1);
-  S.hist.push({y,age:S.age,team:S.team,org,lg:LG[pl].n,role:roleName(role),line:tot,war:tot.war,aw:[...trs,...aw],top:top&&tot.G>0});
+  S.hist.push({y,age:S.age,team:S.team,org,lg:LG[pl].n,role:roleName(role),line:tot,war:tot.war,aw:[...trs,...aw],top:top&&tot.G>0,...(S.journey?{pos:S.pos,ovrBefore:ob,ovrAfter:oa,statsBefore:before,statsAfter:{...S.stats}}:{})});
   S.last={y,team:S.team,org,lg:LG[pl].n,role,roleN:roleName(role),line:tot,war:tot.war,rank:fin.rank,n:fin.n,aw,trs,ob,oa,diff,stage:stageTxt(),callup,moms:momEv.map(e=>({ok:e.res.ok,title:e.res.title})),big:P.ev.filter(e=>e.t==='big'&&e.res).map(e=>({label:e.label,win:e.res.win,my:e.res.my,op:e.res.op,play:e.res.play,opp:e.opp})),mvpAw:aw.find(a=>/^(KBO|NPB|MLB) MVP$/.test(a))||null,mvpN:S.mvp,awSeen:false,perf};
   S.prevStats=before;S.prevOvr=ob;
   S.natRes=natRes;
@@ -2037,10 +2049,155 @@ function finishSeason(){
       addNews(`${S.name}, ${y} ${WBSC_AW} 선정… ${natRes.ev} 활약으로 전 세계 최고 선수에`,'award',3)}
     S.last.world=won?{ev:natRes.ev,rank,won,n:S.wbsc||0,seen:false}:null;
   }
+  jrNews(`${y} 시즌 종료 · ${S.team} · ${jrLine(tot)} · OVR ${ob} → ${oa}`,'season');
   S.flags={abroad:S.flags.abroad,callup:S.flags.callup,forceMinor:0};
   S.age++;S.year++;S.role=null;S.comp=null;S.prog=null;S.nat=null;
   S.off=buildOff();S.tp=pickTP();
   S.phase='summary';
+}
+
+/* 생성 이후의 공개 성장 기록. careers의 기존 JSONB 필드를 확장하고 INSERT만 사용한다. */
+const JR_KEY='b2mvp_journeys_v1',JR_KIND='journey';
+const JR={local:null,busy:false,timer:null,retry:0};
+const JR_RETIRED='&or=(ava->>kind.is.null,ava->>kind.neq.journey)';
+function jrValid(j){
+  const obj=x=>x&&typeof x==='object'&&!Array.isArray(x),num=Number.isFinite,stats=x=>obj(x)&&Object.entries(x).every(([k,v])=>SN[k]&&num(v));
+  return !!(obj(j)&&j.v===1&&typeof j.id==='string'&&/^p-[a-z0-9-]{6,78}$/.test(j.id)&&typeof j.name==='string'&&SUBPOS[j.pos]&&typeof j.team==='string'&&typeof j.hand==='string'&&typeof j.style==='string'
+    &&['createdAt','updatedAt','revision','year','age','num','ovr','maxOvr','mvp','wbsc','aw','tro'].every(k=>num(j[k]))&&stats(j.stats)&&obj(j.initial)&&SUBPOS[j.initial.pos]&&typeof j.initial.team==='string'&&['year','age','ovr'].every(k=>num(j.initial[k]))&&stats(j.initial.stats)
+    &&Array.isArray(j.seasons)&&j.seasons.every(h=>obj(h)&&num(h.y)&&num(h.age)&&num(h.war)&&typeof h.team==='string'&&typeof h.lg==='string'&&typeof h.role==='string'&&(!h.pos||SUBPOS[h.pos])&&obj(h.line)&&Object.values(h.line).every(v=>typeof v==='string'||num(v))&&Array.isArray(h.aw)&&h.aw.every(a=>typeof a==='string')&&['ovrBefore','ovrAfter'].every(k=>h[k]==null||num(h[k]))&&['statsBefore','statsAfter'].every(k=>h[k]==null||stats(h[k])))
+    &&Array.isArray(j.events)&&j.events.every(e=>obj(e)&&num(e.y)&&num(e.age)&&typeof e.text==='string'));
+}
+function jrLocal(){
+  if(JR.local)return JR.local;
+  try{const a=JSON.parse(localStorage.getItem(JR_KEY)||'[]');JR.local=Array.isArray(a)?a.filter(jrValid):[]}catch(e){JR.local=[]}
+  return JR.local;
+}
+function jrStore(){
+  // 이미 서버에 보관한 오래된 기록부터 기기 공간을 줄이고 미전송 기록은 유지한다.
+  const a=jrLocal();if(a.length>100){let extra=a.length-100;JR.local=a.filter(j=>!(extra>0&&j.sent&&(extra--,true)))}
+  try{localStorage.setItem(JR_KEY,JSON.stringify(JR.local))}catch(e){}
+}
+function jrInit(){
+  const id='p-'+(HAS_DOM&&globalThis.crypto?.randomUUID?crypto.randomUUID():Date.now().toString(36)+'-'+Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2));
+  S.journey={v:1,id,createdAt:Date.now(),revision:0,updatedAt:0,initial:{year:S.year,age:S.age,team:S.team,pos:S.pos,ovr:ovr(),stats:{...S.stats}},events:[]};
+}
+function jrNews(text,kind){
+  if(!S?.journey||S.journey.v!==1)return;
+  S.journey.events.push({y:S.year,age:S.age,kind,text:String(text).slice(0,600)});
+}
+function jrStats(stats){return Object.fromEntries(Object.entries(stats||{}).filter(([k,v])=>SN[k]&&Number.isFinite(v)).map(([k,v])=>[k,Math.round(v)]))}
+function jrCapture(){
+  const j=S?.journey;if(!j||j.v!==1||!j.id||!Array.isArray(j.events))return;
+  const stats=jrStats(S.stats),retired=S.phase==='retired';
+  const sig=JSON.stringify([S.name,S.pos,S.team,S.org,S.year,S.age,S.style,stats,S.hist.length,S.tro.length,S.mvp,S.wbsc,retired,j.events.length]);
+  if(j.sig===sig)return;
+  j.sig=sig;j.revision++;j.peak=Math.max(j.peak||0,S.maxOvr,ovr());j.updatedAt=Math.max(Date.now(),j.updatedAt+1);
+  const snapshot={v:1,id:j.id,createdAt:j.createdAt,updatedAt:j.updatedAt,revision:j.revision,name:S.name,pos:S.pos,num:S.num,hand:S.hand,style:S.style,team:S.team,org:S.org,year:S.year,age:S.age,retired,
+    initial:{...j.initial,stats:jrStats(j.initial.stats)},ovr:ovr(),maxOvr:j.peak,stats,mvp:S.mvp,wbsc:S.wbsc||0,aw:awardCount(),tro:trophyCount(),totals:{...totals()},
+    seasons:S.hist.map(h=>({y:h.y,age:h.age,team:h.team,org:h.org,lg:h.lg,role:h.role,pos:h.pos,top:!!h.top,line:{...h.line},war:h.war,aw:h.aw.slice(),ovrBefore:h.ovrBefore,ovrAfter:h.ovrAfter,statsBefore:h.statsBefore?jrStats(h.statsBefore):undefined,statsAfter:h.statsAfter?jrStats(h.statsAfter):undefined})),
+    events:j.events.map(e=>({...e})),ava:{skin:S.avatar.skin,hair:S.avatar.hair},col:TC[S.team]||'#1f4fa3',sent:false};
+  const a=jrLocal(),i=a.findIndex(x=>x.id===snapshot.id);if(i<0)a.push(snapshot);else a[i]=snapshot;jrStore();jrSchedule();
+}
+function jrRow(j){
+  return{id:'j-'+j.id+'-'+j.revision+'-'+j.updatedAt,day:rkDay(),ts:j.updatedAt,name:j.name.slice(0,12),pos:j.pos,ovr:clamp(j.maxOvr|0,0,99),mvp:clamp(j.mvp|0,0,30),aw:clamp(j.aw|0,0,300),tro:clamp(j.tro|0,0,150),war:clamp(+j.totals.war||0,-60,300),wbsc:clamp(j.wbsc|0,0,30),seasons:clamp(j.seasons.length,1,40),team:j.team.slice(0,30),one:false,abroad:j.seasons.some(s=>s.org==='JP'||s.org==='US'),num:clamp(j.num|0,0,99),col:j.col,
+    ava:{...j.ava,kind:JR_KIND,journey:Object.fromEntries(Object.entries(j).filter(([k])=>k!=='sent'))}};
+}
+function jrSchedule(){if(!HAS_DOM||!RK_ON()||JR.timer)return;JR.timer=setTimeout(()=>{JR.timer=null;jrFlush()},1200)}
+async function jrFlush(){
+  if(!HAS_DOM||!RK_ON()||JR.busy)return;
+  JR.busy=true;let failed=false;
+  try{
+    for(const j of jrLocal().filter(x=>!x.sent)){
+      try{const body=JSON.stringify(jrRow(j)),r=await fetch(RANK_CFG.url+'/rest/v1/careers',{method:'POST',headers:{...rkHead(),Prefer:'return=minimal'},body,keepalive:body.length<=20000,signal:globalThis.AbortSignal?.timeout?.(15000)});
+        // 재시도한 동일 스냅샷의 PK 충돌은 이미 보관되었다는 뜻이다.
+        if(!r.ok&&r.status!==409){failed=true;continue}
+        const current=jrLocal().find(x=>x.id===j.id);if(current&&current.updatedAt===j.updatedAt){current.sent=true;jrStore()}
+      }catch(e){failed=true}
+    }
+  }finally{JR.busy=false}
+  if(failed){if(!JR.retry)JR.retry=setTimeout(()=>{JR.retry=0;jrFlush()},30000)}
+  else if(jrLocal().some(j=>!j.sent))jrSchedule();
+}
+const jrFromRow=r=>r?.ava?.kind===JR_KIND&&jrValid(r.ava.journey)?r.ava.journey:null;
+function jrMerge(list){
+  const byId=new Map();for(const j of list){if(!jrValid(j))continue;const old=byId.get(j.id);if(!old||j.updatedAt>old.updatedAt)byId.set(j.id,j)}
+  return [...byId.values()].sort((a,b)=>b.updatedAt-a.updatedAt);
+}
+function jrSearchTerm(q){return String(q||'').trim().slice(0,80)}
+function jrMatches(j,q){q=jrSearchTerm(q).toLocaleLowerCase();return !q||j.name.toLocaleLowerCase().includes(q)||j.id.toLowerCase()===q}
+async function jrSearch(U,more=false){
+  if(U.jrLoading)return;U.jrLoading=true;U.jrErr=null;
+  const query=jrSearchTerm(U.query),offset=more?(U.jrOffset||0):0,token={};U.jrToken=token;
+  if(!more)U.jrList=[];
+  try{
+    let remote=[];
+    if(RK_ON()&&HAS_DOM){
+      // 패턴 문자는 이스케이프해서 이름의 일부를 문자 그대로 검색한다.
+      const exact=/^p-[a-z0-9-]{6,78}$/i.test(query),literal=query.replace(/[\\%_*]/g,'\\$&');
+      const filter=query?(exact?'&ava->journey->>id=eq.'+encodeURIComponent(query.toLowerCase()):'&name=ilike.'+encodeURIComponent('%'+literal+'%')):'';
+      const r=await fetch(`${RANK_CFG.url}/rest/v1/careers?select=ava&ava->>kind=eq.${JR_KIND}${filter}&order=ts.desc,id.desc&limit=60&offset=${offset}`,{headers:rkHead(),signal:globalThis.AbortSignal?.timeout?.(15000)});
+      if(!r.ok)throw Error('search');const rows=await r.json();remote=rows.map(jrFromRow).filter(Boolean);U.jrMore=rows.length===60;U.jrOffset=offset+rows.length;
+    }else{U.jrMore=false;U.jrOffset=0}
+    U.jrList=jrMerge([...(more?U.jrList:[]),...remote,...jrLocal().filter(j=>jrMatches(j,query))]);
+  }catch(e){U.jrList=jrMerge([...(U.jrList||[]),...jrLocal().filter(j=>jrMatches(j,query))]);U.jrErr='온라인 검색에 연결하지 못했어요. 이 기기 기록을 표시하며 다시 시도할 수 있어요.'}
+  finally{if(ui.rank===U&&U.jrToken===token){U.jrLoading=false;render()}}
+}
+async function jrDetail(U,id){
+  U.jrDetailLoading=true;U.jrDetailErr=null;
+  const local=jrMerge([...(U.jrList||[]),...jrLocal()]).find(j=>j.id===id);if(local)U.jrDetail=local;
+  let detail=local,err=null;
+  try{
+    if(RK_ON()&&HAS_DOM){const r=await fetch(`${RANK_CFG.url}/rest/v1/careers?select=ava&ava->>kind=eq.${JR_KIND}&ava->journey->>id=eq.${encodeURIComponent(id)}&order=ts.desc,id.desc&limit=1`,{headers:rkHead(),signal:globalThis.AbortSignal?.timeout?.(15000)});if(!r.ok)throw Error('detail');const rows=await r.json();detail=jrMerge([local,...rows.map(jrFromRow)])[0]}
+    if(!detail)err='아직 공개된 성장 기록을 찾지 못했어요. 선수 코드나 서버 저장 상태를 확인해 주세요.';
+  }catch(e){err=detail?'서버에 연결하지 못해 마지막으로 저장한 기록을 보여 드려요.':'성장 기록을 불러오지 못했어요. 다시 시도해 주세요.'}
+  finally{if(ui.rank===U&&U.detail===id){U.jrDetail=detail;U.jrDetailErr=err;U.jrDetailLoading=false;render()}}
+}
+function jrLine(l){
+  if(!l||!l.G)return '출전 기록 없음';
+  if(l.t==='P')return `${l.G}경기 ${l.W||0}승 ${l.L||0}패 · ${ipStr(l.IP||0)}이닝 · ERA ${((l.IP?l.ER*9/l.IP:0)||0).toFixed(2)} · ${l.K||0}탈삼진${l.SV?' · '+l.SV+'세이브':''}`;
+  return `${l.G}경기 · 타율 ${avg3(l.AB?l.H/l.AB:0)} · ${l.H||0}안타 ${l.HR||0}홈런 ${l.RBI||0}타점 ${l.SB||0}도루`;
+}
+function jrText(j,short=false){
+  const a=j.initial,years=j.seasons,headline=`${j.name} · ${rkPos(j)} · No.${j.num}`;
+  const status=j.retired?`${years.length}시즌을 마치고 은퇴`:`${j.year}년 ${j.age}세 · ${j.team}에서 성장 중`;
+  const base=[`[2군에서 MVP까지 · ${short?'후원자 릴스 요약':'성장 기록'}]`,headline,`선수 코드: ${j.id}`,`출발: ${a.year}년 ${a.age}세 · ${a.team} · ${rkPos({pos:a.pos})}`,`스타일: ${j.style} · ${j.hand}`,`성장: OVR ${a.ovr} → ${j.ovr} (최고 ${j.maxOvr})`,status,`성과: MVP ${j.mvp}회 · 개인상 ${j.aw}회 · 우승 ${j.tro}회${j.wbsc?' · WBSC '+j.wbsc+'회':''}`];
+  const debut=years.find(h=>h.top);
+  if(short){
+    const best=years.slice().sort((a,b)=>(b.war||0)-(a.war||0))[0];
+    base.push('', '[릴스 구성에 쓸 실제 기록]',`도입: ${a.team}의 OVR ${a.ovr} 신인, ${j.name}.`,debut?`전환: ${debut.y}년 ${debut.team}에서 1군 출전 기록을 남겼다.`:'전환: 아직 프로 1군 출전 기록은 없으며, 성장하는 과정을 담는다.',best?`하이라이트: ${best.y}년 ${best.team} · ${jrLine(best.line)} · WAR ${(best.war||0).toFixed(1)}${best.aw.length?' · '+best.aw.join(', '):''}`:'하이라이트: 첫 시즌을 준비하는 선수의 출발.',`마무리: 현재 OVR ${j.ovr}, 최고 ${j.maxOvr}. ${status}.`);
+  }else{
+    base.push('', '[능력치 변화]',...Object.keys(j.stats).map(k=>`${SN[k]}: ${a.stats[k]??'—'} → ${j.stats[k]}${a.stats[k]!=null?' ('+sgn(j.stats[k]-a.stats[k])+')':''}`),'','[시즌별 성적과 성장]');
+    if(!years.length)base.push('아직 완료한 시즌이 없습니다.');
+    years.forEach(h=>base.push(`${h.y}년 (${h.age}세) · ${h.team} · ${h.lg} · ${h.role}${h.pos?' · '+rkPos(h):''}`,`${jrLine(h.line)} · WAR ${(h.war||0).toFixed(1)}${h.ovrBefore!=null?' · OVR '+h.ovrBefore+' → '+h.ovrAfter:''}`,...(h.statsAfter?['능력치: '+Object.entries(h.statsAfter).map(([k,v])=>SN[k]+' '+(h.statsBefore?.[k]??'—')+' → '+v).join(', ')]:[]),...(h.aw.length?['수상·우승: '+h.aw.join(', ')]:[])));
+    base.push('','[성장 타임라인]',...j.events.map(e=>`${e.y}년 (${e.age}세) · ${e.text}`));
+  }
+  base.push('',`기록 갱신: ${new Date(j.updatedAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'})} (한국 시간)`,'게임 내 가상 선수의 성장 기록입니다.',`https://minors2mvp.pages.dev/#player=${j.id}`);
+  return base.join('\n');
+}
+async function jrCopy(kind){
+  const j=ui.rank?.jrDetail;if(!j)return;
+  const text=kind==='link'?`https://minors2mvp.pages.dev/#player=${j.id}`:jrText(j,kind==='short');
+  try{await navigator.clipboard.writeText(text);toast(kind==='link'?'선수 링크를 복사했어요':'성장 기록을 복사했어요');render()}
+  catch(e){const U=ui.rank;if(!U)return;U.jrCopyText=text;toast('텍스트를 선택했어요. Ctrl+C 또는 길게 눌러 복사해 주세요');render();const el=document.getElementById('jr-copy-text');if(el){el.focus();el.select()}}
+}
+function jrRender(U){
+  if(U.detail){
+    if(!U.jrDetailLoading&&!U.jrDetail&&!U.jrDetailErr)jrDetail(U,U.detail);
+    const j=U.jrDetail;
+    let h=`<button class="btn gray sm" data-a="rk-jr-back">← 선수 검색으로</button>${U.jrDetailErr?`<p class="desc" role="status">${esc(U.jrDetailErr)} <button class="chip" data-a="rk-jr-retry">다시 시도</button></p>`:''}`;
+    if(!j)return h+`<p class="rk-empty">${U.jrDetailLoading?'성장 기록 불러오는 중…':''}</p>`;
+    h+=`<section class="sec jr-profile"><div class="pcard"><div class="ava">${rkAva(j)}</div><div><h2>${esc(j.name)} <span class="badge">${rkPos(j)}</span></h2><p class="desc">${esc(j.team)} · ${j.age}세 · ${j.retired?'은퇴':'성장 중'}</p></div><div class="ovrbox"><b>${j.ovr}</b><small>OVR</small></div></div><small class="jr-code">선수 코드 ${esc(j.id)}</small><p class="desc">${j.initial.year}년 OVR ${j.initial.ovr}에서 시작 · 최고 ${j.maxOvr} · ${j.seasons.length}시즌 · MVP ${j.mvp}회</p><p class="rk-note">${new Date(j.updatedAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'})} 갱신 (한국 시간)${j.sent===false?' · 이 기기에 저장됨, 서버 전송 대기':''}</p><div class="jr-copy"><button class="btn sm" data-a="rk-jr-copy" data-v="full">전체 성장 기록 복사</button><button class="btn gray sm" data-a="rk-jr-copy" data-v="short">릴스 요약 복사</button><button class="btn gray sm" data-a="rk-jr-copy" data-v="link">선수 링크 복사</button></div>${U.jrCopyText?`<label for="jr-copy-text">복사할 내용</label><textarea id="jr-copy-text" readonly>${esc(U.jrCopyText)}</textarea>`:''}</section>`;
+    h+=`<section class="sec"><h2>능력치 성장</h2><div class="rows">${Object.entries(j.stats).map(([k,v])=>`<div class="row"><span>${esc(SN[k]||k)}</span><span>${j.initial.stats[k]??'—'} → <b>${v}</b> ${j.initial.stats[k]!=null?`<small>${sgn(v-j.initial.stats[k])}</small>`:''}</span></div>`).join('')}</div></section>`;
+    h+=`<section class="sec"><h2>시즌별 성장과 성적</h2>${j.seasons.length?j.seasons.slice().reverse().map(s=>`<article class="jr-season"><b>${s.y} · ${s.age}세 · ${esc(s.team)}</b><small>${esc(s.lg)} · ${esc(s.role)}${s.pos?' · '+rkPos(s):''}</small><p>${esc(jrLine(s.line))} · WAR ${(s.war||0).toFixed(1)}</p>${s.ovrBefore!=null?`<p>OVR ${s.ovrBefore} → <b>${s.ovrAfter}</b></p>`:''}${s.statsAfter?`<details><summary>시즌 능력치 변화</summary><p>${Object.entries(s.statsAfter).map(([k,v])=>SN[k]+' '+(s.statsBefore?.[k]??'—')+' → '+v).join(' · ')}</p></details>`:''}${s.aw.length?`<p class="blue">${s.aw.map(esc).join(' · ')}</p>`:''}</article>`).join(''):'<p class="desc">첫 시즌이 끝나면 성적과 능력치 변화가 쌓여요.</p>'}</section>`;
+    h+=`<section class="sec"><h2>성장 타임라인</h2><ol class="jr-timeline">${j.events.slice().reverse().map(e=>`<li><small>${e.y} · ${e.age}세</small><p>${esc(e.text)}</p></li>`).join('')}</ol></section>`;
+    return h;
+  }
+  if(!U.jrList&&!U.jrLoading)jrSearch(U);
+  return `<section class="sec"><h2>선수 검색 · 성장 기록</h2><p class="desc">이번 업데이트부터 만든 선수는 은퇴 전에도 검색할 수 있어요. 동명이인은 선수 코드로 구분하세요.</p><form id="jr-search" class="jr-search"><label class="sr-only" for="jr-query">선수 이름 또는 선수 코드</label><input id="jr-query" name="query" maxlength="80" placeholder="선수 이름 또는 선수 코드" value="${esc(U.query||'')}" autocomplete="off"><button class="btn sm" type="submit" ${U.jrLoading?'disabled':''}>검색</button></form><p class="rk-note">이름 일부로도 검색돼요. 검색 결과는 최근 성장 기록부터 표시해요.</p></section>${U.jrErr?`<p class="desc" role="status">${esc(U.jrErr)} <button class="chip" data-a="rk-jr-search">다시 시도</button></p>`:''}${U.jrLoading?'<p role="status" class="rk-note">검색 중…</p>':''}<div class="rk-list">${(U.jrList||[]).map(j=>`<button class="rk-it jr-card" data-a="rk-jr-detail" data-v="${esc(j.id)}"><div class="rk-av">${rkAva(j)}</div><span class="rk-nm"><b>${esc(j.name)} <span class="badge gray">${j.retired?'은퇴':'성장 중'}</span></b><small>${rkPos(j)} · ${esc(j.team)} · OVR ${j.initial.ovr} → ${j.ovr} · ${j.seasons.length}시즌</small><small class="jr-code">${esc(j.id)}</small></span><span aria-hidden="true">›</span></button>`).join('')}</div>${!U.jrLoading&&!U.jrList?.length?'<p class="rk-empty">검색된 선수가 없어요. 선수 이름이나 코드를 확인해 주세요.</p>':''}${U.jrMore?`<button class="btn gray" data-a="rk-jr-more" ${U.jrLoading?'disabled':''}>기록 더 불러오기</button>`:''}`;
+}
+function jrOpenLink(){
+  if(!HAS_DOM)return false;const m=/^#player=(p-[a-z0-9-]{6,78})$/i.exec(location.hash);if(!m)return false;
+  LAUNCH.screen=null;ui.rank={tab:'players',day:'all',cat:'all',detail:m[1].toLowerCase()};return true;
 }
 
 /* ================= ranking ================= */
@@ -2078,7 +2235,7 @@ async function rkFetch(day,cat){
   const key=day+'|'+cat,c=RKC[key];if(c&&Date.now()-c.at<60e3)return c;
   let out;
   if(!RK_ON()){const l=rkLocal().filter(r=>(day==='all'||r.day===day)&&RK_FIL[cat](r)).sort(rkSort);out={list:l.slice(0,100),count:l.length,at:Date.now()}}
-  else{const r=await fetch(`${RANK_CFG.url}/rest/v1/careers?select=*${day==='all'?'':'&day=eq.'+day}${RK_Q[cat]}&order=mvp.desc,aw.desc,ovr.desc,war.desc,ts.asc&limit=100`,{headers:{...rkHead(),Prefer:'count=exact'}});
+  else{const r=await fetch(`${RANK_CFG.url}/rest/v1/careers?select=*${JR_RETIRED}${day==='all'?'':'&day=eq.'+day}${RK_Q[cat]}&order=mvp.desc,aw.desc,ovr.desc,war.desc,ts.asc&limit=100`,{headers:{...rkHead(),Prefer:'count=exact'}});
     if(!r.ok){let b='';try{b=await r.text()}catch(e){}throw new Error(r.status+' '+b)}const list=await r.json(),cr=r.headers.get('content-range')||'';out={list,count:+(cr.split('/')[1])||list.length,at:Date.now()}}
   return RKC[key]=out;
 }
@@ -2086,13 +2243,13 @@ async function rkBest(day){
   const key=day+'|best',c=RKC[key];if(c&&Date.now()-c.at<60e3)return c;
   let best={};
   if(!RK_ON()){rkLocal().filter(r=>day==='all'||r.day===day).sort(rkSort).forEach(r=>{if(!best[r.pos])best[r.pos]=r})}
-  else{const rows=await Promise.all(POSORDER.map(p=>fetch(`${RANK_CFG.url}/rest/v1/careers?select=*${day==='all'?'':'&day=eq.'+day}&pos=eq.${p}&order=mvp.desc,aw.desc,ovr.desc,war.desc,ts.asc&limit=1`,{headers:rkHead()}).then(r=>r.ok?r.json():[])));
+  else{const rows=await Promise.all(POSORDER.map(p=>fetch(`${RANK_CFG.url}/rest/v1/careers?select=*${JR_RETIRED}${day==='all'?'':'&day=eq.'+day}&pos=eq.${p}&order=mvp.desc,aw.desc,ovr.desc,war.desc,ts.asc&limit=1`,{headers:rkHead()}).then(r=>r.ok?r.json():[])));
     POSORDER.forEach((p,i)=>{if(rows[i][0])best[p]=rows[i][0]})}
   return RKC[key]={best,at:Date.now()};
 }
 function rkLoad(){
   if(RK_ON()&&!rkLoad.synced){rkLoad.synced=1;rkLocal().filter(r=>r.mine&&!r.sent&&r.day>=rkDay(1)).forEach(r=>rkSubmit(r))}
-  const U=ui.rank;if(!U||U.tab==='mine')return;const day=U.day==='all'?'all':rkDay(U.day),key=U.tab==='best'?day+'|best':day+'|'+U.cat;
+  const U=ui.rank;if(!U||['mine','players'].includes(U.tab))return;const day=U.day==='all'?'all':rkDay(U.day),key=U.tab==='best'?day+'|best':day+'|'+U.cat;
   if(RKC[key]&&Date.now()-RKC[key].at<60e3)return;if(U.loading===key||U.errKey===key)return;U.loading=key;U.err=null;
   (U.tab==='best'?rkBest(day):rkFetch(day,U.cat)).catch(e=>{const m=String(e&&e.message||'');U.err=/PGRST205|42P01|careers/.test(m)?'랭킹 서버에 careers 표가 없어요. Supabase SQL Editor에서 SQL을 실행해 주세요.':/^40[13]/.test(m)?'랭킹 서버 키가 맞지 않아요.':'랭킹 서버에 연결하지 못했어요. 잠시 뒤 다시 열어 주세요.';U.errKey=key}).finally(()=>{if(ui.rank===U){U.loading=null;render()}});
 }
@@ -2101,9 +2258,10 @@ const rkPos=r=>(SUBPOS[r.pos]||{n:r.pos}).n, RK_SH={SP:'선발',RP:'구원',C:'�
 const rkTro=n=>`<span class="rk-mvp">${ICON.trophy}<b>${n}</b></span>`;
 function renderRank(){
   const U=ui.rank, mine=rkLocal().filter(r=>r.mine);
-  const tabs=[['best','베스트 나인'],['rank','랭킹 100'],['mine',`나의 기록 <em>${mine.length}</em>`]];
+  const tabs=[['best','베스트 나인'],['rank','랭킹 100'],['players','선수 검색'],['mine',`나의 기록 <em>${mine.length}</em>`]];
   let h=`<div class="page rk"><button class="rk-back" data-a="rk-close">${ICON.back}<span>게임으로</span></button>
     <div class="seg rk-tabs">${tabs.map(([k,l])=>`<button class="${U.tab===k?'on':''}" data-a="rk-tab" data-v="${k}">${l}</button>`).join('')}</div>`;
+  if(U.tab==='players')return h+jrRender(U)+'</div>';
   if(U.tab!=='mine'){
     const days=[['all','전체 기간'],...[0,1,2,3,4,5,6].map(i=>[i,i===0?'오늘':i===1?'어제':rkDay(i).slice(5).replace('-','.')])];
     h+=`<div class="rk-row"><div class="chips rk-days">${days.map(([i,l])=>`<button class="chip ${U.day===i?'on':''}" data-a="rk-day" data-v="${i}">${l}</button>`).join('')}</div>
@@ -2143,7 +2301,7 @@ function renderRank(){
 /* 인스타그램 팔로우 홍보 */
 const IG={handle:'minors2mvp',url:'https://www.instagram.com/minors2mvp/'};
 const igEntry=(msg)=>`<a class="ig-entry" href="${IG.url}" target="_blank" rel="noopener">${ICON.cam}<span><b>인스타 @${IG.handle} 팔로우</b><small>${msg||'명예의 전당 TOP 3 · 업데이트 소식을 제일 먼저 받아요'}</small></span>${ICON.chev||'›'}</a>`;
-const rankEntry=()=>`<button class="rk-entry" data-a="rk-open">${ICON.trophy}<span><b>랭킹</b><small>은퇴한 선수들의 MVP 순위 · 전체 기간·오늘</small></span>${ICON.chev||'›'}</button>`;
+const rankEntry=()=>`<button class="rk-entry" data-a="rk-open">${ICON.trophy}<span><b>랭킹</b><small>선수 검색·성장 기록 · 은퇴 선수 MVP 순위</small></span>${ICON.chev||'›'}</button>`;
 
 /* ================= retire & hof ================= */
 function totals(){
@@ -2161,11 +2319,11 @@ function retire(){
   try{localStorage.setItem(HOF,JSON.stringify(list.slice(0,30)))}catch(e){}
   addNews(`${S.name}, ${S.hist.length}시즌 선수 생활 마치고 은퇴`,'retire',3);
   const rec=rkRecord(),rl=rkLocal();rl.push(rec);rkSaveLocal(rl);S.rkId=rec.id;Object.keys(RKC).forEach(k=>delete RKC[k]);rkSubmit(rec);
-  S.phase='retired';ui.sheet=null;
+  S.phase='retired';ui.sheet=null;jrCapture();
 }
 
 /* ================= persistence ================= */
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function save(){jrCapture();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 // 불완전한 코드나 손상된 저장 데이터가 현재 커리어를 덮어쓰지 않게 먼저 검증한다.
 function validSave(s){
   const obj=x=>!!x&&typeof x==='object'&&!Array.isArray(x);
@@ -2178,6 +2336,7 @@ function validSave(s){
   if(!['focus','hist','tro','news'].every(k=>Array.isArray(s[k])))return false;
   if(!s.focus.every(k=>keysOf(s.pos).includes(k))||!s.hist.every(h=>obj(h)&&obj(h.line)&&Array.isArray(h.aw)))return false;
   if(!s.tro.every(obj)||!s.news.every(obj))return false;
+  if(s.journey){const j=s.journey;if(!obj(j)||j.v!==1||typeof j.id!=='string'||!/^p-[a-z0-9-]{6,78}$/.test(j.id)||!['createdAt','updatedAt','revision'].every(k=>Number.isFinite(j[k]))||!obj(j.initial)||!SUBPOS[j.initial.pos]||typeof j.initial.team!=='string'||!['year','age','ovr'].every(k=>Number.isFinite(j.initial[k]))||!obj(j.initial.stats)||!Array.isArray(j.events)||!j.events.every(e=>obj(e)&&Number.isFinite(e.y)&&Number.isFinite(e.age)&&typeof e.text==='string'))return false}
   if(s.off&&(!obj(s.off)||!Array.isArray(s.off.offers)||!s.off.offers.every(obj)))return false;
   if(s.prog&&(!obj(s.prog)||s.prog.ev&&(!Array.isArray(s.prog.ev)||!s.prog.ev.every(obj)||!Array.isArray(s.prog.segs))))return false;
   if(s.play&&s.play.v===2&&(!['pa','ms','msT','sel'].every(k=>obj(s.play[k]))||!['a','h','lu','ars','batInn','pitInn','log'].every(k=>Array.isArray(s.play[k]))))return false;
@@ -2300,6 +2459,7 @@ function renderCreate(){
     ov=`<div class="ov" data-a="c-noconfirm"><div class="sheet" role="dialog" aria-label="스카우팅 리포트"><button class="icbtn x" data-a="c-noconfirm" aria-label="닫기">${ICON.close}</button><p class="eyebrow" style="font-weight:700;color:var(--accent)">스카우팅 리포트</p>
     <div class="pcard"><div class="ava">${avaImg(AVS[C.avatar],sch)}</div><div><div style="font-size:20px;font-weight:800">${esc(C.name||'이름 없는 신인')} <span class="badge">${SUBPOS[C.pos].n}</span></div><div class="muted" style="font-size:13px">${c.style} · 등번호 ${parseInt(C.num)>=0&&C.num!==''?clamp(parseInt(C.num),0,99):'자동'} · 16세</div></div></div>
     <div class="rows"><div class="row"><span>소속</span><span>${emblem(sch,20)} ${sch}</span></div><div class="row"><span>국적 · 투타</span><span>대한민국 · ${C.hand}</span></div><div class="row"><span>능력치 합 · OVR</span><span>${Object.values(c.stats).reduce((a,b)=>a+b,0)} · 45</span></div><div class="row"><span>훈련 포커스</span><span>${C.focus.map(k=>SN[k]).join(', ')}</span></div><div class="row"><span>잠재력</span><span>스카우트도 아직 몰라요</span></div></div>
+    <p class="desc" style="font-size:12px">입학하면 선수 이름과 성장 기록이 공개 랭킹에 저장되어 검색·조회·복사할 수 있어요. 닉네임을 사용해 주세요. <a href="privacy.html" target="_blank" rel="noopener">공개 기록 안내</a></p>
     <div class="btns"><button class="btn gray" data-a="c-noconfirm">다시 고르기</button><button class="btn play" data-a="c-start">입학하기</button></div></div></div>`}
   return`<div class="page">${nav}<div class="stack">${body}</div><div></div>${btn}</div>${ov}${s===0?rankEntry()+igEntry():''}${hofMini()}`;
 }
@@ -2793,6 +2953,7 @@ function render(){
   const app=document.getElementById('app');
   document.body.classList.toggle('launching',!!LAUNCH.screen);
   if(LAUNCH.screen){if(timer){clearInterval(timer);timer=null}dFab(false);app.className='app';app.innerHTML=launchHTML();if(LAUNCH.screen==='cut')launchSchedule();return}
+  if(ui.rank){if(timer){clearInterval(timer);timer=null}if(PG.raf){cancelAnimationFrame(PG.raf);PG.raf=0}app.className='app';app.innerHTML=renderRank();dFab(!ui.rank.detail);if(ui.toast)app.insertAdjacentHTML('beforeend',`<div class="toast" role="status">${esc(ui.toast)}</div>`);return}
   dFab(!(S&&S.phase==='play'&&S.play));
   if(S&&S.phase==='play'&&S.play){
     if(timer){clearInterval(timer);timer=null}
@@ -2802,7 +2963,6 @@ function render(){
     if(ui.toast)app.insertAdjacentHTML('beforeend',`<div class="toast" role="status">${esc(ui.toast)}</div>`);
     return;
   }
-  if(ui.rank&&!(S&&S.phase==='progress')){app.className='app';app.innerHTML=renderRank();dFab(true);if(ui.toast)app.insertAdjacentHTML('beforeend',`<div class="toast" role="status">${esc(ui.toast)}</div>`);return}
   app.className='app'+(S&&S.phase==='app'?' tabs':'');
   if(!S)app.innerHTML=renderCreate();
   else app.innerHTML=({app:renderApp,progress:renderProgress,summary:renderSummary,award:renderAward,world:renderWorld,nat:renderNatRes,retired:renderRetired}[S.phase]||renderApp)();
@@ -4766,7 +4926,7 @@ function pgClearKeys(){
 }
 function pgKeyboardDown(e){
   const G=S?.play,target=e.target;
-  if(!G||S.phase!=='play'||['INPUT','TEXTAREA','SELECT'].includes(target?.tagName)||target?.isContentEditable||e.isComposing||e.ctrlKey||e.altKey||e.metaKey)return false;
+  if(!G||S.phase!=='play'||ui.rank||['INPUT','TEXTAREA','SELECT'].includes(target?.tagName)||target?.isContentEditable||e.isComposing||e.ctrlKey||e.altKey||e.metaKey)return false;
   const code=e.code||({Enter:'Enter',' ':'Space',Escape:'Escape'}[e.key]||e.key);
   if(code==='Enter'||code==='NumpadEnter'){
     const action=target?.closest?.('[data-a]')?.dataset?.a||target?.dataset?.a;
@@ -4973,8 +5133,17 @@ function act(a,v){
   if(a==='launch-next'){launchNext();document.querySelector('.cut-next')?.focus({preventScroll:true});return}
   let top=false;
   if(a&&a.startsWith('rk-')){
-    if(a==='rk-open')ui.rank={tab:'rank',day:'all',cat:'all'};else if(a==='rk-close'){ui.rank=null;if(HAS_DOM&&location.hash==='#rank')history.replaceState(null,'',location.pathname+location.search)}
-    else if(ui.rank){ui.rank.err=null;ui.rank.errKey=null;if(a==='rk-tab')ui.rank.tab=v;else if(a==='rk-day')ui.rank.day=v==='all'?'all':+v;else if(a==='rk-cat')ui.rank.cat=v}
+    if(a==='rk-open'){jrCapture();jrFlush();ui.rank={tab:'rank',day:'all',cat:'all'}}else if(a==='rk-close'){ui.rank=null;if(HAS_DOM&&/^#(?:rank|player=)/.test(location.hash))history.replaceState(null,'',location.pathname+location.search)}
+    else if(ui.rank){const U=ui.rank;U.err=null;U.errKey=null;
+      if(a==='rk-tab'){U.tab=v;U.detail=null;U.jrDetail=null;U.jrDetailErr=null;U.jrCopyText=null}
+      else if(a==='rk-day')U.day=v==='all'?'all':+v;else if(a==='rk-cat')U.cat=v;
+      else if(a==='rk-jr-search'){U.query=document.getElementById('jr-query')?.value||'';jrSearch(U)}
+      else if(a==='rk-jr-more')jrSearch(U,true);
+      else if(a==='rk-jr-detail'){U.detail=v;U.jrDetail=null;U.jrDetailErr=null;U.jrCopyText=null;jrDetail(U,v)}
+      else if(a==='rk-jr-back'){U.detail=null;U.jrDetail=null;U.jrDetailErr=null;U.jrCopyText=null}
+      else if(a==='rk-jr-retry')jrDetail(U,U.detail);
+      else if(a==='rk-jr-copy'){jrCopy(v);return}
+    }
     render();if(HAS_DOM&&a!=='rk-day'&&a!=='rk-cat')window.scrollTo(0,0);return;
   }
   if(a==='c-ava')C.avatar=+v;
@@ -5049,6 +5218,10 @@ function act(a,v){
   render();if(top&&HAS_DOM)window.scrollTo(0,0);
 }
 if(HAS_DOM){
+  document.addEventListener('submit',e=>{if(e.target.id==='jr-search'){e.preventDefault();act('rk-jr-search')}});
+  window.addEventListener('online',()=>jrFlush());
+  window.addEventListener('pagehide',()=>jrFlush());
+  window.addEventListener('hashchange',()=>{if(jrOpenLink())render()});
   document.addEventListener('click',e=>{
     const b=e.target.closest('[data-a]');if(!b)return;
     if(b.classList.contains('ov')&&e.target!==b)return;
@@ -5080,7 +5253,7 @@ if(HAS_DOM){
   document.addEventListener('contextmenu',e=>{if(e.target.closest('[data-pg="field-base"]'))e.preventDefault()});
   const fieldBlur=()=>{pgClearKeys();if(S?.play)save()};
   window.addEventListener('blur',fieldBlur);document.addEventListener('visibilitychange',()=>{if(document.hidden)fieldBlur()});
-  const start=data=>{if(data&&data.S){S=migrate(data.S);fixState();if(data.C)Object.assign(C,data.C)}else load();if(location.hash==='#rank'){ui.rank={tab:'rank',day:'all',cat:'all'};LAUNCH.screen=null}render()};
+  const start=data=>{if(data&&data.S){S=migrate(data.S);fixState();if(data.C)Object.assign(C,data.C)}else load();if(location.hash==='#rank'){ui.rank={tab:'rank',day:'all',cat:'all'};LAUNCH.screen=null}jrOpenLink();jrSchedule();render()};
   window.claude?.hot?.snapshot?.(()=>({S,C:{...C}}));
   window.claude?.hot?.ready?window.claude.hot.ready(start):start(window.claude?.hot?.data??{});
 }

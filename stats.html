@@ -149,9 +149,9 @@ async function load(){
   try{
     const days=[...Array(14)].map((_,i)=>kday(13-i));
     const [sAll,cAll,sDay,cDay,todayRows]=await Promise.all([
-      count('starts'),count('careers'),
+      count('starts'),count('careers','&or=(ava->>kind.is.null,ava->>kind.neq.journey)'),
       Promise.all(days.map(d=>count('starts','&day=eq.'+d))),
-      Promise.all(days.map(d=>count('careers','&day=eq.'+d))),
+      Promise.all(days.map(d=>count('careers','&or=(ava->>kind.is.null,ava->>kind.neq.journey)&day=eq.'+d))),
       rows('starts','select=ts,pos&day=eq.'+today+'&order=ts.asc')]);
     const sT=sDay[13],cT=cDay[13];
     $('t-s').textContent=fmt(sT);$('t-c').textContent=fmt(cT);$('t-sa').textContent=fmt(sAll);$('t-ca').textContent=fmt(cAll);
