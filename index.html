@@ -3186,7 +3186,8 @@ function pgAiPitch(G){
   const vk=G.pit.v+PTY[type].dv+ri(-2,1);
   return{type,u,v,vk,inZ:Math.abs(u)<=1.62&&Math.abs(v)<=1.62,ms:pgFlightMs(vk),lh:G.pit.lh};
 }
-function pgWindows(){const con=S.stats.con,pf=48+Math.max(0,con-40)*.55,gd=pf+44+Math.max(0,con-40)*.4;return{pf,gd,fl:gd+60}}
+const BAT_TIMING_GRACE=1.08;
+function pgWindows(){const con=S.stats.con,pf=48+Math.max(0,con-40)*.55,gd=pf+44+Math.max(0,con-40)*.4;return{pf:pf*BAT_TIMING_GRACE,gd:gd*BAT_TIMING_GRACE,fl:(gd+60)*BAT_TIMING_GRACE}}
 // 간소화한 이동 배트–공 충돌: m/s 단위 상대 속도, 접촉면 법선, 유효 반발계수.
 // 타이밍은 배트 회전 각도와 공 중심 대비 맞는 높이를 함께 바꾼다.
 function bbBatContact(c,dt,power,stats,left){
@@ -3227,7 +3228,7 @@ function pgResolveBat(G,dt,aim,pw){
       let Q=qt;if(!c.inZ)Q*=.6;Q*=1-((PTY[c.type]||{}).wh||0)-(c.type!=='직구'?.02:0);
       if(Q<.2)k='F';
       else{
-        const contact=bbBatContact(c,dt,P,st,isLeftBat());
+        const contact=bbBatContact(c,dt/BAT_TIMING_GRACE,P,st,isLeftBat());
         G.lastBB=bbResolve(contact.ev,contact.la,contact.sp,st.spd,contact.height);G.lastBB.contact=contact;k=G.lastBB.k;
       }
     }
