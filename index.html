@@ -1341,7 +1341,7 @@ function makeCands(pos){
 }
 function newCareer(){
   const c=C.cands[C.pick];
-  S={v:2,name:(C.name||'').trim()||'이름 없는 신인',num:clamp(parseInt(C.num)||ri(1,99),0,99),pos:C.pos,hand:C.hand,avatar:AVS[C.avatar],
+  S={v:2,name:(C.name||'').trim()||'이름 없는 신인',num:clamp(C.num!==''&&Number.isFinite(parseInt(C.num))?parseInt(C.num):ri(1,99),0,99),pos:C.pos,hand:C.hand,avatar:AVS[C.avatar],
     style:c.style,stats:{...c.stats},pot:c.pot,trait:c.trait,focus:C.focus.slice(0,2),morale:65,
     age:16,year:START_YEAR,org:'HS',grade:1,team:tnames('HS')[C.school],role:null,comp:null,univ:false,
     contract:{type:'amateur'},sal:0,earn:0,proYears:0,osYears:0,served:false,exempt:false,armyLeft:0,lastKR:null,
@@ -2027,7 +2027,7 @@ function finishSeason(){
 const RANK_CFG={url:'https://xdoumdgrsbnmktpcvgxd.supabase.co',key:'sb_publishable_QCL89LDJdRqOf6FOYoRvtw_62zXa0yL'};
 const RKEY='b2mvp_rank', RK_ON=()=>!!(RANK_CFG.url&&RANK_CFG.key);
 const rkDay=(off=0)=>new Date(Date.now()+9*3600e3-off*864e5).toISOString().slice(0,10);   // 한국 시간 날짜
-const rkLocal=()=>{try{return JSON.parse(localStorage.getItem(RKEY)||'[]')}catch(e){return[]}};
+const rkLocal=()=>{try{const l=JSON.parse(localStorage.getItem(RKEY)||'[]');return Array.isArray(l)?l.filter(r=>r&&typeof r.name==='string'&&typeof r.day==='string'&&SUBPOS[r.pos]):[]}catch(e){return[]}};
 const rkSaveLocal=l=>{try{localStorage.setItem(RKEY,JSON.stringify(l.slice(-300)))}catch(e){}};
 const rkSort=(a,b)=>(b.mvp-a.mvp)||(b.aw-a.aw)||(b.ovr-a.ovr)||(b.war-a.war)||(a.ts-b.ts);
 const RK_CATS=[['all','전체'],['bat','타자'],['pit','투수'],['one','원클럽맨'],['abroad','해외파']];
@@ -2132,7 +2132,7 @@ function totals(){
 }
 const awardCount=()=>S.tro.filter(t=>t.k==='a').length;
 const trophyCount=()=>S.tro.filter(t=>t.k==='t').length;
-function loadHof(){try{return JSON.parse(localStorage.getItem(HOF)||'[]')}catch(e){return[]}}
+function loadHof(){try{const l=JSON.parse(localStorage.getItem(HOF)||'[]');return Array.isArray(l)?l.filter(r=>r&&typeof r.name==='string'):[]}catch(e){return[]}}
 function retire(){
   const t=totals();
   const list=loadHof();list.push({name:S.name,pos:SUBPOS[S.pos].n,mvp:S.mvp,wb:S.wbsc||0,maxOvr:S.maxOvr,aw:awardCount(),war:t.war,y:S.year});
@@ -2145,6 +2145,30 @@ function retire(){
 
 /* ================= persistence ================= */
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+// 불완전한 코드나 손상된 저장 데이터가 현재 커리어를 덮어쓰지 않게 먼저 검증한다.
+function validSave(s){
+  const obj=x=>!!x&&typeof x==='object'&&!Array.isArray(x);
+  if(!obj(s)||s.v!==2||!SUBPOS[s.pos]||!['HS','UNIV','KR','JP','US','ARMY'].includes(s.org))return false;
+  if(!['app','progress','play','summary','award','nat','world','retired'].includes(s.phase))return false;
+  if(!['name','team','hand'].every(k=>typeof s[k]==='string'))return false;
+  if(!['stats','avatar','flags','contract','ts','trank','rookie','seen'].every(k=>obj(s[k])))return false;
+  if(!keysOf(s.pos).every(k=>Number.isFinite(s.stats[k])))return false;
+  if(!['num','age','year','pot','morale','earn','sal','maxOvr','mvp'].every(k=>Number.isFinite(s[k])))return false;
+  if(!['focus','hist','tro','news'].every(k=>Array.isArray(s[k])))return false;
+  if(!s.focus.every(k=>keysOf(s.pos).includes(k))||!s.hist.every(h=>obj(h)&&obj(h.line)&&Array.isArray(h.aw)))return false;
+  if(!s.tro.every(obj)||!s.news.every(obj))return false;
+  if(s.off&&(!obj(s.off)||!Array.isArray(s.off.offers)||!s.off.offers.every(obj)))return false;
+  if(s.prog&&(!obj(s.prog)||s.prog.ev&&(!Array.isArray(s.prog.ev)||!s.prog.ev.every(obj)||!Array.isArray(s.prog.segs))))return false;
+  if(s.play&&s.play.v===2&&(!['pa','ms','msT','sel'].every(k=>obj(s.play[k]))||!['a','h','lu','ars','batInn','pitInn','log'].every(k=>Array.isArray(s.play[k]))))return false;
+  if(['summary','award','world'].includes(s.phase)&&(!obj(s.last)||!obj(s.last.line)))return false;
+  if(s.phase==='nat'&&(!obj(s.natRes)||!obj(s.natRes.line)))return false;
+  return true;
+}
+function acceptSave(s){
+  if(!validSave(s))return false;
+  const previous=S;
+  try{const next=migrate(s);S=next;fixState();return true}catch(e){S=previous;return false}
+}
 function migrate(s){
   if(!s||s.real)return s;
   const OLD={KR:['서울 타이탄스','인천 시걸스','수원 스톰','대전 블루윙스','광주 피닉스','대구 레드혼스','부산 하버스','창원 아이언스','고양 썬더스','청주 스타즈'],JP:['도쿄 레이븐스','오사카 썬즈','후쿠오카 웨이브스','삿포로 폴라스','나고야 드래곤플라이','요코하마 스타피시'],US:['뉴욕 해머스','LA 코메츠','시카고 랜턴스','보스턴 파이크스','시애틀 파인스','휴스턴 로켓맨','애틀랜타 피치스','샌프란시스코 포그혼스'],UNIV:['한빛대학교','청운대학교','동명대학교','해솔대학교']};
@@ -2163,11 +2187,12 @@ function fixState(){
   if(S.tp&&!tpDef(S.tp.id))S.tp=null;
   if(S.play&&S.play.v!==2){S.play=null;if(S.phase==='play')S.phase='progress'}
   if(S.phase==='play'&&(!S.play||!S.prog))S.phase=S.prog?'progress':'app';
+  if(S.phase==='progress'&&!S.prog)S.phase='app';
   if(S.phase!=='play')S.play=null;
 }
-function load(){try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&s.v===2){S=migrate(s);fixState()}}catch(e){}}
+function load(){try{acceptSave(JSON.parse(localStorage.getItem(KEY)||'null'))}catch(e){}}
 function exportCode(){try{return btoa(unescape(encodeURIComponent(JSON.stringify(S))))}catch(e){return''}}
-function importCode(code){try{const s=JSON.parse(decodeURIComponent(escape(atob(code.trim()))));if(s&&s.v===2&&s.stats){S=migrate(s);fixState();return true}}catch(e){}return false}
+function importCode(code){try{return acceptSave(JSON.parse(decodeURIComponent(escape(atob(code.trim())))))}catch(e){return false}}
 
 /* ================= render helpers ================= */
 function toast(t){ui.toast=t;if(!HAS_DOM)return;clearTimeout(toast._t);toast._t=setTimeout(()=>{ui.toast=null;const el=document.querySelector('.toast');if(el)el.remove()},2400)}
