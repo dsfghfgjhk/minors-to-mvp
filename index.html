@@ -37,6 +37,23 @@
 body{margin:0;font:14px/1.5 system-ui,-apple-system,sans-serif}
 img{max-width:100%}
 [hidden]{display:none!important}
+
+/* 야수 직접 수비: 중앙 시야를 비우는 양쪽 조작부 */
+.p3btm.field-controls{max-width:none;display:flex;justify-content:space-between;align-items:flex-end;gap:12px;padding:12px max(12px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px));pointer-events:none}
+.field-controls .fld-left,.field-controls .fld-actions{pointer-events:auto}
+.fld-hint{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);width:max-content;max-width:92vw;margin-bottom:8px;padding:8px 12px;border:1px solid #6ee7b744;background:#061b17d9;border-radius:10px;text-align:center;font-size:12px;line-height:1.4;color:#e8fff2;pointer-events:none!important}
+.fld-left{width:160px;display:grid;justify-items:center;gap:7px}.fld-left small,.fld-actions small{font-size:10px;color:#c3d9ce;text-align:center;text-shadow:0 1px 3px #000}
+.fld-stick{position:relative;width:128px;height:128px;border-radius:50%;border:2px solid #b5d8c880;background:radial-gradient(circle,#204536a6,#061a14b3);touch-action:none;cursor:grab;display:grid;place-items:center}
+.fld-stick i{position:absolute;top:5px;font-size:11px;color:#d6ebdd;font-style:normal}.fld-stick b{display:block;width:56px;height:56px;border-radius:50%;background:#d8eee2aa;border:2px solid #effff4;box-shadow:0 3px 10px #0005;pointer-events:none}
+.fld-actions{width:196px;display:grid;gap:6px;padding:10px;background:#061610bd;border:1px solid #9bbbac55;border-radius:16px;touch-action:none}
+.fld-bases{width:150px;height:100px;position:relative;justify-self:center}.fld-bases button{position:absolute;width:48px;height:42px;background:#112f24;color:#e8fff2;border:1px solid #8eafa0;border-radius:10px;cursor:pointer;font-size:14px;font-weight:800;touch-action:manipulation}
+.fld-bases .on{background:#ffd35a;color:#17241a;border-color:#ffe999;box-shadow:0 0 0 2px #ffd35a33}.fld-bases .fb1{right:0;top:28px}.fld-bases .fb2{left:51px;top:0}.fld-bases .fb3{left:0;top:28px}.fld-bases .fb4{left:51px;bottom:0}
+.fld-meter{position:relative;height:18px;border:1px solid #bdd8c2;border-radius:6px;background:linear-gradient(90deg,#b43a3a,#e1af47 30%,#e1af47 70%,#b43a3a);overflow:hidden}.fld-meter i{position:absolute;top:0;bottom:0;left:42%;width:16%;background:#44dc8b}.fld-meter b{position:absolute;top:0;bottom:0;left:0;width:3px;background:white;box-shadow:0 0 4px #000;transform:translateX(-50%)}
+.fld-throw,.fld-dive{appearance:none;border:1px solid #d4e9d2;border-radius:9px;min-height:43px;background:#ffd35a;color:#0c2118;font-size:14px;font-weight:800;touch-action:none;cursor:pointer}.fld-dive{min-height:34px;background:#173b2d;color:#e4f8e9;border-color:#82a58e}.fld-throw:disabled,.fld-dive:disabled{opacity:.45;cursor:default}
+@media(max-width:520px){.fld-left{width:118px}.fld-stick{width:108px;height:108px}.fld-actions{width:166px;padding:8px;gap:5px}.fld-bases{transform:scale(.9);height:94px}.fld-left small,.fld-actions small{font-size:9px}.fld-hint{font-size:11px}.fld-throw{min-height:42px;font-size:13px}}
+@media(max-width:350px){.fld-left{width:100px}.fld-stick{width:94px;height:94px}.fld-actions{width:158px}.p3btm.field-controls{gap:6px;padding-left:8px;padding-right:8px}}
+@media(max-height:500px){.fld-left{width:132px}.fld-stick{width:94px;height:94px}.fld-actions{width:200px;grid-template-columns:95px 1fr;gap:5px;padding:7px}.fld-bases{grid-row:1/5;transform:scale(.66);transform-origin:left center;width:150px;margin-right:-50px}.fld-meter{height:16px}.fld-throw{font-size:12px;min-height:38px}.fld-dive{font-size:11px;min-height:30px}.fld-actions small{display:none}.fld-hint{font-size:11px;max-width:64vw}.field-controls{padding-bottom:6px!important}}
+
 </style>
 <title>2군에서 MVP까지 | 야구선수 키우기 게임</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -2160,6 +2177,12 @@ function validSave(s){
   if(s.off&&(!obj(s.off)||!Array.isArray(s.off.offers)||!s.off.offers.every(obj)))return false;
   if(s.prog&&(!obj(s.prog)||s.prog.ev&&(!Array.isArray(s.prog.ev)||!s.prog.ev.every(obj)||!Array.isArray(s.prog.segs))))return false;
   if(s.play&&s.play.v===2&&(!['pa','ms','msT','sel'].every(k=>obj(s.play[k]))||!['a','h','lu','ars','batInn','pitInn','log'].every(k=>Array.isArray(s.play[k]))))return false;
+  if(s.play?.mode==='field'){
+    const f=s.play.field;
+    if(!obj(f)||f.v!==1||!FPOS[f.key]||!['ready','track','held','charging','throw','result'].includes(f.phase)||!['t','x','z'].every(k=>Number.isFinite(f[k]))||!Array.isArray(f.path)||!f.path.length||!Array.isArray(f.runners)||!Array.isArray(f.throws)||!Array.isArray(f.events)||!obj(f.before))return false;
+    if(!obj(f.before.pa)||!obj(f.cover)||!Array.isArray(f.target)||f.target.length!==2||!f.target.every(Number.isFinite)||!f.path.every(p=>Array.isArray(p)&&p.length>=4&&p.slice(0,4).every(Number.isFinite)))return false;
+    if(f.phase==='result'&&!Number.isFinite(f.endAt))return false;
+  }
   if(['summary','award','world'].includes(s.phase)&&(!obj(s.last)||!obj(s.last.line)))return false;
   if(s.phase==='nat'&&(!obj(s.natRes)||!obj(s.natRes.line)))return false;
   return true;
@@ -2189,6 +2212,11 @@ function fixState(){
   if(S.phase==='play'&&(!S.play||!S.prog))S.phase=S.prog?'progress':'app';
   if(S.phase==='progress'&&!S.prog)S.phase='app';
   if(S.phase!=='play')S.play=null;
+  if(S.play?.role==='bat'){
+    const G=S.play;
+    if(!Array.isArray(G.fieldInn))G.fieldInn=G.batInn.filter(i=>i>G.inn);
+    G.fieldDone=G.fieldDone||{};G.fs=G.fs||{chances:0,putouts:0,assists:0,errors:0};
+  }
 }
 function load(){try{acceptSave(JSON.parse(localStorage.getItem(KEY)||'null'))}catch(e){}}
 function exportCode(){try{return btoa(unescape(encodeURIComponent(JSON.stringify(S))))}catch(e){return''}}
@@ -2823,7 +2851,7 @@ function halfRuns(k=1){const p0=clamp(.7-(k-1)*.18,.45,.85);if(R()<p0)return 0;c
 const onTxt=on=>!on?'주자 없음':on==='123'?'만루':on.split('').join(', ')+'루';
 function msLine(ms){if(!ms)return'';if(ms.outs!=null)return`${ipStr(ms.outs/3)}이닝 ${ms.K}탈삼진 ${ms.ER}실점${ms.HBP?` ${ms.HBP}사구`:''}`;if(!ms.PA)return'';return`${ms.AB}타수 ${ms.H}안타${ms.HR?` ${ms.HR}홈런`:''}${ms.RBI?` ${ms.RBI}타점`:''}${ms.BB?` ${ms.BB}볼넷`:''}${ms.HBP?` ${ms.HBP}사구`:''}`}
 const msZero=()=>({PA:0,AB:0,H:0,HR:0,RBI:0,BB:0,K:0,outs:0,ER:0,Ha:0,BBa:0,Ka:0});
-function pgMs(G){const m=G.ms;return G.role==='pit'?{outs:m.outs,K:m.Ka,ER:m.ER,H:m.Ha,BB:m.BBa,HBP:m.HBPa||0}:{PA:m.PA,AB:m.AB,H:m.H,HR:m.HR,RBI:m.RBI,BB:m.BB,K:m.K,HBP:m.HBP||0}}
+function pgMs(G){const m=G.ms;return G.role==='pit'?{outs:m.outs,K:m.Ka,ER:m.ER,H:m.Ha,BB:m.BBa,HBP:m.HBPa||0}:{PA:m.PA,AB:m.AB,H:m.H,HR:m.HR,RBI:m.RBI,BB:m.BB,K:m.K,HBP:m.HBP||0,fielding:G.fs?{...G.fs}:null}}
 /* 타자 몸 위치(m): 우타자는 3루 쪽(-x), 좌타자는 1루 쪽(+x) */
 function bodyHit(c,lb){const x=zx(c.u),y=zy(c.v),bx=lb?.95:-.95;return Math.abs(x-bx)<.34&&y>.05&&y<1.85}
 const pst=(G,k)=>G.role==='pit'?S.stats[k]:G.cl[k];
@@ -2910,7 +2938,8 @@ function newPlay(e){
   G.pitBase=nat?150:({HS:134,UNIV:139,KR:145,JP:147,US:152}[S.org]||145);
   if(role==='bat'){
     if(e.kind==='reg'){G.batInn=[ri(2,4),ri(6,7),9];G.pitInn=[]}
-    else{G.batInn=[ri(1,3),ri(4,6),9];G.pitInn=[9]}
+    else{G.batInn=[ri(1,3),ri(4,6),9];G.pitInn=[]}
+    G.fieldInn=G.batInn.slice();G.fieldDone={};G.fs={chances:0,putouts:0,assists:0,errors:0};
     G.cl={vel:L+10,ctl:L+6,brk:L+9,sta:L,men:L+6,fld:L};G.ars=['직구','슬라이더','스플리터','커브'];
   }else{
     const close=S.pos==='RP', sit=close?9:7;
@@ -2937,6 +2966,7 @@ function pgRun(G){
   for(let g=0;g<60&&!G.done;g++){
     const i=G.inn;
     if(G.top){
+      if(G.role==='bat'&&G.fieldInn?.includes(i)&&!G.fieldDone?.[i]){pgSetField(G,i);return}
       if(G.pitInn.includes(i)&&!G.pitDone[i]){pgSetPit(G,i);return}
       let r=halfRuns(G.kO);
       if(G.role==='bat')r=Math.max(0,Math.min(r,G.my+(i>=6?3:5)-G.op));
@@ -3502,9 +3532,11 @@ function pgAfterPit(G,res){
   G.st='aim';if(G.sel.u==null){G.sel.u=0;G.sel.v=0}
 }
 function pgCont(G){
-  if(G.top){if(G.pitDone[G.inn])pgAfterTop(G)}else pgAfterBot(G);
+  const oldMode=G.mode;
+  if(G.top){if(G.pitDone[G.inn]||G.fieldDone?.[G.inn])pgAfterTop(G)}else pgAfterBot(G);
   if(!G.done)pgRun(G);
   if(G.done)G.st='over';
+  if(G.mode!==oldMode&&HAS_DOM&&P3.A.pitcher){P3.bb=null;P3.fieldCamera=null;p3ResetField(G)}
 }
 function pgQuickBat(G){
   let res=null;const L=G.L;
@@ -3532,7 +3564,8 @@ function pgAuto(G){
   PG.an=null;PG.next=0;
   for(let g=0;g<300&&!G.done;g++){
     if(G.st==='between'){pgCont(G);continue}
-    if(G.mode==='bat'){const r=pgQuickBat(G);if(r)pgAfterBat(G,r)}
+    if(G.mode==='field'){pgFieldQuick(G)}
+    else if(G.mode==='bat'){const r=pgQuickBat(G);if(r)pgAfterBat(G,r)}
     else{const r=pgQuickPit(G);if(r)pgAfterPit(G,r)}
   }
   if(G.done)G.st='over';
@@ -3543,6 +3576,219 @@ function pgFinish(){
   if(e)resolveBig(e,G.win,{my:G.my,op:G.op,ms:pgMs(G)});
   S.play=null;S.phase='progress';PG.an=null;
 }
+/* ================= 야수 직접 수비 ================= */
+function pgFieldPathAt(path,t){
+  if(t<=path[0][0])return path[0].slice(1,4);
+  let lo=0,hi=path.length-1;while(lo+1<hi){const m=(lo+hi)>>1;if(path[m][0]<t)lo=m;else hi=m}
+  const a=path[lo],b=path[hi],f=clamp((t-a[0])/Math.max(.001,b[0]-a[0]),0,1);
+  return a.slice(1,4).map((v,i)=>v+(b[i+1]-v)*f);
+}
+function pgFieldMake(G){
+  const key=FPOS[S.pos]?S.pos:'SS',of=OFK.includes(key),origin=FPOS[key].slice();
+  let tx=origin[0]+rnd(-4.5,4.5),tz=origin[1]+rnd(-3.8,3.8);
+  if(key==='C'){tx=rnd(-2.2,2.2);tz=rnd(2.7,4.8)}
+  const angle=Math.atan2(tx,tz)*180/Math.PI;let path,fly=null,target,catchTime;
+  if(of){
+    const la=rnd(43,53),distance=Math.hypot(tx,tz);let low=80,high=195;
+    for(let n=0;n<22;n++){const mid=(low+high)/2,f=bbFly(mid,la,angle,false);if(f.dist<distance)low=mid;else high=mid}
+    fly=bbFly((low+high)/2,la,angle,true);
+    const cp=fly.path.find(p=>p[0]>fly.t*.55&&p[2]<=1.4)||fly.path.at(-2);target=[cp[1],cp[3]];catchTime=cp[0];
+    const end=fly.path.at(-1),roll=bbSurfacePath(end.slice(0,4),[fly.vx,fly.vy,fly.vz]);path=fly.path.concat(roll.slice(1));
+  }else{
+    path=bbGround(key==='C'?rnd(35,43):rnd(94,113),-9,angle,key==='C'?.12:.65);
+    const cp=path.reduce((a,b)=>Math.hypot(b[1]-tx,b[3]-tz)<Math.hypot(a[1]-tx,a[3]-tz)?b:a);
+    target=[cp[1],cp[3]];catchTime=cp[0];
+  }
+  const F={v:1,key,of,type:of?'fly':'ground',phase:'ready',t:-.65,x:origin[0],z:origin[1],vx:0,vz:0,path,target,catchTime,landTime:fly?.t||0,held:false,caughtAir:false,throws:[],events:[],base:of?(G.pa.on.includes('3')?4:2):G.pa.on.includes('1')&&G.pa.out<2&&key!=='1B'?2:1,before:bbPlaySnapshot(G),outsBefore:G.pa.out,cover:{},runners:[],applied:false};
+  const used=new Set([key]);
+  for(const base of [1,2,3,4]){
+    const options={1:['1B','P'],2:['2B','SS'],3:['3B','SS','P'],4:['C','P']}[base];
+    const receiver=options.find(k=>!used.has(k))||'P';used.add(receiver);F.cover[base]=receiver;
+  }
+  for(const from of G.pa.on.split('').map(Number).concat(0)){
+    const bat=from===0,forced=bat||from===1||from===2&&G.pa.on.includes('1')||from===3&&G.pa.on.includes('1')&&G.pa.on.includes('2');
+    const r={from,to:from,bat,start:bat?.24:.16,speed:bat?6.5:6.6};
+    if(of){
+      if(bat){r.to=.94;bbRunnerLeg(r,.94,.24,'run')}
+      else {bbRunnerLeg(r,from+.045,.18,'run');r.to=from;r.decision='hold'}
+    }else if(forced){r.forceBase=from+1;r.forceAt=0;bbRunnerSetDestination(r,from+1,r.start)}
+    F.runners.push(r);
+  }
+  return F;
+}
+function pgSetField(G,i){
+  G.mode='field';G.cur=null;G.lastBB=null;G.fieldDone=G.fieldDone||{};G.fs=G.fs||{chances:0,putouts:0,assists:0,errors:0};
+  const of=OFK.includes(S.pos);G.pa={i,on:pick(of?['','1','2','3','12']:['','1','1','12']),out:ri(0,2),b:0,s:0,runs:0};
+  G.field=pgFieldMake(G);G.st='intro';PG.fieldLast=0;PG.fieldKeys={};PG.fieldJoy=null;
+  P3.fieldCamera=null;
+  G.intro=`${i}회초 ${G.pa.out}사 ${onTxt(G.pa.on)}. ${S.name}의 ${SUBPOS[S.pos].n} 수비 차례예요. 타구는 내 수비 구역으로 옵니다. 이동해서 공을 잡은 뒤 베이스를 고르고 송구 게이지를 초록 구간에서 놓으세요.`;
+}
+function pgFieldStart(G){
+  const F=G.field;if(!F||F.phase!=='ready')return;
+  F.phase='track';G.st='fielding';G.fs.chances++;PG.an=null;PG.fieldLast=0;PG.fieldKeys={};PG.fieldJoy=null;save();pgHud();
+}
+function pgFieldForce(F,r,t){return r.bat||!!r.forceBase&&t<(r.forceUntil??Infinity)}
+function pgFieldOut(G,r,t,base,force,kind='throw'){
+  const F=G.field;if(r.out||F.outsBefore+F.events.filter(e=>e.kind==='out').length>=3)return false;
+  r.out=true;r.retireAt=t;
+  F.events.push({kind:'out',t,from:r.from,base,bat:r.bat,force,catch:kind==='catch',batterBeforeFirst:r.bat&&base===1});
+  for(const other of F.runners)if(other.from>r.from)other.forceUntil=Math.min(other.forceUntil??Infinity,t);
+  G.pa.out=Math.min(3,F.outsBefore+F.events.filter(e=>e.kind==='out').length);
+  if(kind==='catch'||kind==='step')G.fs.putouts++;else if(!F.assisted){G.fs.assists++;F.assisted=true}
+  pgFlash((kind==='catch'?'포구 아웃':force?'포스 아웃':'태그 아웃')+' · '+G.pa.out+'아웃','good',base?base===4?'홈':base+'루':'뜬공');pgHud();return true;
+}
+function pgFieldLanding(F){
+  if(F.landed||F.type!=='fly'||F.caughtAir)return;F.landed=true;
+  for(const r of F.runners){
+    const forced=r.bat||r.from===1||r.from===2&&F.before.pa.on.includes('1')||r.from===3&&F.before.pa.on.includes('1')&&F.before.pa.on.includes('2');
+    if(forced){r.forceBase=r.from+1;r.forceAt=F.landTime;}
+    bbRunnerSetDestination(r,Math.min(4,r.from+1),F.t+.12);r.decision='advance';
+  }
+}
+function pgFieldCatch(G){
+  const F=G.field;if(F.held||F.phase!=='track')return false;
+  const ball=pgFieldPathAt(F.path,Math.max(0,F.t)),reach=1.05+Math.max(0,S.stats.fld-40)*.008+(F.diveUntil>F.t?.9:0);
+  if(F.t<.12||ball[1]>.25+2||Math.hypot(ball[0]-F.x,ball[2]-F.z)>reach)return false;
+  const bounceAt=F.type==='fly'?F.landTime:(F.path.find(p=>p[4])?.[0]||0);
+  const air=!F.landed&&F.t<bounceAt;
+  F.held=true;F.caughtAt=F.t;F.catchBall=ball.slice();F.caughtAir=air;F.phase='held';F.vx=F.vz=0;F.moveTo=null;
+  if(air){
+    const batter=F.runners.find(r=>r.bat);pgFieldOut(G,batter,F.t,0,false,'catch');
+    for(const r of F.runners.filter(r=>!r.bat)){
+      r.forceUntil=F.t;bbRunnerRetreat(r,F.t+.15,r.from);r.retouchAt=Math.max(F.t,bbRunArrival(r));r.decision='return';
+      if(r.from===3&&F.outsBefore<2&&Math.hypot(...F.target)>55){bbRunnerSetDestination(r,4,r.retouchAt+.18);r.decision='tagup'}
+    }
+    if(G.pa.out>=3||!F.runners.some(r=>!r.bat&&r.to>r.from)){F.endAt=F.t+.9;F.phase='result'}
+  }
+  SND.pop();pgFlash(air?'잡았다!':'포구 완료','good',F.phase==='held'?'베이스 선택 → 꾹 눌러 송구':'아웃');save();pgHud();return true;
+}
+function pgFieldMeter(F){return(1-Math.cos(Math.PI*Math.max(0,F.t-F.chargeAt)/1.08))/2}
+function pgFieldBand(){return clamp(.075+((S.stats.arm||50)-40)*.001,.07,.135)}
+function pgFieldSelect(G,base){
+  if(!G?.field||![1,2,3,4].includes(base)||['charging','throw','result'].includes(G.field.phase))return;
+  G.field.base=base;pgHud();
+}
+function pgFieldCharge(G){
+  const F=G?.field;if(!F||F.phase!=='held'||F.getupUntil>F.t)return false;
+  F.phase='charging';F.chargeAt=F.t;return true;
+}
+function pgFieldCancel(G){const F=G?.field;if(F?.phase==='charging'){F.phase='held';delete F.chargeAt;pgHud()}}
+function pgFieldThrow(G,position){
+  const F=G?.field;if(!F||!['held','charging'].includes(F.phase))return false;
+  const base=F.base,pt=BASEP[base%4],distance=Math.hypot(pt[0]-F.x,pt[1]-F.z);
+  F.meter=position==null?pgFieldMeter(F):clamp(position,0,1);
+  const error=Math.max(0,Math.abs(F.meter-.5)-pgFieldBand()),miss=error*(9+distance*.045),quality=error===0?1:clamp(1-error*2.5,.05,1);
+  const dx=pt[0]-F.x,dz=pt[1]-F.z,side=F.meter<.5?-1:1;
+  const to=[pt[0]+dz/Math.max(1,distance)*miss*side,1.15,pt[1]-dx/Math.max(1,distance)*miss*side];
+  const receiver=F.cover[base],ready=.2+Math.hypot(FPOS[receiver][0]-pt[0],FPOS[receiver][1]-pt[1])/6.5;
+  const speed=clamp(18+((S.stats.arm||50)-40)*.12,16,25)*(quality>.7?1:.87),dur=Math.max(.12,Math.hypot(to[0]-F.x,to[2]-F.z)/speed);
+  const recovery=miss>1?Math.max(0,miss-.75)*2/6.5:0;
+  const tr={base,by:F.key,receiver,from:[F.x,1.15,F.z],to,t0:Math.max(F.t+.24,ready-dur),dur,miss,quality,ready,recovery,done:false};
+  F.throws.push(tr);F.phase='throw';F.releaseAt=tr.t0;F.vx=F.vz=0;F.moveTo=null;
+  if(miss>2.3&&!F.error){F.error=true;G.fs.errors++}
+  // 포스가 아닌 주자는 송구가 먼저 오면 마지막 안전한 베이스로 돌아간다.
+  for(const r of F.runners)if(!r.bat&&!r.out&&r.to===base&&!pgFieldForce(F,r,F.t)&&tr.t0+dur+.2<bbRunArrival(r))bbRunnerRetreat(r,F.t+.15,r.from);
+  pgFlash(error===0?'정확한 송구!':miss>2.3?'송구가 빗나갔어요':'송구! ',error===0?'good':miss>2.3?'bad':'',base===4?'홈':base+'루');SND.whoosh();save();pgHud();return true;
+}
+function pgFieldResolveThrow(G,tr){
+  const F=G.field,arrive=Math.max(tr.t0+tr.dur,tr.ready)+(tr.recovery||0);
+  if(F.t<arrive)return;tr.done=true;
+  const targets=F.runners.filter(r=>!r.out&&(r.to===tr.base&&r.to>r.from||r.from===tr.base&&r.retouchAt>arrive));
+  for(const r of targets){
+    const force=pgFieldForce(F,r,arrive),appeal=r.from===tr.base&&r.retouchAt>arrive;
+    if(tr.miss<=2.3&&(force||appeal)&&arrive+.04<bbRunArrival(r)){
+      if(pgFieldOut(G,r,arrive,tr.base,force,'throw')&&tr.base===2&&r.from===1&&force&&G.pa.out<3){
+        const to=BASEP[1],from=BASEP[2],dur=Math.hypot(to[0]-from[0],to[1]-from[1])/21;
+        F.throws.push({base:1,by:tr.receiver,receiver:F.cover[1],from:[from[0],1.15,from[1]],to:[to[0],1.15,to[1]],t0:arrive+.38,dur,miss:0,quality:1,ready:0,done:false,relay:true});
+      }
+    }else if(!force&&!appeal&&tr.miss<=2.3&&arrive<bbRunArrival(r)){
+      // 홈·3루 등 비포스 플레이는 주자 도착 순간의 실제 태그로 판정한다.
+      tr.tag={from:r.from,at:bbRunArrival(r)};
+    }
+  }
+  const next=F.throws.some(t=>!t.done);
+  if(!next&&!tr.tag){F.endAt=Math.max(F.t+.8,...F.runners.filter(r=>!r.out).map(r=>Math.min(F.t+5,bbRunArrival(r))));F.phase='result'}
+  save();pgHud();
+}
+function pgFieldFinish(G){
+  const F=G.field;if(!F||F.applied)return;F.applied=true;
+  const outs=F.events.filter(e=>e.kind==='out').sort((a,b)=>a.t-b.t),third=F.outsBefore+outs.length>=3?outs[2-F.outsBefore]:null;
+  let runs=0,on='';
+  for(const r of F.runners){
+    if(r.out)continue;const time=bbRunArrival(r);
+    if(r.to===4){if(bbRunCounts(third,time))runs++;}
+    else if(Number.isInteger(r.to)&&r.to>0&&r.to<4)on+=r.to;
+    else if(!r.bat)on+=r.from;
+  }
+  G.pa.out=Math.min(3,F.outsBefore+outs.length);G.pa.on=[...new Set(on)].sort().join('');G.pa.runs=F.before.pa.runs+runs;G.op=F.before.op+runs;
+  const hit=!F.caughtAir&&!F.runners.find(r=>r.bat)?.out;
+  const text=outs.length>=2?'병살 수비 성공!':F.caughtAir?(F.type==='fly'?'뜬공 포구 성공!':'직선타 포구 성공!'):outs.length?'송구 아웃!':F.error?'수비 실책 · 주자 세이프':hit?'타자 주자 세이프':'진루를 막았어요';
+  F.text=text;pgLog(G,`${G.inn}회초 ${S.name} 수비: ${text}${runs?' · '+runs+'실점':''}`);
+  // 수비 한 플레이 뒤 남은 이닝은 동료들이 진행한다. 실제 아웃·실점에서 이어 간다.
+  G.lastBB=null;
+  for(let n=0;n<30&&G.pa.out<3;n++){
+    const x=R(),k=n>=25?'K':x<.72?pick(['GO','FO','K']):x<.81?'BB':x<.95?'1B':'2B';pgApply(G,k,null,true);
+  }
+  G.a[G.inn-1]=G.pa.runs;G.fieldDone[G.inn]=true;G.st='between';G.msg=`${text} ${G.inn}회초 수비가 끝났어요. ${G.me} ${G.my} : ${G.op} ${G.opp}.`;
+  PG.fieldKeys={};PG.fieldJoy=null;PG.an=null;save();pgHud();
+}
+function pgFieldUpdate(G,dt,input={}){
+  const F=G.field;if(!F||G.st!=='fielding'||F.applied)return;
+  dt=clamp(dt,0,.05);F.t+=dt;
+  if(F.phase==='track'&&F.t>F.catchTime+.25){const p=pgFieldPathAt(F.path,F.t);F.chaseTarget=[p[0],p[2]]}
+  if(F.phase==='track'||F.phase==='held'){
+    const sign=F.key==='C'?-1:1;let dx=input.x||0,dz=input.z||0;
+    if(input.auto&&F.phase==='track')F.moveTo=F.chaseTarget||F.target;
+    if(F.moveTo&&!dx&&!dz){const x=F.x-F.moveTo[0],z=F.moveTo[1]-F.z,d=Math.hypot(x,z);if(d>.12){dx=x/d*sign;dz=z/d*sign}else F.moveTo=null}
+    else if(dx||dz)F.moveTo=null;
+    const mag=Math.hypot(dx,dz),speed=clamp(5.7+((S.stats.spd||50)-40)*.018,5.3,6.8)*(F.diveUntil>F.t?1.25:F.getupUntil>F.t?.2:1);
+    const vx=mag?(-dx/Math.max(1,mag))*speed*sign:0,vz=mag?(dz/Math.max(1,mag))*speed*sign:0,k=1-Math.exp(-dt*11);
+    F.vx+=(vx-F.vx)*k;F.vz+=(vz-F.vz)*k;F.x=clamp(F.x+F.vx*dt,-98,98);F.z=clamp(F.z+F.vz*dt,-5,123);
+    const angle=Math.atan2(F.x,F.z)*180/Math.PI,radius=Math.hypot(F.x,F.z),limit=(Math.abs(angle)<=45?fenceR(angle):bowlR(angle))-.7;
+    if(radius>limit){F.x*=limit/radius;F.z*=limit/radius}
+  }
+  if(F.type==='fly'&&!F.landed&&!F.caughtAir&&F.t>=F.landTime)pgFieldLanding(F);
+  if(F.phase==='track'){
+    pgFieldCatch(G);
+    if(F.t>22&&!F.held){F.error=true;G.fs.errors++;F.phase='result';F.endAt=F.t+.6}
+  }
+  if(F.phase==='held'){
+    if(!F.caughtAir)for(const base of [4,3,2,1]){
+      const pt=BASEP[base%4],r=F.runners.find(r=>!r.out&&r.to===base&&pgFieldForce(F,r,F.t)&&F.t+.04<bbRunArrival(r));
+      if(r&&Math.hypot(F.x-pt[0],F.z-pt[1])<.85){
+        pgFieldOut(G,r,F.t,base,true,'step');
+        if(base>1&&G.pa.out<3&&!F.runners.find(r=>r.bat)?.out)F.base=1;
+        else{F.phase='result';F.endAt=G.pa.out>=3?F.t+.9:Math.max(F.t+.9,...F.runners.filter(r=>!r.out).map(bbRunArrival))}
+        break;
+      }
+    }
+    if(F.phase==='held'&&(input.auto||F.t-F.caughtAt>8))pgFieldThrow(G,input.auto?.5:.74);
+  }
+  for(const tr of F.throws.slice()){
+    if(!tr.done&&F.t>=tr.t0+tr.dur)pgFieldResolveThrow(G,tr);
+    if(tr.tag&&F.t>=tr.tag.at){const r=F.runners.find(r=>r.from===tr.tag.from&&!r.out);if(r&&r.to===tr.base)pgFieldOut(G,r,tr.tag.at,tr.base,false,'throw');delete tr.tag;F.phase='result';F.endAt=F.t+.8}
+  }
+  if(F.phase==='result'&&F.t>=F.endAt)pgFieldFinish(G);
+}
+function pgFieldQuick(G){
+  if(G.st==='intro')pgFieldStart(G);
+  if(G.field?.phase==='charging')pgFieldCancel(G);
+  for(let n=0;n<1400&&G.st==='fielding';n++)pgFieldUpdate(G,.04,{auto:true});
+  if(G.st==='fielding'){G.field.endAt=G.field.t;G.field.phase='result';pgFieldFinish(G)}
+}
+function pgFieldDive(G){
+  const F=G?.field;if(!F||F.phase!=='track'||F.getupUntil>F.t)return;
+  F.diveUntil=F.t+.55;F.getupUntil=F.t+1;F.moveTo=(F.chaseTarget||F.target).slice();pgFieldCatch(G);
+}
+function pgFieldHudFrame(G){
+  if(!HAS_DOM||G.mode!=='field')return;const F=G.field;if(!F)return;
+  const needle=document.getElementById('fld-needle'),zone=document.getElementById('fld-zone'),hint=document.getElementById('fld-hint'),knob=document.getElementById('fld-knob');
+  if(needle)needle.style.left=(100*(F.phase==='charging'?pgFieldMeter(F):F.meter??0))+'%';
+  if(zone){zone.style.left=(50-pgFieldBand()*100)+'%';zone.style.width=pgFieldBand()*200+'%'}
+  if(knob){const j=PG.fieldJoy||{x:0,z:0};knob.style.transform=`translate(${j.x*30}px,${j.z*30}px)`}
+  if(hint){const target=F.chaseTarget||F.target,sign=F.key==='C'?-1:1,dx=(target[0]-F.x)*sign,dz=(target[1]-F.z)*sign;hint.textContent=F.phase==='track'?`타구 ${Math.hypot(dx,dz).toFixed(1)}m · ${Math.abs(dx)<1?'':dx>0?'왼쪽 ': '오른쪽 '}${dz>1?'뒤로':dz< -1?'앞으로':'포구 지점'}`:F.phase==='held'?(F.getupUntil>F.t?'일어나서 송구 자세를 잡고 있어요':'베이스 선택 → 송구 버튼을 꾹 눌렀다 초록에서 놓기'):F.phase==='charging'?'초록 구간에서 놓으세요':F.phase==='throw'?'송구를 끝까지 지켜보세요':F.text||'플레이 결과를 확인하고 있어요'}
+}
+
 /* ================= 큰 경기 직접 플레이: 3D 화면 (three.js) ================= */
 const THREE_URL='https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js';
 const P3={st:'none',cbs:[],r:null,sc:null,cam:null,A:{},bb:null,fx:[],view:'intro',dressed:null,last:0,w:0,h:0,board:'',
@@ -4055,7 +4301,8 @@ function p3ResetField(G){
   P3.resetting=true;
   const A=P3.A;
   if(P3.dressed!==G.mode+(G.mode==='bat'?'':G.bi))p3Dress(G);
-  A.pitcher.position.set(0,.25,18.44);A.pitcher.rotation.y=Math.PI;p3PitchPose(A.pitcher,0);p3Idle(A.catcher);p3Idle(A.ump);
+  A.pitcher.position.set(0,.25,18.44);A.pitcher.rotation.y=Math.PI;p3PitchPose(A.pitcher,0);
+  A.catcher.position.set(0,0,-1.05);A.catcher.rotation.y=0;A.ump.position.set(0,0,-1.95);A.ump.rotation.y=0;p3Idle(A.catcher);p3Idle(A.ump);
   for(const k in A.f){const [x,z]=FPOS[k];A.f[k].position.set(-x,0,z);A.f[k].rotation.y=Math.atan2(x,-z);p3Idle(A.f[k])}
   const lb=A.batter.userData.lh;A.batter.position.set(lb?-.95:.95,0,.15);A.batter.rotation.y=lb?Math.PI/2:-Math.PI/2;A.batter.visible=true;
   if(A.batter.userData.batPivot)A.batter.userData.batPivot.visible=true;p3Idle(A.batter);p3SwingPose(A.batter,0);
@@ -4218,9 +4465,94 @@ function p3Fireworks(x,z){
 /* ---- 카메라 ---- */
 const VIEW3={bat:{pos:[0,1.05,-4.6],look:[0,1,18.44],h:31,v:27},pit:{pos:[-.6,3.25,28],look:[0,.43,0],h:6.8,v:10}};
 function p3Fov(h,v){const a=P3.cam.aspect;return Math.max(v,2*Math.atan(Math.tan(h*Math.PI/360)/a)*180/Math.PI)}
+function p3FieldActor(key){return key==='P'?P3.A.pitcher:key==='C'?P3.A.catcher:P3.A.f[key]}
+function p3FieldVisuals(){
+  if(P3.fieldVis)return;const group=new THREE.Group(),mat=c=>new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:.86,depthWrite:false});
+  const ring=(r,c)=>{const m=new THREE.Mesh(new THREE.RingGeometry(r,r+.12,64),mat(c));m.rotation.x=-Math.PI/2;m.position.y=.065;group.add(m);return m};
+  P3.fieldRing=ring(.7,0xffd35a);P3.fieldTarget=ring(1.25,0x6ee7b7);P3.fieldVis=group;P3.sc.add(group);
+}
+function p3FieldFrame(G,now,dt){
+  const F=G.field,A=P3.A;if(!F)return;p3FieldVisuals();
+  if(P3.dressed!=='field'+G.bi){p3Dress(G);const actor=p3FieldActor(F.key);p3Color(actor,p3Kit(true,G.mc[1]),S.avatar.skin,S.num);actor.userData.lh=/^좌투/.test(S.hand);const gloves=actor.userData.gloves;if(gloves){gloves.L.visible=!actor.userData.lh;gloves.R.visible=actor.userData.lh}P3.dressed='field'+G.bi;}
+  A.zone.visible=A.grid.visible=A.tgt.visible=A.ret.visible=A.mitt.visible=A.land.visible=A.arrival.visible=A.glow.visible=A.trail.visible=A.shadow.visible=false;
+  const time=F.t,ball=new THREE.Vector3(),tr=F.throws.filter(tr=>time>=tr.t0-.24).at(-1);
+    if(tr){const k=clamp((time-tr.t0)/tr.dur,0,1);ball.set(tr.from[0]+(tr.to[0]-tr.from[0])*k,tr.from[1]+(tr.to[1]-tr.from[1])*k+4.905*tr.dur*tr.dur*k*(1-k),tr.from[2]+(tr.to[2]-tr.from[2])*k);if(tr.miss>1&&time>tr.t0+tr.dur)ball.y=Math.max(.037,ball.y-4.905*(time-tr.t0-tr.dur)**2);}
+  else if(F.held){const k=clamp((time-F.caughtAt)/.24,0,1),a=F.catchBall||[F.x,1.2,F.z];ball.set(a[0]+(F.x-a[0])*k,a[1]+(1.2-a[1])*k,a[2]+(F.z-a[2])*k)}
+  else if(time<0)ball.set(0,1,Math.max(0,-time*28));
+  else ball.set(...pgFieldPathAt(F.path,time));
+  ball.x=-ball.x;A.ball.position.copy(ball);A.ball.visible=time>=-.65;A.ball.scale.setScalar(clamp(P3.cam.position.distanceTo(ball)/26,1,2.2));A.ball.rotation.x+=dt*25;
+  for(const key of FKEYS){
+    const fig=p3FieldActor(key);if(!fig)continue;fig.visible=true;
+    if(key===F.key){
+      const ox=fig.position.x,oz=fig.position.z;fig.position.set(-F.x,0,F.z);
+      if(Math.hypot(F.vx,F.vz)>.25&&['track','held'].includes(F.phase)){
+        p3Face(fig,Math.atan2(fig.position.x-ox,fig.position.z-oz));
+        if(F.diveUntil>time)p3Pose(fig,{...P_SCOOP,hy:.35,spine:[.95,0,0],hL:[.1,.3,.9],hR:[-.1,.4,.5]},p3Ease(20));else p3Run(fig,time*11,1);
+      }else if(tr&&tr.by===key&&time<tr.t0+.25){
+        p3Face(fig,Math.atan2(-(tr.to[0]-F.x),tr.to[2]-F.z));p3Pose(fig,kfPose(THRK,clamp((time-tr.t0+.24)/.48,0,1)),p3Ease(26));
+      }else if(F.held&&time-F.caughtAt<.38){
+        if(F.caughtAir)p3CatchPose(fig,ball,p3Ease(24));else p3Pose(fig,P_SCOOP,p3Ease(24));
+      }else if(F.phase==='track'){p3Face(fig,Math.atan2(ball.x-fig.position.x,ball.z-fig.position.z));p3Pose(fig,P_READY,p3Ease(15));}
+      else p3Pose(fig,P_STAND,p3Ease(12));
+      if(F.held&&!tr&&time-F.caughtAt>=.24){fig.updateMatrixWorld(true);const arm=fig.userData.lh?fig.userData.AL:fig.userData.AR;arm.hd.getWorldPosition(A.ball.position)}
+    }else{
+      let target=FPOS[key],arrive=0,start=FPOS[key],elapsed=Math.max(0,time);
+      for(const base of [1,2,3,4])if(F.cover[base]===key){target=BASEP[base%4];arrive=.2+Math.hypot(FPOS[key][0]-target[0],FPOS[key][1]-target[1])/6.5;break}
+      const last=F.throws.filter(t=>t.receiver===key&&time>=t.t0+t.dur).at(-1);
+      if(last&&last.miss>1){const base=BASEP[last.base%4],half=(last.recovery||.1)/2;elapsed=Math.max(0,time-last.t0-last.dur);arrive=half;
+        if(elapsed<half){start=base;target=[last.to[0],last.to[2]]}else{start=[last.to[0],last.to[2]];target=base;elapsed-=half}}
+      const k=arrive?p3MoveFraction(clamp(elapsed/Math.max(.1,arrive),0,1)):0;
+      const x=start[0]+(target[0]-start[0])*k,z=start[1]+(target[1]-start[1])*k;fig.position.set(-x,key==='P'?.25*(1-clamp(time/.3,0,1)):0,z);
+      const throwing=F.throws.find(t=>t.by===key&&Math.abs(time-t.t0)<.24),receiving=F.throws.find(t=>t.receiver===key&&time>t.t0&&time<t.t0+t.dur+.35);
+      if(throwing){p3Face(fig,Math.atan2(-(throwing.to[0]-x),throwing.to[2]-z));p3Pose(fig,kfPose(THRK,clamp((time-throwing.t0+.24)/.48,0,1)),p3Ease(24))}
+      else if(k>0&&k<1){p3Face(fig,Math.atan2(-(target[0]-start[0]),target[1]-start[1]));p3Run(fig,time*11,.85,{brake:k>.85})}
+      else if(receiving)p3CatchPose(fig,ball,p3Ease(22));else p3Pose(fig,P_READY,p3Ease(10));
+      if(last&&last.miss>1&&time>=last.t0+last.dur+(last.recovery||0)/2){fig.updateMatrixWorld(true);fig.userData.AL.hd.getWorldPosition(A.ball.position)}
+    }
+  }
+  A.runners.forEach(r=>r.visible=false);
+  for(const r of F.runners){
+    const fig=r.bat?A.batter:A.runners[r.from-1];if(!fig)continue;
+    const third=G.pa.out>=3?F.events.filter(e=>e.kind==='out').at(-1)?.t:null;
+    const tt=Math.min(Math.max(0,time),r.retireAt??third??Math.max(0,time));
+    fig.visible=!(r.out&&time>r.retireAt+.3)&&!(r.to===4&&bbRunnerProgress(r,tt)>=4);
+    if(r.bat&&time<.3){const left=fig.userData.lh;fig.position.set(left?-.95:.95,0,.15);fig.rotation.y=left?Math.PI/2:-Math.PI/2;p3SwingPose(fig,clamp(.42+time*1000/SWING_MS,0,1));continue}
+    if(r.bat&&fig.userData.batPivot)fig.userData.batPivot.visible=false;
+    const [x,z]=bbRunnerRenderPoint(r,tt,{thirdAt:third}),[nx,nz]=bbRunnerRenderPoint(r,tt+.03,{thirdAt:third});fig.position.set(-x,0,z);
+    if(Math.hypot(nx-x,nz-z)>.001){p3Face(fig,Math.atan2(-(nx-x),nz-z));p3Run(fig,time*11,1,{brake:bbRunArrival(r)-time<.3})}else p3Pose(fig,P_LEAD,p3Ease(12));
+  }
+  P3.fieldRing.position.set(-F.x,.065,F.z);
+  const target=F.chaseTarget||F.target;
+  P3.fieldTarget.visible=F.phase==='track'&&time>=0;P3.fieldTarget.position.set(-target[0],.07,target[1]);P3.fieldTarget.scale.setScalar(.85+.12*Math.sin(time*7));
+  if(F.phase==='track'&&time>=0){p3Trail(A.ball.position);p3Rib()}
+  const sign=F.key==='C'?-1:1,V=P3.fieldCamera||(P3.fieldCamera={pos:new THREE.Vector3(-F.x,4.6,F.z+8.5*sign),look:new THREE.Vector3(-F.x,1,F.z-11*sign)});
+  V.pos.lerp(new THREE.Vector3(-F.x,4.6,F.z+8.5*sign),1-Math.exp(-dt*6));V.look.lerp(new THREE.Vector3(-F.x,1.2,F.z-11*sign),1-Math.exp(-dt*6));
+  P3.cam.position.copy(V.pos);P3.cam.lookAt(V.look);const fov=p3Fov(52,44);if(Math.abs(P3.cam.fov-fov)>.01){P3.cam.fov=fov;P3.cam.updateProjectionMatrix()}
+}
+function p3FieldClick(G,e){
+  const F=G.field;if(!F||G.st!=='fielding'||!['track','held'].includes(F.phase))return;
+  const cv=P3.r.domElement,box=cv.getBoundingClientRect(),p=new THREE.Vector2((e.clientX-box.left)/box.width*2-1,-(e.clientY-box.top)/box.height*2+1),ray=new THREE.Raycaster();ray.setFromCamera(p,P3.cam);
+  const v=new THREE.Vector3();if(ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,1,0),0),v))F.moveTo=[clamp(-v.x,-92,92),clamp(v.z,-5,115)];
+}
+function pgFieldControls(G){
+  const F=G.field,canThrow=['held','charging'].includes(F.phase),active=['track','held'].includes(F.phase),btn=(b,label)=>`<button data-a="fld-base" data-v="${b}" class="fb${b} ${F.base===b?'on':''}" aria-pressed="${F.base===b}">${label}</button>`;
+  return`<div class="fld-hint" id="fld-hint">초록 원을 향해 이동하세요</div>
+    <div class="fld-left"><div class="fld-stick" id="fld-stick" role="group" aria-label="이동 조이스틱"><i>이동</i><b id="fld-knob"></b></div><small>WASD / 방향키 · 화면 클릭 이동</small></div>
+    <div class="fld-actions"><div class="fld-bases" role="group" aria-label="송구할 베이스">${btn(1,'1루')}${btn(2,'2루')}${btn(3,'3루')}${btn(4,'홈')}</div>
+    <div class="fld-meter" aria-label="송구 정확도 게이지"><i id="fld-zone"></i><b id="fld-needle"></b></div>
+    <button class="fld-throw" data-pg="field-throw" ${canThrow?'':'disabled'}>${canThrow?'꾹 눌러 송구':'포구 후 송구'}</button>
+    <button class="fld-dive" data-a="fld-dive" ${F.phase==='track'?'':'disabled'}>다이빙 · J</button><small>1·2·3·4 베이스 / Space 송구</small></div>`;
+}
+function pgFieldJoy(e){
+  const el=document.getElementById('fld-stick');if(!el)return;const r=el.getBoundingClientRect(),x=(e.clientX-r.left-r.width/2)/(r.width*.36),z=(e.clientY-r.top-r.height/2)/(r.height*.36),m=Math.max(1,Math.hypot(x,z));
+  PG.fieldJoy={id:e.pointerId,x:x/m,z:z/m};if(S?.play?.field)S.play.field.moveTo=null;
+}
+
 /* ---- 프레임 ---- */
 function p3Frame(G,now,dt){
   P3.dt=dt;P3.clock=now;
+  if(P3.fieldVis)P3.fieldVis.visible=G.mode==='field';
+  if(G.mode==='field'){p3FieldFrame(G,now,dt);return}
   const A=P3.A,an=PG.an,V=P3.V||(P3.V={a:new THREE.Vector3(),b:new THREE.Vector3(),pos:new THREE.Vector3(0,26,-30),look:new THREE.Vector3(0,2,30),tp:new THREE.Vector3(),tl:new THREE.Vector3()});
   // 투수
   if(an&&an.k==='wind')p3PitchPose(A.pitcher,(now-an.t0)/an.dur*.72);
@@ -4330,6 +4662,7 @@ function p3Pick(e){
 }
 function p3Down(e){
   e.preventDefault();SND.init();const G=S&&S.play;if(!G||P3.bb)return;
+  if(G.mode==='field'){p3FieldClick(G,e);return}
   if(G.mode==='bat'){if(e.isPrimary===false||e.button>0)return;pgSwing(null,e);return}
   const p=p3Pick(e);
   if(G.st==='aim'&&p&&Math.abs(p.u)<=10&&p.v>-7&&p.v<5){G.sel.u=clamp(p.u,-9,9);G.sel.v=clamp(p.v,-6,4.1);pgHud()}
@@ -4405,6 +4738,12 @@ function p3RevealT(B,bb){
 }
 function pgReveal(){const r=PG.rv;if(!r)return;PG.rv=null;pgFlash(r.txt,r.cls,r.sub);if(r.hit)SND.cheer(false);P3.board='';pgHud()}
 function pgStep(G,now){
+  if(G.mode==='field'){
+    const last=PG.fieldLast||now;PG.fieldLast=now;
+    const keys=PG.fieldKeys||{},joy=PG.fieldJoy;
+    pgFieldUpdate(G,(now-last)/1000,{x:joy?.x||((keys.ArrowRight||keys.KeyD?1:0)-(keys.ArrowLeft||keys.KeyA?1:0)),z:joy?.z||((keys.ArrowDown||keys.KeyS?1:0)-(keys.ArrowUp||keys.KeyW?1:0))});
+    pgFieldHudFrame(G);if(G.st==='fielding'&&now-(PG.fieldSaved||0)>750){PG.fieldSaved=now;save()}return;
+  }
   if(P3.bb?.play)p3LiveAdvance(G,P3.bb,(now-PG.an.t0)/1000);
   if(PG.rv&&now>=PG.rv.at)pgReveal();
   const an=PG.an;
@@ -4451,6 +4790,8 @@ function pgInit(){
     if(!ok||!P3.r){h.innerHTML='<div class="p3load">이 기기에서는 3D 화면을 불러오지 못했어요.<br>위의 <b>자동 진행</b>으로 경기를 마칠 수 있어요.</div>';P3.fail=true;pgHud();return}
     h.innerHTML='';h.appendChild(P3.r.domElement);P3.w=0;P3.last=0;P3.dressed=null;P3.board='';P3.bb=null;P3.view='';
     const G=S.play;pgFinishPending(G);PG.an=null;PG.rv=null;PG.sw=null;PG.swAt=0;PG.hover=null;p3ResetField(G);
+    PG.fieldLast=0;PG.fieldKeys={};PG.fieldJoy=null;
+    if(G.mode==='field'&&G.field?.phase==='charging')pgFieldCancel(G);
     if(G.mode==='bat'&&G.st==='pitching')PG.next=performance.now()+900;
     if(G.mode==='pit'&&G.st==='anim'){if(G.cur)PG.an={k:'wind',t0:performance.now(),dur:760};else G.st='aim'}
     if(G.mode==='pit'&&G.st==='meter')G.st='aim';PG.charge=0;
@@ -4470,7 +4811,7 @@ function pgLineHTML(G){
 }
 function pgBugHTML(G){
   const pa=G.pa, me=pgMs(G);
-  const who=G.mode==='bat'?(G.pit?`<b>${esc(G.pit.lab)}</b> · 최고 ${G.pit.v}km<br>타석 ${esc(S.name)} · ${msLine(me)||'오늘 첫 타석'}`:'')
+  const who=G.mode==='field'?`<b>${esc(S.name)} · ${esc(SUBPOS[S.pos].n)} 수비</b><br>포구 아웃 ${G.fs.putouts} · 보살 ${G.fs.assists} · 실책 ${G.fs.errors}`:G.mode==='bat'?(G.pit?`<b>${esc(G.pit.lab)}</b> · 최고 ${G.pit.v}km<br>타석 ${esc(S.name)} · ${msLine(me)||'오늘 첫 타석'}`:'')
     :`<b>${esc(G.lu[G.bi].lab)}</b><br>마운드 ${G.role==='pit'?esc(S.name)+' · '+msLine(me):esc(G.me)+' 마무리 (직접 조종)'}`;
   return`<div class="bugm"><div class="tms"><div><i style="background:${G.oc[1]}"></i>${esc(G.oc[0])}<b>${G.op}</b></div><div><i style="background:${G.mc[1]}"></i>${esc(G.mc[0])}<b>${G.my}</b></div></div>
     <div class="st"><span class="p3inn">${G.top?'▲':'▼'}${G.inn}</span>${diaHTML(pa?pa.on:'')}${bsoHTML(pa?pa.b:0,pa?pa.s:0,pa?Math.min(2,pa.out):0)}</div></div><div class="who">${who}</div>`;
@@ -4481,11 +4822,12 @@ function pgCtlHTML(G){
   if(G.st==='over'){
     if(busy)return'';
     const N=S.prog&&S.prog.nat, med=G.kind==='nat'&&N?N.medals:null, head=G.kind==='reg'?(G.win?'승리':'패배'):G.win?(med?med[0]:'우승'):(med?med[1]:'준우승');
-    return`<div class="p3card over ${G.win?'w':'l'}"><div class="stampx">${esc(head)}${G.win?'!':''}</div><div class="fs">${esc(G.me)} ${G.my} : ${G.op} ${esc(G.opp)}</div>${pgLineHTML(G)}<p>${esc(msLine(pgMs(G))||'출전 기록 없음')}</p><button class="btn play" data-a="pg-done">결과 확인</button></div>`;
+    return`<div class="p3card over ${G.win?'w':'l'}"><div class="stampx">${esc(head)}${G.win?'!':''}</div><div class="fs">${esc(G.me)} ${G.my} : ${G.op} ${esc(G.opp)}</div>${pgLineHTML(G)}<p>${esc(msLine(pgMs(G))||'출전 기록 없음')}</p>${G.fs?.chances?`<p>수비 ${G.fs.chances}회 · 포구 아웃 ${G.fs.putouts} · 보살 ${G.fs.assists} · 실책 ${G.fs.errors}</p>`:''}<button class="btn play" data-a="pg-done">결과 확인</button></div>`;
   }
   if(busy&&G.st!=='pitching'&&G.st!=='aim')return'';
-  if(G.st==='intro')return`<div class="p3card"><span class="k">${G.mode==='bat'?'타석':'마운드'} · ${G.inn}회${G.top?'초':'말'}</span><p>${esc(G.intro||'')}</p><button class="btn play" data-a="pg-start">${G.mode==='bat'?'타석에 들어서기':'마운드에 오르기'}</button></div>`;
+  if(G.st==='intro')return`<div class="p3card"><span class="k">${G.mode==='field'?'야수 수비':G.mode==='bat'?'타석':'마운드'} · ${G.inn}회${G.top?'초':'말'}</span><p>${esc(G.intro||'')}</p><button class="btn play" data-a="pg-start">${G.mode==='field'?'수비 위치로':G.mode==='bat'?'타석에 들어서기':'마운드에 오르기'}</button></div>`;
   if(G.st==='between')return`<div class="p3card"><p>${esc(G.msg)}</p>${pgLineHTML(G)}<button class="btn" data-a="pg-next">다음</button></div>`;
+  if(G.mode==='field')return pgFieldControls(G);
   if(G.mode==='bat'){const pw=Math.round(P3.bpow*100);
     return`<p class="p3hint">공이 홈플레이트에 도착할 때 화면 어디든 누르세요. 위치 조준은 필요 없어요. 볼에 손대면 헛스윙하거나 약한 타구가 나오기 쉬워요.</p>
     <div class="spow"><span>짧게</span><input type="range" id="p3pow" min="0" max="100" value="${pw}" aria-label="스윙 세기"><span>풀스윙</span><b id="p3powv">${powLab(P3.bpow)}</b></div>
@@ -4506,9 +4848,10 @@ function pgHud(){
   else{if(b)b.innerHTML=pgBugHTML(G);if(c)c.innerHTML=pgCtlHTML(G)}
   const side=!!c?.querySelector('.pitw');
   c?.classList.toggle('p3side',side);document.getElementById('pg3')?.classList.toggle('pitch-side',side);
+  const field=G.mode==='field'&&G.st==='fielding';c?.classList.toggle('field-controls',field);document.getElementById('pg3')?.classList.toggle('field-mode',field);
   if(t)t.innerHTML=`<button class="${P3.snd?'on':''}" data-a="pg-snd" aria-pressed="${P3.snd}">소리</button>${G.done?'':'<button data-a="pg-auto">자동 진행</button>'}`;
 }
-function pgFlash(t,cls,sub){const el=document.getElementById('pg-fl');if(!el)return;el.className='p3fl';void el.offsetWidth;el.querySelector('b').textContent=t;el.querySelector('small').textContent=sub||'';el.className='p3fl on '+(cls||'')}
+function pgFlash(t,cls,sub){if(!HAS_DOM)return;const el=document.getElementById('pg-fl');if(!el)return;el.className='p3fl';void el.offsetWidth;el.querySelector('b').textContent=t;el.querySelector('small').textContent=sub||'';el.className='p3fl on '+(cls||'')}
 
 /* ================= hold to stamp ================= */
 function initHold(){
@@ -4573,7 +4916,9 @@ function act(a,v){
       P.p=Math.max(P.p,nx.p);const e=evPending(P);if(!e)continue;
       if(!e.done&&!momReady(P,e))continue;break}}
   else if(a==='skip'){fastForward();finishSeason();top=true}
-  else if(a==='pg-start'){const G=S.play;if(G){SND.init();G.st=G.mode==='bat'?'pitching':'aim';PG.next=0;PG.an=null}}
+  else if(a==='pg-start'){const G=S.play;if(G){SND.init();if(G.mode==='field')pgFieldStart(G);else G.st=G.mode==='bat'?'pitching':'aim';PG.next=0;PG.an=null}}
+  else if(a==='fld-base')pgFieldSelect(S?.play,+v);
+  else if(a==='fld-dive')pgFieldDive(S?.play);
   else if(a==='pg-tgt'){const G=S.play,[u,vv]=String(v).split(',').map(Number);if(G&&G.mode==='pit'&&(G.st==='aim'||G.st==='meter')){G.sel.u=u;G.sel.v=vv;if(G.st==='aim'){G.st='meter';PG.m0=performance.now()}}}
   else if(a==='pg-snd'){P3.snd=!P3.snd;try{localStorage.setItem('b2mvp_snd',P3.snd?'1':'0')}catch(e){}if(P3.snd)SND.init()}
   else if(a==='pg-assist'){P3.assist=!P3.assist;try{localStorage.setItem('b2mvp_assist',P3.assist?'1':'0')}catch(e){}}
@@ -4617,15 +4962,29 @@ if(HAS_DOM){
   document.addEventListener('visibilitychange',()=>{if(LAUNCH.screen==='cut'){document.querySelector('.launch')?.classList.toggle('launch-paused',document.hidden);launchSchedule()}});
   document.addEventListener('keydown',e=>{
     if(LAUNCH.screen){if(e.key==='Escape'||(LAUNCH.screen==='cut'&&(e.key==='Enter'||e.code==='Space'))){e.preventDefault();LAUNCH.screen==='cut'?launchTitle():launchEnter()}return}
+    if(S?.phase==='play'&&S.play?.mode==='field'&&S.play.st==='fielding'&&!['INPUT','TEXTAREA'].includes(e.target?.tagName)){
+      const G=S.play,code=e.code;
+      if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD'].includes(code)){e.preventDefault();(PG.fieldKeys||(PG.fieldKeys={}))[code]=true;G.field.moveTo=null;return}
+      if(/^Digit[1-4]$/.test(code)){e.preventDefault();pgFieldSelect(G,+code.slice(-1));return}
+      if(code==='Space'){e.preventDefault();if(!e.repeat)pgFieldCharge(G);return}
+      if(code==='KeyJ'){e.preventDefault();if(!e.repeat)pgFieldDive(G);return}
+      if(e.key==='Escape'){pgFieldCancel(G);return}
+    }
     if(S&&S.phase==='play'&&S.play&&S.play.mode==='pit'&&(e.code==='Space'||e.key===' ')){const t=e.target;if(t&&(t.tagName==='BUTTON'&&t.dataset.a||t.tagName==='INPUT'))return;e.preventDefault();if(e.repeat)return;pgCharge();return}
     if(e.key==='Escape'&&ui.sheet){ui.sheet=null;render()}});
   document.addEventListener('pointerdown',e=>{
+    if(e.target.closest('#fld-stick')){e.preventDefault();if(S?.play?.st==='fielding'){e.target.closest('#fld-stick').setPointerCapture(e.pointerId);pgFieldJoy(e)}return}
+    const fieldThrow=e.target.closest('[data-pg="field-throw"]');
+    if(fieldThrow&&!fieldThrow.disabled){e.preventDefault();if(pgFieldCharge(S?.play)){PG.fieldChargePointer=e.pointerId;fieldThrow.setPointerCapture(e.pointerId)}return}
     if(e.target.closest('#p3map')){e.preventDefault();PG.mapDrag=true;pgMapSet(e);return}
     const b=e.target.closest('[data-pg]');if(!b||b.disabled)return;e.preventDefault();if(b.dataset.pg==='throw')pgCharge()});
-  document.addEventListener('pointermove',e=>{if(PG.mapDrag)pgMapSet(e)});
-  const up=()=>{if(PG.mapDrag){PG.mapDrag=false}if(PG.charge)pgRelease()};
+  document.addEventListener('pointermove',e=>{if(PG.mapDrag)pgMapSet(e);if(PG.fieldJoy?.id===e.pointerId){e.preventDefault();pgFieldJoy(e)}});
+  const up=e=>{if(PG.mapDrag){PG.mapDrag=false}if(PG.charge)pgRelease();if(PG.fieldJoy?.id===e.pointerId)PG.fieldJoy=null;
+    if(PG.fieldChargePointer===e.pointerId){PG.fieldChargePointer=null;if(e.type==='pointercancel')pgFieldCancel(S?.play);else if(S?.play?.field?.phase==='charging')pgFieldThrow(S.play)}};
   document.addEventListener('pointerup',up);document.addEventListener('pointercancel',up);
-  document.addEventListener('keyup',e=>{if((e.code==='Space'||e.key===' ')&&PG.charge)pgRelease()});
+  document.addEventListener('keyup',e=>{if(PG.fieldKeys)PG.fieldKeys[e.code]=false;if(e.code==='Space'&&S?.play?.mode==='field'&&S.play.field?.phase==='charging'){e.preventDefault();pgFieldThrow(S.play);return}if((e.code==='Space'||e.key===' ')&&PG.charge)pgRelease()});
+  const fieldBlur=()=>{PG.fieldKeys={};PG.fieldJoy=null;PG.fieldChargePointer=null;if(S?.play?.mode==='field'){pgFieldCancel(S.play);save()}};
+  window.addEventListener('blur',fieldBlur);document.addEventListener('visibilitychange',()=>{if(document.hidden)fieldBlur()});
   const start=data=>{if(data&&data.S){S=migrate(data.S);fixState();if(data.C)Object.assign(C,data.C)}else load();if(location.hash==='#rank'){ui.rank={tab:'rank',day:'all',cat:'all'};LAUNCH.screen=null}render()};
   window.claude?.hot?.snapshot?.(()=>({S,C:{...C}}));
   window.claude?.hot?.ready?window.claude.hot.ready(start):start(window.claude?.hot?.data??{});

@@ -21,7 +21,9 @@ assert.equal(importCode('not a save code'),false);
 assert(importCode(encode({...S,phase:'progress',prog:{v:1}})));assert.equal(S.phase,'app');assert.equal(S.prog,null);
 assert(importCode(encode({...S,phase:'progress',prog:null})));assert.equal(S.phase,'app');
 assert(importCode(encode({...S,phase:'play',play:{v:1},prog:null})));assert.equal(S.phase,'app');
-assert(importCode(code));startSeason();const event=S.prog.ev.find(e=>e.t==='big');
+assert(importCode(code));startSeason();
+// A season-ending injury can legitimately omit big matches; persistence still needs a match fixture.
+const event=S.prog.ev.find(e=>e.t==='big')||{kind:'reg',label:'Save test',oppFull:tnames('HS')[1],opp:tnames('HS')[1],p:.15};
 S.play=newPlay(event);S.phase='play';S.play.v=1;
 assert(importCode(exportCode()));assert.equal(S.phase,'progress');assert.equal(S.play,null);
 // A saved live result must commit once even when the user reloads and switches to automatic play.

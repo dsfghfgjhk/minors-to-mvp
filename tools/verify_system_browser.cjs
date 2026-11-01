@@ -15,7 +15,7 @@ for(const [width,height] of [[1440,900],[390,844],[844,390]]){
  checks.push({width,height,flow:'create, menus, import/export, reload, season completion'});
  if(width===390){
   await page.addScriptTag({path:process.env.THREE_LOCAL||'/tmp/mvp-browser/three.min.js'});
-  await page.evaluate(()=>{S.off.decided='검증';S.nat=null;startSeason();const e=S.prog.ev.find(e=>e.t==='big');S.prog.p=e.p;S.play=newPlay(e);S.phase='play';render();});
+  await page.evaluate(()=>{S.off.decided='검증';S.nat=null;startSeason();const e=S.prog.ev.find(e=>e.t==='big')||{t:'big',kind:'reg',label:'Browser test',p:.15,seg:0,oppFull:tnames('HS')[1],opp:tnames('HS')[1]};if(!S.prog.ev.includes(e))S.prog.ev.push(e);S.prog.p=e.p;S.play=newPlay(e);S.play.top=false;pgSetPA(S.play,S.play.inn);S.phase='play';render();});
   await page.waitForSelector('#pg3c canvas');await page.waitForFunction(()=>P3.r&&P3.A.pitcher);await page.locator('[data-a=pg-start]').click();await page.waitForFunction(()=>PG.an?.k==='fly');
   await page.locator('#pg3c canvas').dispatchEvent('pointerdown',{clientX:150,clientY:300,button:0,isPrimary:true});await page.waitForFunction(()=>PG.an?.k==='post'||PG.an?.k==='bb');
   await page.evaluate(()=>{cancelAnimationFrame(PG.raf);PG.raf=0;const g=S.play;pgStep(g,PG.an.t0+PG.an.dur+100);p3Frame(g,performance.now(),.016);save();});
