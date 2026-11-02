@@ -2382,6 +2382,7 @@ function fixState(){
     if(!Array.isArray(G.fieldInn))G.fieldInn=G.batInn.filter(i=>i>G.inn);
     G.fieldDone=G.fieldDone||{};G.fs=G.fs||{chances:0,putouts:0,assists:0,errors:0};
     if(G.mode==='field'){
+      if(G.field?.phase==='track'&&G.field.backup?.key==='P')delete G.field.backup;
       PG.fieldHold=null;
       if(G.field?.phase==='charging'){G.field.phase='held';delete G.field.chargeAt}
       if(G.intro)G.intro=G.intro.replace('이동해서 공을 잡은 뒤 베이스를 고르고 송구 게이지를 초록 구간에서 놓으세요.','원하는 베이스 버튼을 꾹 누르면 공을 잡은 뒤 그 베이스로 송구해요.');
@@ -3925,7 +3926,9 @@ function pgFieldBackup(G,dt){
   const ball=pgFieldPathAt(F.path,F.t);if(!F.backup){
     if(Math.hypot(ball[0]-F.x,ball[2]-F.z)<2.3)return;
     const covered=new Set(Object.values(F.cover));
-    const candidates=FKEYS.filter(k=>k!==F.key&&!covered.has(k));
+    // 외야로 빠진 공은 외야수의 회수 책임이다. 투수는 베이스·송구 백업에 남는다.
+    const outfield=F.of||ball[2]>32||Math.hypot(ball[0],ball[2])>42;
+    const candidates=FKEYS.filter(k=>k!==F.key&&k!=='P'&&!covered.has(k)&&(!outfield||OFK.includes(k)));
     const key=candidates.sort((a,b)=>Math.hypot(FPOS[a][0]-ball[0],FPOS[a][1]-ball[2])-Math.hypot(FPOS[b][0]-ball[0],FPOS[b][1]-ball[2]))[0];
     if(!key)return;F.backup={key,x:FPOS[key][0],z:FPOS[key][1],moving:false};
   }
