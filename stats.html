@@ -95,7 +95,7 @@ th:first-child,td:first-child{text-align:left}
       <div id="g-pos"></div>
     </section>
   </div>
-  <p class="note">1분마다 자동으로 새로 불러와요. 선수 생성 수는 2026년 10월 29일 밤 10시쯤부터 세기 시작했어요. 이 페이지는 검색에 안 잡히고 게임 안에는 링크가 없어요.</p>
+  <p class="note">1분마다 실시간 집계를 갱신해요. 연동이 지연되면 최대 15분 간격으로 보관한 집계를 표시하고 기준 시각을 알려 드려요. 선수 생성 수는 2026년 10월 29일 밤 10시쯤부터 세기 시작했어요. 이 페이지는 검색에 안 잡히고 게임 안에는 링크가 없어요.</p>
 </div>
 <script>
 const CFG={url:'https://xdoumdgrsbnmktpcvgxd.supabase.co',key:'sb_publishable_QCL89LDJdRqOf6FOYoRvtw_62zXa0yL'};
@@ -104,15 +104,21 @@ const POS={SP:'선발투수',RP:'구원투수',C:'포수','1B':'1루수','2B':'2
 const kday=(off=0)=>new Date(Date.now()+9*3600e3-off*864e5).toISOString().slice(0,10);
 const $=id=>document.getElementById(id);
 const fmt=n=>n==null?'–':n.toLocaleString('ko-KR');
+const RETIRED='&or=(ava->>kind.is.null,ava->>kind.neq.journey)';
+const SNAPSHOT='https://raw.githubusercontent.com/dsfghfgjhk/minors-to-mvp/stats-data/data/stats/latest.json';
+async function get(url,options={}){
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
+  try{const r=await fetch(url,{...options,signal:controller.signal});if(!r.ok)throw Error('HTTP '+r.status);return r}
+  catch(e){throw Error(e.name==='AbortError'?'응답 시간 초과':e.message)}finally{clearTimeout(timer)}
+}
 async function count(table,q=''){
-  const r=await fetch(`${CFG.url}/rest/v1/${table}?select=id${q}&limit=1`,{headers:{...H,Prefer:'count=exact'}});
-  if(!r.ok)throw new Error(table+' '+r.status);
-  const cr=r.headers.get('content-range')||'';const n=+(cr.split('/')[1]);return isNaN(n)?0:n;
+  const r=await get(`${CFG.url}/rest/v1/${table}?select=id${q}&limit=1`,{method:'HEAD',headers:{...H,Prefer:'count=exact'}});
+  const raw=(r.headers.get('content-range')||'').split('/')[1];if(!/^\d+$/.test(raw||''))throw Error('집계 응답 누락');return +raw;
 }
 async function rows(table,q){
-  const out=[];for(let off=0;off<20000;off+=1000){
-    const r=await fetch(`${CFG.url}/rest/v1/${table}?${q}&limit=1000&offset=${off}`,{headers:H});
-    if(!r.ok)throw new Error(table+' '+r.status);const b=await r.json();out.push(...b);if(b.length<1000)break;
+  const out=[];for(let off=0;;off+=1000){
+    const r=await get(`${CFG.url}/rest/v1/${table}?${q}&order=ts.asc,id.asc&limit=1000&offset=${off}`,{headers:H});
+    const b=await r.json();if(!Array.isArray(b))throw Error('잘못된 기록 응답');out.push(...b);if(b.length<1000)break;
   }return out;
 }
 function tipOn(tip,card,x,y,html){tip.innerHTML=html;const w=tip.offsetWidth;x=Math.min(Math.max(x,w/2+6),card.width-w/2-6);tip.style.left=x+'px';tip.style.top=y+'px';tip.style.opacity=1}
@@ -143,34 +149,46 @@ function highlight(el,i,series){const cats=el.querySelectorAll('.hit').length;le
   // 막대는 그려진 순서대로(값이 0이면 없음) 있어서, 같은 묶음만 진하게 보이도록 x 위치로 고릅니다
   const hit=el.querySelector(`.hit[data-i="${i}"]`),x1=+hit.getAttribute('x'),x2=x1+ +hit.getAttribute('width');
   el.querySelectorAll('.bar').forEach(p=>{const m=/M([\d.]+)/.exec(p.getAttribute('d'));const x=+m[1];p.style.opacity=(x>=x1&&x<x2)?1:.35})}
-let last=null;
-async function load(){
-  const today=kday();
-  try{
-    const days=[...Array(14)].map((_,i)=>kday(13-i));
-    const [sAll,cAll,sDay,cDay,todayRows]=await Promise.all([
-      count('starts'),count('careers','&or=(ava->>kind.is.null,ava->>kind.neq.journey)'),
-      Promise.all(days.map(d=>count('starts','&day=eq.'+d))),
-      Promise.all(days.map(d=>count('careers','&or=(ava->>kind.is.null,ava->>kind.neq.journey)&day=eq.'+d))),
-      rows('starts','select=ts,pos&day=eq.'+today+'&order=ts.asc')]);
-    const sT=sDay[13],cT=cDay[13];
-    $('t-s').textContent=fmt(sT);$('t-c').textContent=fmt(cT);$('t-sa').textContent=fmt(sAll);$('t-ca').textContent=fmt(cAll);
-    const hrNow=new Date(Date.now()+9*3600e3).getUTCHours(),lastHr=todayRows.filter(r=>Date.now()-r.ts<3600e3).length;
-    $('t-s2').textContent=`최근 1시간 ${fmt(lastHr)}명`;
-    const md=d=>{const[,m,dd]=d.split('-');return `${+m}/${+dd}`};
-    bars($('g-day'),$('tip-day'),days,[{n:'만든 선수',c:'#2a78d6',v:sDay},{n:'은퇴한 선수',c:'#eb6834',v:cDay}],{fmtCat:(c,long)=>long?`${md(c)}${c===today?' (오늘)':''}`:md(c),labelEvery:innerWidth<560?2:1,alignEnd:true});
-    $('tb-day').innerHTML='<tr><th>날짜</th><th>만든 선수</th><th>은퇴한 선수</th></tr>'+days.slice().reverse().map((d,i)=>`<tr><td>${md(d)}${d===today?' (오늘)':''}</td><td>${fmt(sDay[13-i])}</td><td>${fmt(cDay[13-i])}</td></tr>`).join('');
-    const hr=Array(24).fill(0);todayRows.forEach(r=>{hr[new Date(r.ts+9*3600e3).getUTCHours()]++});
-    bars($('g-hr'),$('tip-hr'),[...Array(24).keys()],[{n:'만든 선수',c:'#2a78d6',v:hr}],{h:200,fmtCat:(c,long)=>long?`${c}시~${c+1}시`:String(c),labelEvery:3});
-    const pc={};todayRows.forEach(r=>{const k=r.pos||'?';pc[k]=(pc[k]||0)+1});
-    const pl=Object.entries(pc).sort((a,b)=>b[1]-a[1]),pm=Math.max(1,...pl.map(x=>x[1]));
-    $('g-pos').innerHTML=pl.length?pl.map(([k,v])=>`<div class="pos"><span>${POS[k]||k}</span><div class="t" style="width:${Math.max(2,v/pm*100)}%"></div><span class="v">${fmt(v)}</span></div>`).join(''):'<p class="d">아직 오늘 만든 선수가 없어요.</p>';
-    const t=new Date();$('upd').textContent=`${t.getHours()}:${String(t.getMinutes()).padStart(2,'0')} 기준 · 실시간`;$('live').classList.remove('off');$('err').style.display='none';last=Date.now();
-  }catch(e){$('live').classList.add('off');$('upd').textContent='불러오기 실패';$('err').textContent='랭킹 서버에서 숫자를 못 가져왔어요. 잠시 뒤 새로고침해 주세요. ('+e.message+')';$('err').style.display='block'}
+let last=null,lastData=null,busy=false;
+function validSnapshot(d){return d&&d.v===1&&typeof d.day==='string'&&Number.isFinite(d.at)&&Array.isArray(d.days)&&d.days.length===14&&['sDay','cDay'].every(k=>d[k]==null||Array.isArray(d[k])&&d[k].length===14&&d[k].every(Number.isFinite))&&(d.hours==null||Array.isArray(d.hours)&&d.hours.length===24&&d.hours.every(Number.isFinite))&&['sAll','cAll','recent'].every(k=>d[k]==null||Number.isFinite(d[k]))&&(d.positions==null||typeof d.positions==='object'&&Object.values(d.positions).every(Number.isFinite))}
+function draw(D,live=false){
+  lastData=D;const {days,sAll,cAll,sDay,cDay}=D,today=D.day;
+  document.querySelector('.tile.hl small').textContent=(today===kday()?'오늘':today)+' 만든 선수';
+  document.querySelectorAll('.tile small')[1].textContent=(today===kday()?'오늘':today)+' 은퇴한 선수';
+  $('t-s').textContent=fmt(sDay?.[13]);$('t-c').textContent=fmt(cDay?.[13]);$('t-sa').textContent=fmt(sAll);$('t-ca').textContent=fmt(cAll);
+  $('t-s2').textContent=D.recent==null?'집계 대기':`집계 시점 최근 1시간 ${fmt(D.recent)}명`;
+  const md=d=>{const[,m,dd]=d.split('-');return `${+m}/${+dd}`};
+  const series=[];if(sDay)series.push({n:'만든 선수',c:'#2a78d6',v:sDay});if(cDay)series.push({n:'은퇴한 선수',c:'#eb6834',v:cDay});
+  if(series.length)bars($('g-day'),$('tip-day'),days,series,{fmtCat:(c,long)=>long?`${md(c)}${c===today?' (집계일)':''}`:md(c),labelEvery:innerWidth<560?2:1,alignEnd:true});else $('g-day').textContent='일별 집계를 불러오지 못했어요.';
+  $('tb-day').innerHTML='<tr><th>날짜</th><th>만든 선수</th><th>은퇴한 선수</th></tr>'+days.slice().reverse().map((d,i)=>`<tr><td>${md(d)}</td><td>${fmt(sDay?.[13-i])}</td><td>${fmt(cDay?.[13-i])}</td></tr>`).join('');
+  if(D.hours)bars($('g-hr'),$('tip-hr'),[...Array(24).keys()],[{n:'만든 선수',c:'#2a78d6',v:D.hours}],{h:200,fmtCat:(c,long)=>long?`${c}시~${c+1}시`:String(c),labelEvery:3});else $('g-hr').textContent='시간대 집계를 불러오지 못했어요.';
+  const pl=Object.entries(D.positions||{}).filter(([k])=>POS[k]).sort((a,b)=>b[1]-a[1]),pm=Math.max(1,...pl.map(x=>x[1]));
+  $('g-pos').innerHTML=pl.length?pl.map(([k,v])=>`<div class="pos"><span>${POS[k]}</span><div class="t" style="width:${Math.max(2,v/pm*100)}%"></div><span class="v">${fmt(v)}</span></div>`).join(''):`<p class="d">${D.positions?'집계된 선수가 없어요.':'포지션 집계를 불러오지 못했어요.'}</p>`;
+  $('upd').textContent=new Date(D.at).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'})+(live?' · 실시간':' · 저장된 집계');$('live').classList.toggle('off',!live);
 }
+async function load(){
+  if(busy)return;busy=true;$('re').disabled=true;
+  const today=kday(),days=[...Array(14)].map((_,i)=>kday(13-i));
+  try{
+    const result=await Promise.allSettled([count('starts'),count('careers',RETIRED),rows('starts','select=day,ts,pos&day=gte.'+days[0]),rows('careers','select=day&day=gte.'+days[0]+RETIRED)]);
+    const errors=result.map((r,i)=>r.status==='rejected'?['생성 누계','은퇴 누계','생성 기록','은퇴 기록'][i]+': '+r.reason.message:null).filter(Boolean);
+    const value=i=>result[i].status==='fulfilled'?result[i].value:null,starts=value(2),careers=value(3);
+    const D={v:1,day:today,days,at:Date.now(),sAll:value(0),cAll:value(1),sDay:starts?days.map(d=>starts.filter(r=>r.day===d).length):null,cDay:careers?days.map(d=>careers.filter(r=>r.day===d).length):null,hours:starts?Array(24).fill(0):null,positions:starts?{}:null,recent:starts?starts.filter(r=>r.ts>Date.now()-3600000).length:null};
+    if(starts)for(const r of starts.filter(r=>r.day===today)){D.hours[new Date(r.ts+9*3600e3).getUTCHours()]++;if(POS[r.pos])D.positions[r.pos]=(D.positions[r.pos]||0)+1}
+    let saved=null;
+    if(errors.length){try{const r=await get(SNAPSHOT+'?v='+Math.floor(Date.now()/300000));const data=await r.json();if(validSnapshot(data))saved=data}catch(e){}if(!saved&&validSnapshot(lastData))saved=lastData;
+      if(saved&&saved.day===today){for(const k of ['sAll','cAll','sDay','cDay','hours','positions','recent'])if(D[k]==null)D[k]=saved[k];D.at=Math.min(D.at,saved.at)}
+    }
+    const useful=['sAll','cAll','sDay','cDay'].some(k=>D[k]!=null);draw(useful?D:saved||D,!errors.length);
+    $('err').textContent=errors.length?'실시간 연동 지연 · 확인된 항목과 저장된 집계를 표시합니다. '+errors.join(' / '):'';$('err').style.display=errors.length?'block':'none';
+    if(!errors.length){last=Date.now();try{localStorage.setItem('b2mvp_stats_cache',JSON.stringify(D))}catch(e){}}
+  }catch(e){$('live').classList.add('off');$('upd').textContent='연동 재시도 필요';$('err').textContent='집계를 갱신하지 못했어요. '+e.message;$('err').style.display='block'}
+  finally{busy=false;$('re').disabled=false}
+}
+try{const d=JSON.parse(localStorage.getItem('b2mvp_stats_cache')||'null');if(validSnapshot(d))draw(d)}catch(e){}
 $('re').onclick=load;load();setInterval(()=>{if(!document.hidden)load()},60e3);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&last&&Date.now()-last>60e3)load()});
-let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(load,300)});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(!last||Date.now()-last>60e3))load()});
+let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{if(lastData)draw(lastData,!$('live').classList.contains('off'))},150)});
 </script>
 </body>
 </html>

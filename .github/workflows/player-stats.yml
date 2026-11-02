@@ -1,0 +1,30 @@
+name: 플레이어 현황 집계
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['stats.html', 'tools/collect_player_stats.py', '.github/workflows/player-stats.yml']
+permissions:
+  contents: write
+concurrency:
+  group: player-stats
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: 공개 집계 수집
+        run: python3 tools/collect_player_stats.py
+      - name: 집계 보관
+        run: |
+          cd out
+          git init -q -b stats-data
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/stats/latest.json
+          git commit -qm '플레이어 현황 집계 갱신'
+          git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" stats-data
