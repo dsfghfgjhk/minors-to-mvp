@@ -1,0 +1,12 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+const src=[...fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].find(m=>m[1].includes('const HAS_DOM='))[1];
+vm.runInNewContext(src+`;
+const p={catchAt:6,at:[35,95],fielder:'RF'},runner={from:0,to:3,start:.24,speed:7.1,bat:true,forceBase:1,forceAt:0};
+const original=JSON.stringify(runner),choice=bbRunnerSafeStop(runner,p,6.12,1,5,.8);assert.equal(choice,2,'safe second base was abandoned because third was risky');assert.equal(JSON.stringify(runner),original,'preview changed live runner');
+const route=JSON.parse(original);bbRunnerRetreat(route,6.12,choice);assert(bbRunArrival(route)+.8<bbRunnerThrowETA(p,2));assert(bbRunArrival(runner)+.8>bbRunnerThrowETA(p,3));
+assert.equal(bbRunnerSafeStop(runner,p,6.12,1,2,.8),1,'runner entered base reserved by lead runner');
+assert.equal(bbRunnerSafeStop({...runner,from:1,to:2,forceBase:2},p,6.12,2,5,.8),2,'forced runner returned to first');
+assert.equal(bbRunnerSafeStop(runner,{...p,catchAt:12},6.12,1,5,.8),3,'clear extra-base opportunity was blocked');
+const carry=bbRunnerThrowETA({catchAt:1,at:[30,25],fielder:'1B'},1);assert(carry>=1.42+Math.hypot(30-BASEP[1][0],25-BASEP[1][1])/6.5,'self carry estimated as a fast throw');
+console.log({safeIntermediateBase:true,clearAdvance:true,forceProtected:true,baseReservation:true,previewImmutable:true,carryTiming:true});
+`,{console,Math,assert});

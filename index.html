@@ -3371,6 +3371,23 @@ function bbPlayRestore(G,s){Object.assign(G.pa,s.pa);G.my=s.my;G.op=s.op;Object.
 // 송구 속도(m/s)는 거리와 포지션별로 공유해 예상과 실제 도착 시간이 일치한다.
 function bbFirstBaseTime(spd=50){return clamp(3.95-((spd||50)-50)*.014,3.35,4.65)}
 function bbThrowSpeed(by,distance,carry=false){return carry?6.5:distance<=12?10:OFK.includes(by)?22:21}
+// 수비의 회수·중계·베이스 커버 시간을 포함한 주루 판단용 도착 예상.
+function bbRunnerThrowETA(play,base){
+  const target=BASEP[base%4],at=play.at,dist=Math.hypot(at[0]-target[0],at[1]-target[1]),receiver={1:'1B',2:'2B',3:'3B',4:'C'}[base];
+  const ready=.2+Math.hypot(FPOS[receiver][0]-target[0],FPOS[receiver][1]-target[1])/6.5;
+  let arrival=play.catchAt+.42+dist/bbThrowSpeed(play.fielder,dist,play.fielder===receiver);
+  if(dist>58){const cx=at[0]*.3,cz=38.8,d1=Math.hypot(at[0]-cx,at[1]-cz),d2=Math.hypot(cx-target[0],cz-target[1]);arrival=play.catchAt+.8+d1/bbThrowSpeed(play.fielder,d1)+d2/bbThrowSpeed('SS',d2)}
+  return Math.max(arrival,ready);
+}
+function bbRunnerSafeStop(r,play,at,mandatory,reserved,safety){
+  const limit=Math.min(r.to,reserved-1,4);
+  for(let base=limit;base>mandatory;base--){
+    const candidate=JSON.parse(JSON.stringify(r));bbRunnerRetreat(candidate,at,base);
+    if(bbRunArrival(candidate)+safety<bbRunnerThrowETA(play,base))return base;
+  }
+  return mandatory;
+}
+
 function bbPlan(G,bb){
   if(!bb||bb.k==='F'||bb.k==='HR')return null;
   const before=G.pa.out,on=G.pa.on,baseLen=27.4,batSpeed=baseLen/bbFirstBaseTime(G.mode==='bat'?S.stats.spd:50);
@@ -3483,14 +3500,13 @@ function bbPlan(G,bb){
     let reserved=5;
     for(const r of runners.slice().sort((a,b)=>b.from-a.from)){
       const mandatory=r.bat||r.from===1||r.from===2&&on.includes('1')||r.from===3&&on.includes('1')&&on.includes('2')?r.from+1:r.from;
-      const target=BASEP[r.to%4],distance=Math.hypot(play.at[0]-target[0],play.at[1]-target[1]);
-      let throwArrival=play.catchAt+.42+distance/bbThrowSpeed(play.fielder,distance);
-      if(distance>58){const cx=play.at[0]*.3,cz=38.8;throwArrival=play.catchAt+.8+Math.hypot(play.at[0]-cx,play.at[1]-cz)/bbThrowSpeed(play.fielder,Math.hypot(play.at[0]-cx,play.at[1]-cz))+Math.hypot(cx-target[0],cz-target[1])/bbThrowSpeed('SS',Math.hypot(cx-target[0],cz-target[1]))}
+      const throwArrival=bbRunnerThrowETA(play,r.to);
       const risky=r.to>mandatory&&bbRunArrival(r)+safety>throwArrival;
       const blocked=r.to<4&&r.to>=reserved;
       if(risky||blocked){
-        const reached=Math.floor(bbRunnerProgress(r,decisionAt));
-        const stop=Math.max(mandatory,Math.min(r.to-1,Math.max(r.from,reached),reserved-1));
+        // 홈과 3루는 더 신중하게, 2사에서는 같은 송구 여유로 조금 더 적극적으로 판단한다.
+        const margin=safety+(r.to===3?.15:0)-(before===2?.12:0);
+        const stop=bbRunnerSafeStop(r,play,decisionAt,mandatory,reserved,margin);
         bbRunnerRetreat(r,decisionAt,stop);
         r.riskRead={at:decisionAt,throwArrival,safety};
       }
