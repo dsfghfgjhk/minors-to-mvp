@@ -86,3 +86,7 @@ Tab과 Enter를 이용한 버튼 조작도 지원합니다. `node tests/game-key
 저장 방식과 서버 필터는 [RANKING.md](RANKING.md)를 참고하세요. `node tests/character-journey.cjs`와 `tools/verify_journey_browser.cjs`로 기록 누적, 동명이인·100위 밖 검색, 오프라인 복구, 복사와 공유 링크를 검사합니다.
 
 수비 카메라는 조작 선수 뒤의 3인칭 위치를 유지합니다. 송구 시 도착 베이스 쪽으로 시선만 회전하고, 병살 중계 선수가 공을 놓는 순간 다음 베이스 방향으로 돌아봅니다. `node tests/field-camera.cjs`로 위치 유지와 중계 시선 전환을 확인합니다.
+
+## 플레이어 현황 연동 복구
+
+`stats.html`은 누계 2개와 최근 14일 기록 2종을 조회하며, 일부 요청 실패는 다른 집계를 막지 않습니다. 각 요청은 10초 제한이 있고 새로고침 중복과 화면 크기 변경에 따른 재요청을 막습니다. 실시간 연동이 지연되면 기기의 마지막 성공 집계 또는 `stats-data` 브랜치의 공개 집계를 기준 시각과 함께 표시합니다. `.github/workflows/player-stats.yml`은 15분 간격으로 이름·개별 기록 없이 합산 결과만 보관합니다. 은퇴 집계는 JSON 조건 대신 `id=not.like.j-*`로 성장 스냅샷을 제외합니다. `tools/verify_stats_browser.cjs`로 정상·부분 장애·집계 대체·재연결을 검증합니다.

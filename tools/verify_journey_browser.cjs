@@ -20,7 +20,7 @@ async function context(width=1440,height=1000){
   }
   if(searchOffline)return route.fulfill({status:503,body:'offline'});
   const q=url.searchParams,kind=q.get('ava->>kind');let rows=records.slice();
-  if(kind==='eq.journey')rows=rows.filter(r=>r.ava.kind==='journey');else{assert(q.get('or')?.includes('kind.neq.journey'),'retirement ranking included snapshots');rows=rows.filter(r=>r.ava.kind!=='journey')}
+  if(kind==='eq.journey')rows=rows.filter(r=>r.ava.kind==='journey');else{assert(q.get('id')==='not.like.j-*','retirement ranking included snapshots');rows=rows.filter(r=>r.ava.kind!=='journey')}
   if(q.has('name')){const literal=q.get('name').slice(7,-1).replace(/\\([\\%_*])/g,'$1').toLowerCase();rows=rows.filter(r=>r.name.toLowerCase().includes(literal))}
   if(q.has('ava->journey->>id'))rows=rows.filter(r=>r.ava.journey.id===q.get('ava->journey->>id').slice(3));
   rows.sort((a,b)=>b.ts-a.ts||b.id.localeCompare(a.id));const total=rows.length,offset=+(q.get('offset')||0);rows=rows.slice(offset,offset+(q.get('limit')||100));
