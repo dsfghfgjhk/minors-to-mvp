@@ -3368,10 +3368,11 @@ function bbRunArrival(r){if(r.legs?.length)return r.legs.at(-1).end;return r.sta
 function bbPlaySnapshot(G){return{pa:{...G.pa},my:G.my,op:G.op,ms:{...G.ms},msT:{...G.msT}}}
 function bbPlayRestore(G,s){Object.assign(G.pa,s.pa);G.my=s.my;G.op=s.op;Object.assign(G.ms,s.ms);Object.assign(G.msT,s.msT)}
 // 송구 속도(m/s)는 거리와 포지션별로 공유해 예상과 실제 도착 시간이 일치한다.
+function bbFirstBaseTime(spd=50){return clamp(3.95-((spd||50)-50)*.014,3.35,4.65)}
 function bbThrowSpeed(by,distance,carry=false){return carry?6.5:distance<=12?10:OFK.includes(by)?22:21}
 function bbPlan(G,bb){
   if(!bb||bb.k==='F'||bb.k==='HR')return null;
-  const before=G.pa.out,on=G.pa.on,baseLen=27.4,batSpeed=baseLen/clamp(4.3-(((G.mode==='bat'?S.stats.spd:50)||50)-50)*.016,3.5,5.1);
+  const before=G.pa.out,on=G.pa.on,baseLen=27.4,batSpeed=baseLen/bbFirstBaseTime(G.mode==='bat'?S.stats.spd:50);
   const play={events:[],throws:[],runners:[],fielder:bb.fielder,catchAt:bb.tf,at:bb.at,pts:null,k:bb.k,outs:0,runs:0,on:'',text:'',end:0};
   if(bb.ground){play.pts=bb.ground.path;play.catchAt=bb.tf;play.at=bb.at}
   else if(bb.fly){const f=bbFly(bb.ev,bb.la,bb.sp,true,bb.height??.95);play.pts=f.path;
@@ -3383,7 +3384,7 @@ function bbPlan(G,bb){
   }
   if(!play.at||!Number.isFinite(play.catchAt))return null;
   const caught=['FO','LO'].includes(bb.k),runners=play.runners,caution=G.runningMemory?.caution??.3;
-  for(const b of on.split('').map(Number))runners.push({from:b,to:b,start:.18,speed:6.6,bat:false});
+  for(const b of on.split('').map(Number))runners.push({from:b,to:b,start:.18,speed:7.1,bat:false});
   if(before<2&&!bb.ground)for(const r of runners)bbRunnerFlyRead(r,bb,play,caution);
   const batter={from:0,to:1,start:.24,speed:batSpeed,bat:true};runners.push(batter);
   if(!caught)for(const r of runners){const forced=r.bat||r.from===1||r.from===2&&on.includes('1')||r.from===3&&on.includes('1')&&on.includes('2');if(forced){r.forceBase=r.from+1;r.forceAt=bb.ground?0:Math.max(.18,bb.fly.t)}}
@@ -3532,6 +3533,12 @@ function bbPlan(G,bb){
     if(third&&time>=third.t)continue;
     if(r.to===4){if(!bbRunCounts(third,time))continue;play.runs++;play.events.push({t:time,kind:'run',from:r.from,bat:r.bat,base:4})}
     else {play.on+=r.to;play.events.push({t:time,kind:'safe',from:r.from,bat:r.bat,base:r.to})}
+  }
+  // 최초 타구 예상이 아니라 타자 주자가 실제 확보한 베이스로 장타를 기록한다.
+  if(!caught&&!bb.ground&&['1B','2B','3B'].includes(play.k)){
+    const nominal={'1B':1,'2B':2,'3B':3}[play.k];
+    const secured=batter.out||third?Math.floor(bbRunnerProgress(batter,Math.min(batter.retireAt??Infinity,third?.t??Infinity))+.00001):batter.to;
+    play.k=secured<1?'GO':['1B','2B','3B'][Math.min(nominal,secured,3)-1];
   }
   play.on=[...new Set(play.on)].sort().join('');
   // 공을 다루지 않는 수비수도 베이스 커버와 후방 백업에 참여한다.
@@ -3781,7 +3788,7 @@ function pgFieldMake(G){
   }
   for(const from of G.pa.on.split('').map(Number).concat(0)){
     const bat=from===0,forced=bat||from===1||from===2&&G.pa.on.includes('1')||from===3&&G.pa.on.includes('1')&&G.pa.on.includes('2');
-    const r={from,to:from,bat,start:bat?.24:.16,speed:bat?6.5:6.6};
+    const r={from,to:from,bat,start:bat?.24:.16,speed:bat?27.4/bbFirstBaseTime(50):7.1};
     if(of){
       if(bat){r.to=.94;bbRunnerLeg(r,.94,.24,'run')}
       else {bbRunnerLeg(r,from+.045,.18,'run');r.to=from;r.decision='hold'}
@@ -4295,7 +4302,8 @@ function p3Pose(p,P,k=1){
   const gy=p.getWorldPosition(_iw).y;
   for(const lg of [u.LL,u.LR]){const ft=lg.ft;ft.getWorldPosition(_ia);if(_ia.y-gy>.16)continue;
     lg.kn.getWorldQuaternion(_iq);_ib.set(0,0,1).applyQuaternion(_iq);const yaw=Math.atan2(_ib.x,_ib.z);
-    _ic.set(0,1,0);ft.quaternion.copy(_iq.invert().multiply(new THREE.Quaternion().setFromAxisAngle(_ic,yaw)));}
+    _ic.set(0,1,0);ft.quaternion.copy(_iq.invert().multiply(new THREE.Quaternion().setFromAxisAngle(_ic,yaw)));
+    const side=lg===u.LL?'L':'R';if(P['foot'+side])ft.rotateX(clamp(P['ft'+side]?.[0]||0,-.2,.25));}
 }
 /* Hermite 보간: 키 사이를 끊김 없이 부드럽게 이어요 */
 function kfPose(K,t){
@@ -4323,12 +4331,13 @@ function runPose(ph,amt=1,accel=0,brake=0){
     if(q<.42)return[x,.05,span*(1-2*q/.42)];
     const u=(q-.42)/.58,e=u*u*(3-2*u);return[x,.05+(.12+.12*amt)*Math.sin(Math.PI*u),-span+2*span*e];
   };
-  const s=Math.sin(ph),c=Math.cos(ph),lean=.12+.12*amt+.09*accel-.12*brake;
-  return{hy:.79+.012*Math.cos(ph*2),hips:[.015,.09*s,.02*c],spine:[lean,-.07*s,.02*c],
-    chest:[.018,-.10*s,-.02*c],head:[-lean*.75,.08*s,0],
+  const s=Math.sin(ph),c=Math.cos(ph),lean=.10+.10*amt+.13*accel-.14*brake;
+  const ankle=q=>{q=(q+1)%1;return q<.42?-.2+.55*q/.42:.08+.27*Math.cos(Math.PI*(q-.42)/.58)};
+  return{hy:.80+.02*Math.cos(ph*2),bx:.012*s*amt,hips:[.015,.10*c,.025*s],spine:[lean,-.06*c,.015*s],
+    chest:[.018,-.12*c,-.025*s],head:[-lean*.8,.08*c,-.012*s],
     footL:foot(phase,.105),footR:foot(phase+.5,-.105),
-    thL:[0,0,.02],knL:[.25,0,0],ftL:[0,0,0],thR:[0,0,-.02],knR:[.25,0,0],ftR:[0,0,0],
-    shL:[.72*s*amt,0,.1],elL:[-1.35-.12*c,0,0],shR:[-.72*s*amt,0,-.1],elR:[-1.35+.12*c,0,0],wrL:[.08,.9,0],wrR:[.08,-.9,0]};
+    thL:[0,0,.02],knL:[.25,0,0],ftL:[ankle(phase)*amt,0,0],thR:[0,0,-.02],knR:[.25,0,0],ftR:[ankle(phase+.5)*amt,0,0],
+    shL:[.68*c*amt,.035*s,.08],elL:[-1.25-.18*c*amt,0,0],shR:[-.68*c*amt,-.035*s,-.08],elR:[-1.25+.18*c*amt,0,0],wrL:[.04,.18,0],wrR:[.04,-.18,0]};
 }
 /* 투구: 세트 → 키킹 → 스트라이드 → 레이백 → 릴리스 → 팔로스루 → 수비 자세 (우투 기준, +z=홈 쪽) */
 const PITK=[
@@ -4431,7 +4440,7 @@ function p3Run(p,ph,amt,context={}){
   u.runLast={x:p.position.x,z:p.position.z};
   const old=u.runSpeed||0,accel=clamp((speed-old)/dt/8,-1,1);
   u.runSpeed=old+(speed-old)*p3Ease(9);
-  u.runAmount=(u.runAmount??amt)+(ratio-(u.runAmount??amt))*p3Ease(12);
+  u.runAmount=(u.runAmount??0)+(ratio-(u.runAmount??0))*p3Ease(12);
   u.runState=context.brake?'brake':Math.abs(u.turnLean||0)>.07?'turn':accel>.3?'start':'sprint';
   p3Pose(p,runPose(u.runPhase,clamp(u.runAmount,0,1),Math.max(0,accel),context.brake?1:Math.max(0,-accel)),p3Ease(24));
   u.body.rotation.z+=((u.turnLean||0)-u.body.rotation.z)*p3Ease(12);
@@ -4598,12 +4607,13 @@ function p3MakeBB(G,res,ob){
     before.forEach(b=>{let to=b;if(sc>0){to=4;sc--}else if(after.length)to=Math.max(b,after.shift());if(out&&!res.runs)to=b;A.runners.push({from:b,to})});
     // 판정에 쓰는 홈→1루 소요 시간과 화면의 주루 속도를 맞춘다.
     const speedStat=G.mode==='bat'?S.stats.spd:50;
-    const firstTime=clamp(4.3-((speedStat||50)-50)*.016,3.5,5.1);
+    const firstTime=bbFirstBaseTime(speedStat);
     const retireAt=out?(A.thr?A.thr.t0+A.thr.dur:A.fT):null;
     const runTime=res.k==='GO'&&retireAt!=null?Math.max(firstTime,retireAt):firstTime;
-    A.runners.forEach(r=>r.speed=27.4/firstTime);
-    A.runners.push({from:0,to:bDest,bat:true,out,speed:27.4/runTime,retireAt});
+    A.runners.forEach(r=>{r.speed=27.4/firstTime;r.start=.1});
+    A.runners.push({from:0,to:bDest,bat:true,start:.35,out,speed:27.4/runTime,retireAt});
     if(retireAt!=null)A.dur=Math.max(A.dur,retireAt+.65);
+    for(const r of A.runners)if(!r.out&&!A.hr)A.dur=Math.max(A.dur,bbRunArrival(r)+.65);
   }
   return A;
 }
@@ -4852,7 +4862,7 @@ function p3Frame(G,now,dt){
       A.runners.forEach(fig=>fig.visible=false);
       if(A.batter.visible&&t>.35){A.batter.userData.batPivot.visible=false}
       B.runners.forEach(r=>{const fig=r.bat?A.batter:A.runners[r.from-1];if(!fig)return;
-        const sp=r.speed||6.4, f=Math.min(r.to,r.from+Math.max(0,t-(r.bat?.35:.1))*sp/27.4), lim=B.play?bbRunnerProgress(r,Math.min(t,r.retireAt??B.play.thirdAt??t)):f, [x,z]=B.play?bbRunnerRenderPoint(r,t,B.play):p3BasePt(lim);
+        const sp=r.speed||6.4, f=bbRunnerProgress({...r,speed:sp,start:r.start??(r.bat?.35:.1)},t), lim=B.play?bbRunnerProgress(r,Math.min(t,r.retireAt??B.play.thirdAt??t)):f, [x,z]=B.play?bbRunnerRenderPoint(r,t,B.play):p3BasePt(lim);
         fig.visible=!(r.to===4&&lim>=4)&&!(r.out&&t>(r.retireAt!=null?r.retireAt+.18:B.dur-.6));fig.position.set(-x,0,z);
         const next=B.play?bbRunnerProgress(r,Math.min(t+.04,r.retireAt??B.play.thirdAt??(t+.04))):Math.min(r.to,lim+.05);
         const [nx,nz]=B.play?bbRunnerRenderPoint(r,t+.04,B.play):p3BasePt(next);
@@ -5039,6 +5049,7 @@ function p3Post(G,res,now,ob){
 /* 타구 결과가 3D 화면에서 확정되는 순간(포구·1루 송구 도착·낙구·펜스 통과)까지 자막을 숨겨요 */
 function p3RevealT(B,bb){
   if(B.play)return B.dur-.35;
+  if(['1B','2B','3B'].includes(B.k)){const batter=B.runners?.find(r=>r.bat&&!r.out);if(batter)return Math.max(bbRunArrival(batter),B.fT||0)}
   if(B.hr)return B.crossT||1;
   if(B.thr)return B.thr.t0+B.thr.dur;
   if(B.k==='FO'||B.k==='LO'||B.k==='GO')return B.fT||1;

@@ -13,13 +13,13 @@ for(const ev of [140,160,180,190])for(const la of [30,45,60])for(const sp of [-4
  const bb=bbResolve(ev,la,sp,99);if(!['1B','2B','3B'].includes(bb.k))continue;
  const p=bbPlan({mode:'bat',pa:{on:'1',out:0}},bb),b=p.runners.find(r=>r.bat);
  if(b.decision==='follow'){
-  following++;if(b.speed>6.6||bbRunnerProgress(b,bb.fly.t+.17)>=1)throw Error('batter overtakes waiting runner');
+  following++;if(b.speed>p.runners.find(r=>r.from===1).speed||bbRunnerProgress(b,bb.fly.t+.17)>=1)throw Error('batter overtakes waiting runner');
  }
 }
 // A catchable-looking ball is dropped: the trailing batter must still wait for the lead runner.
 {const bb={k:'1B',ev:145,la:40,sp:0,fielder:'CF',fly:{x:0,z:100,dist:100,t:6}};
  const p=bbPlan({mode:'bat',pa:{on:'1',out:0}},bb),b=p.runners.find(r=>r.bat);
- if(b.decision!=='follow'||b.speed>6.6||bbRunnerProgress(b,6.17)>=1)throw Error('batter passes lead runner on dropped fly');following++;
+ if(b.decision!=='follow'||b.speed>p.runners.find(r=>r.from===1).speed||bbRunnerProgress(b,6.17)>=1)throw Error('batter passes lead runner on dropped fly');following++;
 }
 if(!following)throw Error('waiting for uncertain lead runner never exercised');
 const run={from:0,to:1,start:.24,speed:6.5,bat:true},end=bbRunArrival(run),base=p3BasePt(1),point=bbRunnerRenderPoint(run,end+.5,{});
