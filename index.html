@@ -2059,7 +2059,7 @@ function finishSeason(){
 /* 생성 이후의 공개 성장 기록. careers의 기존 JSONB 필드를 확장하고 INSERT만 사용한다. */
 const JR_KEY='b2mvp_journeys_v1',JR_KIND='journey';
 const JR={local:null,busy:false,timer:null,retry:0};
-const JR_RETIRED='&or=(ava->>kind.is.null,ava->>kind.neq.journey)';
+const JR_RETIRED='&id=not.like.j-*';
 function jrValid(j){
   const obj=x=>x&&typeof x==='object'&&!Array.isArray(x),num=Number.isFinite,stats=x=>obj(x)&&Object.entries(x).every(([k,v])=>SN[k]&&num(v));
   return !!(obj(j)&&j.v===1&&typeof j.id==='string'&&/^p-[a-z0-9-]{6,78}$/.test(j.id)&&typeof j.name==='string'&&SUBPOS[j.pos]&&typeof j.team==='string'&&typeof j.hand==='string'&&typeof j.style==='string'

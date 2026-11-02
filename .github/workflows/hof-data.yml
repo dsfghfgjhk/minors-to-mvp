@@ -19,7 +19,7 @@ jobs:
         run: |
           DAY=$(TZ=Asia/Seoul date +%F)
           curl -sSf -D head.txt -H "apikey: $KEY" -H "Prefer: count=exact" \
-            "$URL?select=name,pos,ovr,mvp,aw,war,ava,col,team,day&or=(ava-%3E%3Ekind.is.null,ava-%3E%3Ekind.neq.journey)&day=eq.$DAY&order=mvp.desc,aw.desc,ovr.desc,war.desc,ts.asc&limit=3" -o top.json
+            "$URL?select=name,pos,ovr,mvp,aw,war,ava,col,team,day&id=not.like.j-*&day=eq.$DAY&order=mvp.desc,aw.desc,ovr.desc,war.desc,ts.asc&limit=3" -o top.json
           COUNT=$(grep -i '^content-range' head.txt | sed 's#.*/##' | tr -d '\r ')
           # 오늘 새로 만든 선수 수 (starts 표). 표가 없거나 실패해도 위 TOP 3 저장은 계속해요.
           SCODE=$(curl -sS -D shead.txt -o /dev/null -w '%{http_code}' -H "apikey: $KEY" -H "Prefer: count=exact" "${URL%/careers}/starts?select=id&day=eq.$DAY&limit=1" || true)

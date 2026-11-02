@@ -2,15 +2,18 @@
 import concurrent.futures, datetime, json, os, urllib.request, urllib.error
 BASE='https://xdoumdgrsbnmktpcvgxd.supabase.co/rest/v1/'
 KEY='sb_publishable_QCL89LDJdRqOf6FOYoRvtw_62zXa0yL'
-RETIRED='&or=(ava-%3E%3Ekind.is.null,ava-%3E%3Ekind.neq.journey)'
+RETIRED='&id=not.like.j-*'
 now=datetime.datetime.now(datetime.timezone.utc)
 day=(now+datetime.timedelta(hours=9)).date()
 days=[str(day-datetime.timedelta(days=i)) for i in range(13,-1,-1)]
 def request(path,count=False):
     req=urllib.request.Request(BASE+path,headers={'apikey':KEY,**({'Prefer':'count=exact'} if count else {})},method='HEAD' if count else 'GET')
-    with urllib.request.urlopen(req,timeout=15) as r:
-        if count:return int(r.headers['content-range'].split('/')[-1])
-        return json.load(r)
+    try:
+        with urllib.request.urlopen(req,timeout=15) as r:
+            if count:return int(r.headers['content-range'].split('/')[-1])
+            return json.load(r)
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(str(e.code)+' '+e.read().decode('utf-8','replace')[:1000]) from e
 def rows(path):
     out=[];off=0
     while True:

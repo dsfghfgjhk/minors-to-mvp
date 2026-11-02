@@ -104,7 +104,7 @@ const POS={SP:'선발투수',RP:'구원투수',C:'포수','1B':'1루수','2B':'2
 const kday=(off=0)=>new Date(Date.now()+9*3600e3-off*864e5).toISOString().slice(0,10);
 const $=id=>document.getElementById(id);
 const fmt=n=>n==null?'–':n.toLocaleString('ko-KR');
-const RETIRED='&or=(ava->>kind.is.null,ava->>kind.neq.journey)';
+const RETIRED='&id=not.like.j-*';
 const SNAPSHOT='https://raw.githubusercontent.com/dsfghfgjhk/minors-to-mvp/stats-data/data/stats/latest.json';
 async function get(url,options={}){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
