@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /reels/
 
 Sitemap: https://minors2mvp.pages.dev/sitemap.xml
