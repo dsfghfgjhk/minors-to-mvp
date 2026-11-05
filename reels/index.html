@@ -71,8 +71,8 @@ function render(){
   const todo=rows.filter(r=>!r.posted).sort((a,b)=>b.n-a.n),done=rows.filter(r=>r.posted).sort((a,b)=>(b.postedAt||0)-(a.postedAt||0)||b.n-a.n);
   $('c-todo').textContent=todo.length;$('c-done').textContent=done.length;
   $('tab-todo').setAttribute('aria-selected',tab==='todo');$('tab-done').setAttribute('aria-selected',tab==='done');
-  const list=tab==='todo'?todo:done,g=$('grid');g.textContent='';
-  if(!list.length){const e=document.createElement('div');e.className='empty';e.textContent=tab==='todo'?'다 올렸어요! 새 릴스가 생기면 여기에 떠요.':'아직 올린 릴스가 없어요. 올린 뒤 "올렸어요"를 누르면 여기로 와요.';g.appendChild(e);return}
+  const list=tab==='todo'?todo:done,g=$('grid');const keepY=window.scrollY,keepH=g.offsetHeight;g.style.minHeight=keepH+'px';g.textContent='';
+  if(!list.length){const e=document.createElement('div');e.className='empty';e.textContent=tab==='todo'?'다 올렸어요! 새 릴스가 생기면 여기에 떠요.':'아직 올린 릴스가 없어요. 올린 뒤 "올렸어요"를 누르면 여기로 와요.';g.appendChild(e);g.style.minHeight='';return}
   for(const r of list){
     const c=document.createElement('article');c.className='card';
     const v=document.createElement('div');v.className='vid';
@@ -90,8 +90,9 @@ function render(){
     if(!r.posted){const bp=mk('올렸어요 ✓',()=>{st[r.n]=Date.now();persist();render();toast('올린 릴스로 옮겼어요')});bp.classList.add('main');row2.append(bp)}
     else{const w=document.createElement('span');w.className='when';w.textContent=r.postedAt?fmt(r.postedAt):'이미 올린 릴스';bd.append(w);row2.append(mk('올릴 목록으로 되돌리기',()=>{st[r.n]=0;persist();render();toast('올릴 목록으로 되돌렸어요')}))}
     bd.append(row2);c.appendChild(bd);g.appendChild(c)}
+  g.style.minHeight='';window.scrollTo(0,keepY)
 }
-$('tab-todo').onclick=()=>{tab='todo';history.replaceState(null,'','#todo');render()};
-$('tab-done').onclick=()=>{tab='done';history.replaceState(null,'','#done');render()};
+$('tab-todo').onclick=()=>{tab='todo';history.replaceState(null,'','#todo');render();window.scrollTo(0,0)};
+$('tab-done').onclick=()=>{tab='done';history.replaceState(null,'','#done');render();window.scrollTo(0,0)};
 render();
 </script></body></html>
