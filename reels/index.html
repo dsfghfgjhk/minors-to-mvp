@@ -83,14 +83,22 @@ function render(){
     const p=document.createElement('p');p.className='cap';p.textContent=r.caption;
     const t=document.createElement('p');t.className='tags';t.textContent=r.tags;bd.append(h,p,t);
     const row=document.createElement('div');row.className='row';
-    const b1=mk('제목 복사',()=>copy(r.title,'제목',b1));const b2=mk('캡션+해시태그 복사',()=>copy(r.caption+'\n\n'+r.tags,'캡션',b2));
-    const fn='릴스_'+String(r.n).padStart(2,'0')+'.mp4';const a=mk('영상 저장',async()=>{a.textContent='불러오는 중…';a.disabled=true;
-      try{const bl=await (await fetch(r.v)).blob(),f=new File([bl],fn,{type:'video/mp4'});
-        if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f]});toast('저장 창에서 비디오 저장을 눌러줘')}catch(e){if(e.name!=='AbortError')throw e}}
-        else{const u=URL.createObjectURL(bl),l=document.createElement('a');l.href=u;l.download=fn;document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);toast('다운로드 폴더에 저장했어요')}
+    const b1=mk('제목 복사',()=>copy(r.title,'제목',b1));const b2=mk('글만 복사',()=>copy(r.title+'\n\n'+r.caption+'\n\n'+r.tags,'제목·캡션·해시태그',b2));
+    const fn='릴스_'+String(r.n).padStart(2,'0')+'.mp4';let cache=null;
+    const all=r.title+'\n\n'+r.caption+'\n\n'+r.tags;
+    const a=mk('영상 저장 + 전체 복사',async()=>{
+      // 사용자 터치 직후 가장 먼저 복사(제목+캡션+해시태그 한번에)
+      let cp=false;try{await navigator.clipboard.writeText(all);cp=true}catch(e){try{const ta=document.createElement('textarea');ta.value=all;document.body.appendChild(ta);ta.select();cp=document.execCommand('copy');ta.remove()}catch(_){}}
+      a.disabled=true;a.textContent='불러오는 중…';
+      try{
+        if(!cache){const bl=await (await fetch(r.v)).blob();cache=new File([bl],fn,{type:'video/mp4'})}
+        if(navigator.canShare&&navigator.canShare({files:[cache]})){
+          try{await navigator.share({files:[cache]});toast((cp?'글 복사됨 · ':'')+'비디오 저장을 눌러줘')}
+          catch(e){if(e.name==='NotAllowedError'){a.textContent='저장 창 열기 (한 번 더)';a.disabled=false;toast(cp?'글 복사됨 · 한 번 더 눌러줘':'한 번 더 눌러줘');return}else if(e.name!=='AbortError')throw e}
+        }else{const u=URL.createObjectURL(cache),l=document.createElement('a');l.href=u;l.download=fn;document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);toast((cp?'글 복사됨 · ':'')+'다운로드 폴더에 저장했어요')}
       }catch(e){window.open(r.v,'_blank')}
-      a.textContent='영상 저장';a.disabled=false});
-    row.append(b1,b2,a);bd.append(row);
+      a.textContent='영상 저장 + 전체 복사';a.disabled=false});
+    row.append(a,b1,b2);bd.append(row);
     const row2=document.createElement('div');row2.className='row';
     if(!r.posted){const bp=mk('올렸어요 ✓',()=>{st[r.n]=Date.now();persist();render();toast('올린 릴스로 옮겼어요')});bp.classList.add('main');row2.append(bp)}
     else{const w=document.createElement('span');w.className='when';w.textContent=r.postedAt?fmt(r.postedAt):'이미 올린 릴스';bd.append(w);row2.append(mk('올릴 목록으로 되돌리기',()=>{st[r.n]=0;persist();render();toast('올릴 목록으로 되돌렸어요')}))}
