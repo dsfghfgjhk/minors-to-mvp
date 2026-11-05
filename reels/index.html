@@ -84,7 +84,12 @@ function render(){
     const t=document.createElement('p');t.className='tags';t.textContent=r.tags;bd.append(h,p,t);
     const row=document.createElement('div');row.className='row';
     const b1=mk('제목 복사',()=>copy(r.title,'제목',b1));const b2=mk('캡션+해시태그 복사',()=>copy(r.caption+'\n\n'+r.tags,'캡션',b2));
-    const a=document.createElement('a');a.className='btn';a.href=r.v;a.download='릴스_'+String(r.n).padStart(2,'0')+'.mp4';a.textContent='영상 저장';a.style.textAlign='center';a.style.textDecoration='none';
+    const fn='릴스_'+String(r.n).padStart(2,'0')+'.mp4';const a=mk('영상 저장',async()=>{a.textContent='불러오는 중…';a.disabled=true;
+      try{const bl=await (await fetch(r.v)).blob(),f=new File([bl],fn,{type:'video/mp4'});
+        if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f]});toast('저장 창에서 비디오 저장을 눌러줘')}catch(e){if(e.name!=='AbortError')throw e}}
+        else{const u=URL.createObjectURL(bl),l=document.createElement('a');l.href=u;l.download=fn;document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);toast('다운로드 폴더에 저장했어요')}
+      }catch(e){window.open(r.v,'_blank')}
+      a.textContent='영상 저장';a.disabled=false});
     row.append(b1,b2,a);bd.append(row);
     const row2=document.createElement('div');row2.className='row';
     if(!r.posted){const bp=mk('올렸어요 ✓',()=>{st[r.n]=Date.now();persist();render();toast('올린 릴스로 옮겼어요')});bp.classList.add('main');row2.append(bp)}
