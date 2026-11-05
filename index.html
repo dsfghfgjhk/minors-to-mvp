@@ -3265,6 +3265,7 @@ function bbSurfacePath(start,velocity,wall=false){
     if(y<radius){y=radius;vy=Math.abs(vy)>.45?-vy*(dirt?.38:.31):0;if(vy<.45)vy=0;vx*=.96;vz*=.96;bounced=true}
     const angle=Math.atan2(x,z)*180/Math.PI,r=Math.hypot(x,z),fence=fenceR(angle)-.06;
     if(Math.abs(angle)<=45&&r>fence&&y<3.1){const nx=x/r,nz=z/r,dot=vx*nx+vz*nz;x=nx*fence;z=nz*fence;if(dot>0){vx-=1.35*dot*nx;vz-=1.35*dot*nz}}
+    else if(Math.abs(angle)>45&&z>-2){const wall=bowlR(angle)-.06;if(r>wall&&y<1.3){const nx=x/r,nz=z/r,dot=vx*nx+vz*nz;x=nx*wall;z=nz*wall;if(dot>0){vx-=1.4*dot*nx;vz-=1.4*dot*nz;vx*=.8;vz*=.8}}}
     pts.push([t,x,y,z,bounced]);if(rolling&&Math.hypot(vx,vz)<.025)break;
   }
   return pts;
@@ -3408,11 +3409,13 @@ function bbPlan(G,bb){
   if(!caught)for(const r of runners){const forced=r.bat||r.from===1||r.from===2&&on.includes('1')||r.from===3&&on.includes('1')&&on.includes('2');if(forced){r.forceBase=r.from+1;r.forceAt=bb.ground?0:Math.max(.18,bb.fly.t)}}
   const pos3=([x,z],y=1.15)=>[x,y,z];
   const throwTo=(from,to,t0,by,receiver,base)=>{
-    const distance=Math.hypot(to[0]-from[0],to[2]-from[2]),carry=by===receiver,toss=!carry&&distance<=12,speed=bbThrowSpeed(by,distance,carry),dur=Math.max(.12,distance/speed);
+    const distance=Math.hypot(to[0]-from[0],to[2]-from[2]),carry=by===receiver,toss=!carry&&distance<=12,speed=bbThrowSpeed(by,distance,carry),total=Math.max(.12,distance/speed);
+    // 판정용 도착 시각은 유지하고, 화면의 공은 실제 송구 속도(시속 105~115km)로 낮게 날린다.
+    const flight=carry?total:Math.min(total,Math.max(.12,distance/(toss?15:OFK.includes(by)?31:29.5))),hold=total-flight,dur=flight;
     const prev=play.throws.filter(tr=>tr.receiver===receiver).at(-1),origin=prev?[prev.to[0],prev.to[2]]:FPOS[receiver],since=prev?prev.t0+prev.dur:0;
     const receiverReady=since+.2+Math.hypot(origin[0]-to[0],origin[1]-to[2])/6.5;
-    if(!carry)t0=Math.max(t0,receiverReady-dur,play.catchAt+(OFK.includes(by)?.55:.4));
-    const tr={from,to,t0,dur,by,receiver,base,carry,toss,speed};play.throws.push(tr);return t0+dur;
+    if(!carry)t0=Math.max(t0,receiverReady-total,play.catchAt+(OFK.includes(by)?.55:.4));
+    t0+=hold;const tr={from,to,t0,dur,by,receiver,base,carry,toss,speed,hold};play.throws.push(tr);return t0+dur;
   };
   const eventOut=(r,time,base,force)=>{if(play.outs>=3-before)return;
     // 뒤 주자가 먼저 아웃되면 앞 주자는 베이스 터치만으로 잡을 수 없다.
@@ -3887,7 +3890,7 @@ function pgFieldThrow(G,accuracy){
   const error=(1-quality)*.5,miss=error*(9+distance*.045),dx=pt[0]-carrier.x,dz=pt[1]-carrier.z,side=R()<.5?-1:1;
   const to=[pt[0]+dz/Math.max(1,distance)*miss*side,1.15,pt[1]-dx/Math.max(1,distance)*miss*side];
   const receiver=F.cover[base],ready=.2+Math.hypot(FPOS[receiver][0]-pt[0],FPOS[receiver][1]-pt[1])/6.5;
-  const speed=clamp(18+(arm-40)*.12,16,25)*(quality>.7?1:.87)*(F.dbl?1.16:1),dur=Math.max(.12,Math.hypot(to[0]-carrier.x,to[2]-carrier.z)/speed);
+  const speed=clamp(23.5+(arm-40)*.15,21.5,31)*(quality>.7?1:.87)*(F.dbl?1.12:1),dur=Math.max(.12,Math.hypot(to[0]-carrier.x,to[2]-carrier.z)/speed);
   const recovery=miss>1?Math.max(0,miss-.75)*2/6.5:0;
   const tr={base,by,receiver,from:[carrier.x,1.15,carrier.z],to,t0:Math.max(F.t+(F.dbl?.17:.24),ready-dur),dur,miss,quality,ready,recovery,done:false};
   F.throws.push(tr);F.phase='throw';F.releaseAt=tr.t0;F.vx=F.vz=0;F.moveTo=null;PG.fieldHold=null;
@@ -4470,6 +4473,16 @@ function p3Run(p,ph,amt,context={}){
   u.body.rotation.z+=((u.turnLean||0)-u.body.rotation.z)*p3Ease(12);
 }
 // 수비수는 출발과 도착 때 짧게 가감속한다. 송구 도착 시각은 유지한다.
+function p3ReachK(from,to,t,key){
+  const d=Math.hypot(to.x-from.x,to.z-from.z);if(d<.05)return 1;
+  const v=OFK.includes(key)?7.3:key==='C'||key==='P'?6:6.8,a=8.5,s=from.t+(from.t<=.01?.16:.06),avail=to.t-s;
+  const full=d>=v*v/a,T=full?d/v+v/a:2*Math.sqrt(d/a);
+  if(T>avail)return p3MoveFraction(clamp((t-from.t)/Math.max(.001,to.t-from.t),0,1));
+  const e=clamp(t-s,0,T);let x;
+  if(full){const ta=v/a,da=v*v/(2*a);x=e<ta?.5*a*e*e:e<T-ta?da+v*(e-ta):d-.5*a*(T-e)*(T-e)}
+  else{const h=T/2;x=e<h?.5*a*e*e:d-.5*a*(T-e)*(T-e)}
+  return clamp(x/d,0,1);
+}
 function p3MoveFraction(k){
   const a=.12,v=1/(1-a);k=clamp(k,0,1);
   return k<a?.5*v*k*k/a:k>1-a?1-.5*v*(1-k)*(1-k)/a:v*(k-a/2);
@@ -4481,6 +4494,12 @@ function bbSlideNeeded(play,r){
 }
 function bbRunnerRenderPoint(r,t,play){
   const time=Math.min(t,r.retireAt??play?.thirdAt??t),progress=bbRunnerProgress(r,time),point=p3BasePt(progress);
+  // 베이스를 지나쳐 계속 달릴 때는 직각으로 꺾지 않고 바깥으로 둥글게 돈다.
+  const goal=Math.max(r.to??0,...(r.legs||[]).map(l=>l.to)),i=Math.round(progress),dp=progress-i;
+  if(i>=1&&i<=3&&goal>i+.2&&Math.abs(dp+.07)<.11&&!r.legs?.some(l=>l.to<l.from)){
+    const w=1-((dp+.07)/.11)**2,m=1.25*w*w,b=BASEP[i],ox=b[0],oz=b[1]-19.4,L=Math.hypot(ox,oz)||1;
+    point[0]+=ox/L*m;point[1]+=oz/L*m;
+  }
   // 타자 주자는 안전한 1루에서 멈추지 않고 파울 쪽으로 짧게 주루한다.
   if(r.bat&&!r.out&&r.to===1&&!play?.thirdAt&&t>bbRunArrival(r)){
     const extra=2.2*(1-Math.exp(-(t-bbRunArrival(r))*r.speed/2.2));
@@ -4610,15 +4629,16 @@ function p3MakeBB(G,res,ob){
   if(bb.play){const p=bb.play;return{t:0,k:res.k,play:p,pts:p.pts,fielder:p.fielder,fAt:p.at,fT:p.catchAt,throws:p.throws,runners:p.runners,hr:false,foul:false,dur:p.end,eventIndex:0}}
   const A={t:0,k:res.k,pts:[],hr:res.k==='HR',fielder:bb.fielder,fT:null,fAt:null,thr:null,runners:[],dur:2.2,foul:res.k==='F'};
   if(bb.ground){
-    const {v0,dec,dir}=bb.ground, tStop=v0/dec, tEnd=bb.at?bb.tf:Math.min(tStop,3.4), sAt=t=>t<tStop?v0*t-.5*dec*t*t:v0*tStop/2;
-    for(let t=0;t<=tEnd+.001;t+=.04){const s=sAt(t)+.6;A.pts.push([t,dir[0]*s,.04+Math.abs(Math.sin(t*10))*Math.max(0,.6-t*.35),dir[1]*s])}
+    if(bb.ground.path){const tEnd=bb.at?bb.tf:3.4;A.pts=bb.ground.path.filter(p=>p[0]<=tEnd+.001)}
+    else{const {v0,dec,dir}=bb.ground, tStop=v0/dec, tEnd=bb.at?bb.tf:Math.min(tStop,3.4), sAt=t=>t<tStop?v0*t-.5*dec*t*t:v0*tStop/2;
+    for(let t=0;t<=tEnd+.001;t+=.04){const s=sAt(t)+.6;A.pts.push([t,dir[0]*s,.037,dir[1]*s])}}
     if(bb.at){A.fT=bb.tf;A.fAt=bb.at;A.thr={t0:bb.tf+.3,dur:Math.hypot(bb.at[0]-19.4,bb.at[1]-19.4)/30+.15,to:[19.4,1.2,19.4]}}
     else{const L=A.pts[A.pts.length-1];A.fT=tEnd+.5;A.fAt=[L[1],L[3]]}
   }else if(bb.fly){
     const f=bbFly(bb.ev,bb.la,bb.sp,true,bb.height??.95);A.pts=f.path;
     if(res.k==='FO'||res.k==='LO'){const T=bb.fly.t;A.pts=A.pts.filter(p=>p[0]<=T);A.fT=T;A.fAt=[bb.fly.x,bb.fly.z]}
-    else if(!A.hr){const L=A.pts[A.pts.length-1];let [t,x,y,z]=L,vx=f.vx*.45,vz=f.vz*.45;
-      for(let i=0;i<40;i++){t+=.04;x+=vx*.04;z+=vz*.04;vx*=.93;vz*=.93;const r=Math.hypot(x,z),ang=Math.atan2(x,z)*180/Math.PI;if(Math.abs(ang)<45&&r>fenceR(ang)-1)break;A.pts.push([t,x,.04+Math.abs(Math.sin(t*8))*Math.max(0,.8-i*.03),z])}
+    else if(!A.hr){const L=A.pts[A.pts.length-1],roll=bbSurfacePath([f.tEnd,f.x,f.y,f.z],[f.vx,f.vy,f.vz],f.wall);
+      A.pts=A.pts.filter(p=>p[0]<f.tEnd).concat(roll.filter(p=>p[0]<=f.tEnd+2.6));
       const E=A.pts[A.pts.length-1];A.fT=E[0]+.4;A.fAt=[E[1],E[3]]}
     if(A.hr){A.crossT=bb.fly.t}
   }else return null;
@@ -4664,13 +4684,16 @@ function p3LiveDefense(B,t,dt){
   for(const key of FKEYS){const fig=key==='P'?A.pitcher:key==='C'?A.catcher:A.f[key];if(!fig)continue;
     const points=way[key].sort((a,b)=>a.t-b.t);let from=points[0],to=null;
     for(let i=1;i<points.length;i++){if(t<points[i].t){to=points[i];break}from=points[i]}
-    const fraction=to?clamp((t-from.t)/Math.max(.001,to.t-from.t),0,1):1,k=to?.carry?fraction:p3MoveFraction(fraction),x=to?from.x+(to.x-from.x)*k:from.x,z=to?from.z+(to.z-from.z)*k:from.z;
+    const fraction=to?clamp((t-from.t)/Math.max(.001,to.t-from.t),0,1):1,k=to?.carry?fraction:to?p3ReachK(from,to,t,key):1,x=to?from.x+(to.x-from.x)*k:from.x,z=to?from.z+(to.z-from.z)*k:from.z;
     fig.visible=true;fig.position.set(-x,key==='P'&&t<.25?.25*(1-t/.25):0,z);
     const throwing=p.throws.find(tr=>!tr.carry&&tr.by===key&&t>=tr.t0-.22&&t<=tr.t0+.22);
+    const holding=!throwing&&p.throws.find(tr=>!tr.carry&&tr.by===key&&tr.hold>.05&&t>=tr.t0-tr.hold&&t<tr.t0-.22&&t>p.catchAt+.2);
     const receiving=p.throws.find(tr=>tr.receiver===key&&t>=tr.t0&&t<=tr.t0+tr.dur+.25);
     const tagging=p.events.find(e=>e.kind==='out'&&!e.force&&e.base>0&&Math.abs(e.t-t)<.3&&p.throws.some(tr=>tr.receiver===key&&tr.base===e.base));
     if(throwing){p3Face(fig,Math.atan2(-(throwing.to[0]-x),throwing.to[2]-z));p3Pose(fig,throwing.toss?{...P_STAND,spine:[.25,0,0],shR:[-.2-1.2*clamp((t-throwing.t0+.22)/.44,0,1),0,-.15],elR:[-.4,0,0],shL:[-.3,0,.2],elL:[-.8,0,0]}:kfPose(THRK,clamp((t-throwing.t0+.22)/.44,0,1)),p3Ease(26))}
-    else if(to&&Math.hypot(to.x-x,to.z-z)>.2){p3Face(fig,Math.atan2(-(to.x-x),to.z-z));p3Run(fig,t*11,.85,{brake:to.t-t<.3})}
+    else if(holding){p3Face(fig,Math.atan2(-(holding.to[0]-x),holding.to[2]-z));p3Pose(fig,kfPose(THRK,0),p3Ease(14))}
+    else if(to&&Math.hypot(to.x-x,to.z-z)>.2){p3Face(fig,Math.atan2(-(to.x-x),to.z-z));p3Run(fig,t*11,.85,{brake:Math.hypot(to.x-x,to.z-z)<1.6})}
+    else if(key===p.fielder&&['FO','LO'].includes(p.k)&&t<p.catchAt-.45){const bp=A.ball.position;p3Face(fig,Math.atan2(bp.x+x,bp.z-z));p3Pose(fig,P_STAND,1-Math.exp(-dt*8))}
     else if(tagging)p3Pose(fig,P_SCOOP,1-Math.exp(-dt*15));
     else if(receiving)p3CatchPose(fig,A.ball.position,1-Math.exp(-dt*12));
     else if(key===p.fielder&&t<p.catchAt+.25){if(['FO','LO'].includes(p.k))p3CatchPose(fig,A.ball.position,1-Math.exp(-dt*12));else p3Pose(fig,P_SCOOP,1-Math.exp(-dt*12))}
