@@ -3790,8 +3790,9 @@ function pgFieldMake(G){
   if(of){const ang=Math.atan2(tx,tz)*180/Math.PI,lim=(Math.abs(ang)<=45?fenceR(ang):bowlR(ang))-5,rr=Math.hypot(tx,tz);if(rr>lim){tx*=lim/rr;tz*=lim/rr}if(tz<52){tz=52;tx=clamp(tx,-tz*.95,tz*.95)}}
   if(key==='C'){tx=rnd(-3.2,3.2);tz=rnd(2.2,5.8)}
   const angle=Math.atan2(tx,tz)*180/Math.PI;let path,fly=null,target,catchTime;
-  if(of){
-    const la=rnd(34,58),distance=Math.hypot(tx,tz);let low=80,high=195;
+  const pop=!of&&key!=='C'&&Math.random()<.3,fl=of||pop,dbl=Math.random()<.2;
+  if(fl){
+    const la=pop?rnd(50,70):rnd(34,58),distance=Math.hypot(tx,tz);let low=of?80:25,high=of?195:150;
     for(let n=0;n<22;n++){const mid=(low+high)/2,f=bbFly(mid,la,angle,false);if(f.dist<distance)low=mid;else high=mid}
     fly=bbFly((low+high)/2,la,angle,true);
     const cp=fly.path.find(p=>p[0]>fly.t*.55&&p[2]<=1.4)||fly.path.at(-2);target=[cp[1],cp[3]];catchTime=cp[0];
@@ -3801,7 +3802,7 @@ function pgFieldMake(G){
     const cp=path.reduce((a,b)=>Math.hypot(b[1]-tx,b[3]-tz)<Math.hypot(a[1]-tx,a[3]-tz)?b:a);
     target=[cp[1],cp[3]];catchTime=cp[0];
   }
-  const F={v:1,key,of,type:of?'fly':'ground',phase:'ready',t:-.65,x:origin[0],z:origin[1],vx:0,vz:0,path,target,catchTime,landTime:fly?.t||0,held:false,caughtAir:false,throws:[],events:[],base:of?(G.pa.on.includes('3')?4:2):G.pa.on.includes('1')&&G.pa.out<2&&key!=='1B'?2:1,before:bbPlaySnapshot(G),outsBefore:G.pa.out,cover:{},runners:[],applied:false};
+  const F={v:1,key,of,type:fl?'fly':'ground',dbl,phase:'ready',t:-.65,x:origin[0],z:origin[1],vx:0,vz:0,path,target,catchTime,landTime:fly?.t||0,held:false,caughtAir:false,throws:[],events:[],base:of?(G.pa.on.includes('3')?4:2):G.pa.on.includes('1')&&G.pa.out<2&&key!=='1B'?2:1,before:bbPlaySnapshot(G),outsBefore:G.pa.out,cover:{},runners:[],applied:false};
   const used=new Set([key]);
   for(const base of [1,2,3,4]){
     const options={1:['1B','P'],2:['2B','SS'],3:['3B','SS','P'],4:['C','P']}[base];
@@ -3810,7 +3811,7 @@ function pgFieldMake(G){
   for(const from of G.pa.on.split('').map(Number).concat(0)){
     const bat=from===0,forced=bat||from===1||from===2&&G.pa.on.includes('1')||from===3&&G.pa.on.includes('1')&&G.pa.on.includes('2');
     const r={from,to:from,bat,start:bat?.24:.16,speed:bat?27.4/bbFirstBaseTime(50):7.1};
-    if(of){
+    if(fl){
       if(bat){r.to=.94;bbRunnerLeg(r,.94,.24,'run')}
       else {bbRunnerLeg(r,from+.045,.18,'run');r.to=from;r.decision='hold'}
     }else if(forced){r.forceBase=from+1;r.forceAt=0;bbRunnerSetDestination(r,from+1,r.start)}
@@ -3827,7 +3828,7 @@ function pgSetField(G,i){
 }
 function pgFieldStart(G){
   const F=G.field;if(!F||F.phase!=='ready')return;
-  F.phase='track';G.st='fielding';G.fs.chances++;PG.an=null;PG.fieldLast=0;PG.fieldKeys={};PG.fieldJoy=null;PG.fieldHold=null;save();pgHud();
+  F.phase='track';G.st='fielding';G.fs.chances++;if(F.dbl)pgFlash('2루타 코스 타구!','good','송구를 서둘러요');PG.an=null;PG.fieldLast=0;PG.fieldKeys={};PG.fieldJoy=null;PG.fieldHold=null;save();pgHud();
 }
 function pgFieldForce(F,r,t){return r.bat||!!r.forceBase&&t<(r.forceUntil??Infinity)}
 function pgFieldOut(G,r,t,base,force,kind='throw'){
@@ -3844,7 +3845,7 @@ function pgFieldLanding(F){
   for(const r of F.runners){
     const forced=r.bat||r.from===1||r.from===2&&F.before.pa.on.includes('1')||r.from===3&&F.before.pa.on.includes('1')&&F.before.pa.on.includes('2');
     if(forced){r.forceBase=r.from+1;r.forceAt=F.landTime;}
-    bbRunnerSetDestination(r,Math.min(4,r.from+1),F.t+.12);r.decision='advance';
+    bbRunnerSetDestination(r,Math.min(4,r.from+1+(r.bat&&F.dbl&&F.of?1:0)),F.t+.12);r.decision='advance';
   }
 }
 function pgFieldCatch(G,backup=null){
@@ -3886,9 +3887,9 @@ function pgFieldThrow(G,accuracy){
   const error=(1-quality)*.5,miss=error*(9+distance*.045),dx=pt[0]-carrier.x,dz=pt[1]-carrier.z,side=R()<.5?-1:1;
   const to=[pt[0]+dz/Math.max(1,distance)*miss*side,1.15,pt[1]-dx/Math.max(1,distance)*miss*side];
   const receiver=F.cover[base],ready=.2+Math.hypot(FPOS[receiver][0]-pt[0],FPOS[receiver][1]-pt[1])/6.5;
-  const speed=clamp(18+(arm-40)*.12,16,25)*(quality>.7?1:.87),dur=Math.max(.12,Math.hypot(to[0]-carrier.x,to[2]-carrier.z)/speed);
+  const speed=clamp(18+(arm-40)*.12,16,25)*(quality>.7?1:.87)*(F.dbl?1.16:1),dur=Math.max(.12,Math.hypot(to[0]-carrier.x,to[2]-carrier.z)/speed);
   const recovery=miss>1?Math.max(0,miss-.75)*2/6.5:0;
-  const tr={base,by,receiver,from:[carrier.x,1.15,carrier.z],to,t0:Math.max(F.t+.24,ready-dur),dur,miss,quality,ready,recovery,done:false};
+  const tr={base,by,receiver,from:[carrier.x,1.15,carrier.z],to,t0:Math.max(F.t+(F.dbl?.17:.24),ready-dur),dur,miss,quality,ready,recovery,done:false};
   F.throws.push(tr);F.phase='throw';F.releaseAt=tr.t0;F.vx=F.vz=0;F.moveTo=null;PG.fieldHold=null;
   if(miss>2.3&&!F.error){F.error=true;if(!F.carrier)G.fs.errors++}
   // 포스가 아닌 주자는 송구가 먼저 오면 마지막 안전한 베이스로 돌아간다.
@@ -3966,7 +3967,7 @@ function pgFieldUpdate(G,dt,input={}){
     if(input.auto&&F.phase==='track')F.moveTo=F.chaseTarget||F.target;
     if(F.moveTo&&!dx&&!dz){const x=F.x-F.moveTo[0],z=F.moveTo[1]-F.z,d=Math.hypot(x,z);if(d>.12){dx=x/d*sign;dz=z/d*sign}else F.moveTo=null}
     else if(dx||dz)F.moveTo=null;
-    const mag=Math.hypot(dx,dz),speed=clamp(5.7+((S.stats.spd||50)-40)*.018,5.3,6.8)*(F.diveUntil>F.t?(1.05+.8*Math.max(0,(F.diveUntil-F.t)/.55)):F.getupUntil>F.t?.12:1);
+    const mag=Math.hypot(dx,dz),speed=clamp(5.7+((S.stats.spd||50)-40)*.018,5.3,6.8)*(F.diveUntil>F.t?(1.02+.35*Math.max(0,(F.diveUntil-F.t)/.4)):F.getupUntil>F.t?.12:1);
     const vx=mag?(-dx/Math.max(1,mag))*speed*sign:0,vz=mag?(dz/Math.max(1,mag))*speed*sign:0,k=1-Math.exp(-dt*11);
     F.vx+=(vx-F.vx)*k;F.vz+=(vz-F.vz)*k;F.x=clamp(F.x+F.vx*dt,-98,98);F.z=clamp(F.z+F.vz*dt,-5,123);
     const angle=Math.atan2(F.x,F.z)*180/Math.PI,radius=Math.hypot(F.x,F.z),limit=(Math.abs(angle)<=45?fenceR(angle):bowlR(angle))-.7;
@@ -4011,7 +4012,7 @@ function pgFieldQuick(G){
 }
 function pgFieldDive(G){
   const F=G?.field;if(!F||F.phase!=='track'||F.getupUntil>F.t)return;
-  F.diveUntil=F.t+.55;F.getupUntil=F.t+1.15;F.diveStart=F.t;F.moveTo=(F.chaseTarget||F.target).slice();pgFieldCatch(G);
+  F.diveUntil=F.t+.4;F.getupUntil=F.t+.9;F.diveStart=F.t;F.moveTo=(F.chaseTarget||F.target).slice();pgFieldCatch(G);
 }
 function pgFieldHudFrame(G){
   if(!HAS_DOM||G.mode!=='field')return;const F=G.field;if(!F)return;
@@ -4751,18 +4752,18 @@ function p3FieldFrame(G,now,dt){
     const fig=p3FieldActor(key);if(!fig)continue;fig.visible=true;
     if(key===F.key){
       const ox=fig.position.x,oz=fig.position.z;fig.position.set(-F.x,0,F.z);
-      const dv=F.diveStart!=null?time-F.diveStart:99,diving=dv>=0&&dv<1.15&&F.phase!=='result';
+      const dv=F.diveStart!=null?time-F.diveStart:99,diving=dv>=0&&dv<.9&&F.phase!=='result';
       if(!diving){const u0=fig.userData;u0.body.rotation.x*=1-p3Ease(25);u0.body.position.y*=1-p3Ease(25)}
       if(diving){
         // 다이빙 캐치: 도약(0~.2) → 몸을 쭉 뻗고 미끄러짐(.2~.8) → 일어남(.8~1.15)
-        const u=fig.userData,ph=dv<.2?dv/.2:dv<.8?1:1-(dv-.8)/.35,e=ph*ph*(3-2*ph);
+        const u=fig.userData,ph=dv<.15?dv/.15:dv<.55?1:1-(dv-.55)/.35,e=ph*ph*(3-2*ph);
         const dx=F.moveTo?-(F.moveTo[0]-F.x):-F.vx,dz=F.moveTo?F.moveTo[1]-F.z:F.vz;
         if(Math.hypot(dx,dz)>.05)p3Face(fig,Math.atan2(dx,dz));
-        const P_DIVE={spine:[.25,0,0],head:[-.9,0,0],thL:[.35,0,.12],knL:[.25,0,0],ftL:[.4,0,0],thR:[.5,0,-.12],knR:[.35,0,0],ftR:[.4,0,0],shL:[-2.7,0,.18],elL:[-.1,0,0],shR:[-2.7,0,-.18],elR:[-.1,0,0]};
+        const P_DIVE={spine:[.25,0,0],head:[-.9,0,0],thL:[.35,0,.12],knL:[.25,0,0],ftL:[.4,0,0],thR:[.5,0,-.12],knR:[.35,0,0],ftR:[.4,0,0],shL:[-2.2,0,.2],elL:[-.15,0,0],shR:[-2.2,0,-.2],elR:[-.1,0,0]};
         p3Pose(fig,P_DIVE,p3Ease(28));
         u.body.rotation.z+=(0-u.body.rotation.z)*p3Ease(20);
-        u.body.rotation.x+=((1.5*e)-u.body.rotation.x)*p3Ease(26);
-        u.body.position.y=Math.sin(Math.min(1,dv/.45)*Math.PI)*.35*(1-Math.max(0,(dv-.45)))+.14*e;
+        u.body.rotation.x+=((1.05*e)-u.body.rotation.x)*p3Ease(26);
+        u.body.position.y=Math.sin(Math.min(1,dv/.35)*Math.PI)*.12*(dv<.35?1:0)+.06*e;
         if(F.held&&!F.carrier&&dv>.22){const arm=u.lh?u.AL:u.AR;fig.updateMatrixWorld(true);arm.hd.getWorldPosition(A.ball.position)}
       }else if(Math.hypot(F.vx,F.vz)>.25&&['track','held'].includes(F.phase)){fig.userData.body.rotation.x*=1-p3Ease(30);fig.userData.body.position.y=0;
         p3Face(fig,Math.atan2(fig.position.x-ox,fig.position.z-oz));
